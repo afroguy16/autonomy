@@ -1,6 +1,6 @@
 import { analyze, mergeGraph, normalizeGraph, type Analysis } from "./normalize";
 import { MapScene, escapeHtml as esc, type ViewState } from "./scene";
-import { EDGE_STYLE, NODE_STYLE } from "./theme";
+import { EDGE_STYLE, NODE_STYLE, edgeCss, isDarkTheme } from "./theme";
 import { EDGE_KINDS, NODE_TYPES, type Edge, type EdgeKind, type GraphMap, type Node, type NodeType, } from "./types";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -152,7 +152,7 @@ const shape = (t: NodeType) => `<span class="shape ${t}" aria-hidden="true"></sp
 function edgeSwatch(kind: EdgeKind, w = 30) {
   const s = EDGE_STYLE[kind];
   const dash = kind === "interaction" ? 'stroke-dasharray="5 3"' : kind === "shared_topic" || kind === "bridge" ? 'stroke-dasharray="1.5 3.5" stroke-linecap="round"' : "";
-  return `<svg class="edge-swatch" width="${w}" height="8" viewBox="0 0 ${w} 8" aria-hidden="true"><line x1="1" y1="4" x2="${w - 1}" y2="4" stroke="${s.css}" stroke-width="${Math.max(1.2, s.width)}" ${dash}/></svg>`;
+  return `<svg class="edge-swatch" width="${w}" height="8" viewBox="0 0 ${w} 8" aria-hidden="true"><line x1="1" y1="4" x2="${w - 1}" y2="4" stroke="${edgeCss(kind)}" stroke-width="${Math.max(1.2, s.width)}" ${dash}/></svg>`;
 }
 
 function renderDetails() {
@@ -313,6 +313,8 @@ function commands(): Cmd[] {
   return [
     { group: "View", label: "Go to wide view", keys: "0", run: () => scene.overview() },
     { group: "View", label: scene.driftOn ? "Pause motion" : "Resume motion", run: () => setDrift(!scene.driftOn) },
+    { group: "View", label: isDarkTheme() ? "Switch to light theme" : "Switch to dark theme", run: () => setTheme(isDarkTheme() ? "light" : "dark") },
+    { group: "View", label: "Match system theme", run: () => setTheme("system") },
     { group: "View", label: "Reset view (wide view, clear selection and filters)", run: () => resetView() },
     { group: "View", label: power ? "Exit power view" : "Power view: just the map", keys: "P", run: () => setPower(!power) },
     { group: "View", label: scene.showNames ? "Hide names on the map" : "Show names on the map", run: () => toggleNames() },
@@ -500,6 +502,7 @@ function setPower(on: boolean) {
   $("exitPower").hidden = !on;
   $("resetPower").hidden = !on;
   $("driftPower").hidden = !on;
+  $("themePower").hidden = !on;
   $("btnPower").setAttribute("aria-pressed", String(on));
   if (on) { closePalette(); $("filters").hidden = true; $("list").hidden = true; }
   saveView();
@@ -526,6 +529,37 @@ function resetView() {
   announce("View reset: wide view, nothing selected, no filters.");
 }
 $("btnReset").addEventListener("click", resetView);
+
+// Theme: follows the system until you pick one; the choice is remembered.
+const THEME_KEY = "autonomy.theme";
+const SUN_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+const MOON_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
+const systemDark = window.matchMedia?.("(prefers-color-scheme: dark)");
+function themePref(): "light" | "dark" | "system" {
+  try { const v = localStorage.getItem(THEME_KEY); return v === "light" || v === "dark" ? v : "system"; } catch { return "system"; }
+}
+function applyTheme() {
+  const pref = themePref();
+  const dark = pref === "dark" || (pref === "system" && !!systemDark?.matches);
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  scene.setTheme(dark);
+  document.querySelectorAll<HTMLButtonElement>(".theme-btn").forEach((b) => {
+    const label = dark ? "Switch to light theme" : "Switch to dark theme";
+    b.innerHTML = dark ? SUN_ICON : MOON_ICON;
+    b.setAttribute("aria-label", label);
+    b.title = label;
+  });
+  renderLegend();
+  if (!$("minimapWrap").hidden) drawMinimap();
+}
+function setTheme(pref: "light" | "dark" | "system") {
+  try { if (pref === "system") localStorage.removeItem(THEME_KEY); else localStorage.setItem(THEME_KEY, pref); } catch { /* not remembered */ }
+  applyTheme();
+  announce(pref === "system" ? "Theme follows your system." : `${pref === "dark" ? "Dark" : "Light"} theme.`);
+}
+systemDark?.addEventListener?.("change", () => { if (themePref() === "system") applyTheme(); });
+$("themePower").addEventListener("click", () => setTheme(isDarkTheme() ? "light" : "dark"));
+$("themeBtn").addEventListener("click", () => setTheme(isDarkTheme() ? "light" : "dark"));
 
 // Ambient drift: the map turns slowly on its own until you touch it.
 const PAUSE_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5v14M15.5 5v14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`;
@@ -662,7 +696,7 @@ function drawMinimap() {
   const c = scene.cameraInfo;
   const px = cx + (c.pos.x - ex.center.x) * s, py = cy + (c.pos.z - ex.center.z) * s;
   const tx = cx + (c.target.x - ex.center.x) * s, ty = cy + (c.target.z - ex.center.z) * s;
-  mctx.strokeStyle = "rgba(22,24,29,.7)"; mctx.lineWidth = 1.2; mctx.setLineDash([3, 3]);
+  mctx.strokeStyle = isDarkTheme() ? "rgba(232,233,236,.7)" : "rgba(22,24,29,.7)"; mctx.lineWidth = 1.2; mctx.setLineDash([3, 3]);
   mctx.beginPath(); mctx.moveTo(px, py); mctx.lineTo(tx, ty); mctx.stroke(); mctx.setLineDash([]);
   mctx.fillStyle = "#5E6AD2"; mctx.beginPath(); mctx.arc(Math.max(4, Math.min(mini.width - 4, px)), Math.max(4, Math.min(mini.height - 4, py)), 4, 0, Math.PI * 2); mctx.fill();
   mctx.strokeStyle = "#5E6AD2"; mctx.beginPath(); mctx.arc(tx, ty, 6, 0, Math.PI * 2); mctx.stroke();
@@ -793,6 +827,7 @@ function restoreView() {
   saveView();
 }
 
+applyTheme();
 refresh();
 scene.overview(true);
 restoreView();

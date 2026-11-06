@@ -43,6 +43,15 @@ function shapePath(ctx: CanvasRenderingContext2D, type: NodeType, inset: number)
   ctx.closePath();
 }
 
+// Badge face and initials follow the theme; the coloured ring and shape do not.
+let darkFaces = false;
+const registry: { ctx: CanvasRenderingContext2D; n: Node; img: HTMLImageElement | null; tex: any }[] = [];
+export function setBadgeTheme(dark: boolean) {
+  if (dark === darkFaces) return;
+  darkFaces = dark;
+  for (const b of registry) { draw(b.ctx, b.n, b.img); b.tex.needsUpdate = true; }
+}
+
 function draw(ctx: CanvasRenderingContext2D, n: Node, img: HTMLImageElement | null) {
   const style = NODE_STYLE[n.type];
   ctx.clearRect(0, 0, S, S);
@@ -51,7 +60,7 @@ function draw(ctx: CanvasRenderingContext2D, n: Node, img: HTMLImageElement | nu
   ctx.fillStyle = style.css;
   ctx.fill();
   shapePath(ctx, n.type, n.type === "agent" ? 19 : 16);
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = darkFaces ? "#17181c" : "#ffffff";
   ctx.fill();
   if (img) {
     ctx.save();
@@ -62,7 +71,7 @@ function draw(ctx: CanvasRenderingContext2D, n: Node, img: HTMLImageElement | nu
     ctx.restore();
     return;
   }
-  ctx.fillStyle = "#2b2f36";
+  ctx.fillStyle = darkFaces ? "#e6e7ea" : "#2b2f36";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.font = `600 ${n.type === "agent" ? 30 : 40}px Inter, system-ui, sans-serif`;
@@ -78,6 +87,8 @@ export function makeBadge(n: Node): any {
   ctx.scale(2, 2);
   draw(ctx, n, null);
   const tex = new THREE.CanvasTexture(canvas);
+  const entry = { ctx, n, img: null as HTMLImageElement | null, tex };
+  registry.push(entry);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
   if (n.avatarUrl) {
@@ -85,12 +96,12 @@ export function makeBadge(n: Node): any {
     img.crossOrigin = "anonymous";
     pendingAvatars.add(img);
     const settle = () => { pendingAvatars.delete(img); if (!pendingAvatars.size) avatarWaiters.splice(0).forEach((r) => r()); };
-    img.onload = () => { draw(ctx, n, img); tex.needsUpdate = true; settle(); };
+    img.onload = () => { entry.img = img; draw(ctx, n, img); tex.needsUpdate = true; settle(); };
     img.onerror = settle; // the initials stay
     img.src = n.avatarUrl;
   }
   // Redraw once web fonts are ready so initials use the page face.
-  (document as any).fonts?.ready?.then(() => { if (!n.avatarUrl) { draw(ctx, n, null); tex.needsUpdate = true; } });
+  (document as any).fonts?.ready?.then(() => { if (!entry.img) { draw(ctx, n, null); tex.needsUpdate = true; } });
   return tex;
 }
 

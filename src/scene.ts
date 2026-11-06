@@ -2,11 +2,11 @@ import * as THREE from "three";
 import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
-import { avatarsSettled, badgeKey, makeBadge } from "./badges";
+import { avatarsSettled, badgeKey, makeBadge, setBadgeTheme } from "./badges";
 import { CameraRig } from "./camera";
 import { ForceLayout, type Vec3 } from "./layout";
 import type { Analysis } from "./normalize";
-import { BG, EDGE_STYLE, NEUTRAL_EDGE, NODE_STYLE, SELECT_COLOR } from "./theme";
+import { EDGE_STYLE, NODE_STYLE, PALETTES, type MapPalette } from "./theme";
 import { EDGE_KINDS, type Edge, type EdgeKind, type NodeType } from "./types";
 
 export type ViewState = {
@@ -37,7 +37,7 @@ type EdgeGroup = { line: any; edges: Edge[]; segs: number[]; total: number; pos:
 
 const SEGS_CURVED = 8;
 const tmpColor = new THREE.Color();
-const bgColor = new THREE.Color(BG);
+const bgColor = new THREE.Color(PALETTES.light.bg);
 
 const vertGlow = `
 attribute float size; attribute vec3 color; attribute float alpha;
@@ -71,10 +71,11 @@ void main() {
 }`;
 const fragSnow = `
 varying float vA;
+uniform vec3 uColor;
 void main() {
   float r = length(gl_PointCoord - 0.5) * 2.0;
   float a = smoothstep(1.0, 0.2, r) * vA * 0.45;
-  gl_FragColor = vec4(vec3(0.45, 0.52, 0.62), a);
+  gl_FragColor = vec4(uColor, a);
 }`;
 
 export class MapScene {
@@ -123,6 +124,20 @@ export class MapScene {
   private height = 1;
   private initialLayoutPending = false;
 
+  private pal: MapPalette = PALETTES.light;
+
+  /** Switch the map between the light and dark palettes. */
+  setTheme(dark: boolean) {
+    this.pal = dark ? PALETTES.dark : PALETTES.light;
+    this.renderer.setClearColor(this.pal.bg, 1);
+    this.scene.fog.color.set(this.pal.bg);
+    bgColor.set(this.pal.bg);
+    this.snow.material.uniforms.uColor.value.setRGB(...this.pal.snow);
+    this.rings.forEach((r) => r.material.color.set(this.pal.select));
+    setBadgeTheme(dark);
+    this.dirty = true;
+  }
+
   // ---------- entrance ----------
   /** "waiting": data is in but positions are still being worked out; "playing": the network grows in. */
   private introState: "off" | "waiting" | "playing" = "off";
@@ -164,9 +179,9 @@ export class MapScene {
   ) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.renderer.setClearColor(BG, 1);
+    this.renderer.setClearColor(PALETTES.light.bg, 1);
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.FogExp2(BG, 0.01);
+    this.scene.fog = new THREE.FogExp2(PALETTES.light.bg, 0.01);
     this.camera = new THREE.PerspectiveCamera(55, 1, 0.05, 5000);
     this.rig = new CameraRig(this.camera);
     this.rig.reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
@@ -196,12 +211,12 @@ export class MapScene {
     for (let i = 0; i < sp.length; i++) sp[i] = r() * 40;
     const sg = new THREE.BufferGeometry();
     sg.setAttribute("position", new THREE.BufferAttribute(sp, 3));
-    this.snow = new THREE.Points(sg, new THREE.ShaderMaterial({ vertexShader: vertSnow, fragmentShader: fragSnow, uniforms: { uCam: { value: new THREE.Vector3() }, uBox: { value: 40 }, uScale: { value: 1 }, uAlpha: { value: 0 } }, transparent: true, depthWrite: false }));
+    this.snow = new THREE.Points(sg, new THREE.ShaderMaterial({ vertexShader: vertSnow, fragmentShader: fragSnow, uniforms: { uCam: { value: new THREE.Vector3() }, uBox: { value: 40 }, uScale: { value: 1 }, uAlpha: { value: 0 }, uColor: { value: new THREE.Color(...PALETTES.light.snow) } }, transparent: true, depthWrite: false }));
     this.snow.frustumCulled = false;
     this.scene.add(this.snow);
 
     for (let i = 0; i < 2; i++) {
-      const ring = new THREE.Mesh(new THREE.RingGeometry(1.0, 1.09, 64), new THREE.MeshBasicMaterial({ color: SELECT_COLOR, transparent: true, opacity: 0.95, depthTest: false, side: THREE.DoubleSide }));
+      const ring = new THREE.Mesh(new THREE.RingGeometry(1.0, 1.09, 64), new THREE.MeshBasicMaterial({ color: PALETTES.light.select, transparent: true, opacity: 0.95, depthTest: false, side: THREE.DoubleSide }));
       ring.renderOrder = 10;
       ring.visible = false;
       this.rings.push(ring);
@@ -750,7 +765,7 @@ export class MapScene {
       ga.pos[i * 3] = p.x; ga.pos[i * 3 + 1] = p.y; ga.pos[i * 3 + 2] = p.z;
       const isMatch = v.matches.has(id);
       const isSel = id === v.selectedNode;
-      const gc = isMatch || isSel ? tmpColor.set(SELECT_COLOR) : tmpColor.set(NODE_STYLE[t].color);
+      const gc = isMatch || isSel ? tmpColor.set(this.pal.select) : tmpColor.set(NODE_STYLE[t].color);
       ga.col[i * 3] = gc.r; ga.col[i * 3 + 1] = gc.g; ga.col[i * 3 + 2] = gc.b;
       const glowSize = Math.max(this.nodeSize(i), d * pxToWorld * 3.2);
       ga.size[i] = glowSize * (isSel ? 7 : 6.5);
@@ -819,9 +834,9 @@ export class MapScene {
 
     this.edgeGroups.forEach((grp, kind) => {
       const st = EDGE_STYLE[kind];
-      tmpColor.set(st.color);
+      tmpColor.set(this.pal.edge[kind] ?? st.color);
       const kr = tmpColor.r, kg = tmpColor.g, kb = tmpColor.b;
-      tmpColor.set(NEUTRAL_EDGE);
+      tmpColor.set(this.pal.neutral);
       const nr = tmpColor.r, ng = tmpColor.g, nb = tmpColor.b;
       let o = 0;
       grp.edges.forEach((e, ei) => {
@@ -889,7 +904,7 @@ export class MapScene {
       for (let j = 0; j < n; j++) { this.edgeEnds(sel, ends, j, n, perp); arr.set(ends, j * 6); }
       const g = new LineSegmentsGeometry();
       g.setPositions(arr);
-      const m = new LineMaterial({ color: SELECT_COLOR, linewidth: 5, transparent: true, opacity: 0.28, depthWrite: false, worldUnits: false });
+      const m = new LineMaterial({ color: this.pal.select, linewidth: 5, transparent: true, opacity: 0.28, depthWrite: false, worldUnits: false });
       m.resolution.set(this.width, this.height);
       this.highlight = new LineSegments2(g, m);
       this.highlight.renderOrder = 0;

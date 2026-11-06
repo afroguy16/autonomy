@@ -263,6 +263,20 @@ var EDGE_STYLE = {
 };
 var SELECT_COLOR = 6187730;
 var NEUTRAL_EDGE = 10725552;
+var PALETTES = {
+  light: { bg: BG, neutral: NEUTRAL_EDGE, select: SELECT_COLOR, snow: [0.45, 0.52, 0.62], edge: {}, edgeCss: {} },
+  dark: {
+    bg: 855569,
+    neutral: 4606547,
+    select: 8161002,
+    snow: [0.62, 0.67, 0.78],
+    // Brighter variants of each kind so lines read on the dark ground.
+    edge: { affiliation: 10594483, built: 15902302, collaboration: 4906624, interaction: 3718648, shared_topic: 16020150, cluster: 7041664, bridge: 7041664 },
+    edgeCss: { affiliation: "#A1A8B3", built: "#F2A65E", collaboration: "#4ADE80", interaction: "#38BDF8", shared_topic: "#F472B6", cluster: "#6B7280", bridge: "#6B7280" }
+  }
+};
+var isDarkTheme = () => document.documentElement.dataset.theme === "dark";
+var edgeCss = (k) => (isDarkTheme() ? PALETTES.dark.edgeCss[k] : void 0) ?? EDGE_STYLE[k].css;
 
 // src/badges.ts
 var S = 128;
@@ -296,6 +310,16 @@ function shapePath(ctx, type, inset) {
   }
   ctx.closePath();
 }
+var darkFaces = false;
+var registry = [];
+function setBadgeTheme(dark) {
+  if (dark === darkFaces) return;
+  darkFaces = dark;
+  for (const b of registry) {
+    draw(b.ctx, b.n, b.img);
+    b.tex.needsUpdate = true;
+  }
+}
 function draw(ctx, n, img) {
   const style = NODE_STYLE[n.type];
   ctx.clearRect(0, 0, S, S);
@@ -303,7 +327,7 @@ function draw(ctx, n, img) {
   ctx.fillStyle = style.css;
   ctx.fill();
   shapePath(ctx, n.type, n.type === "agent" ? 19 : 16);
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = darkFaces ? "#17181c" : "#ffffff";
   ctx.fill();
   if (img) {
     ctx.save();
@@ -314,7 +338,7 @@ function draw(ctx, n, img) {
     ctx.restore();
     return;
   }
-  ctx.fillStyle = "#2b2f36";
+  ctx.fillStyle = darkFaces ? "#e6e7ea" : "#2b2f36";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.font = `600 ${n.type === "agent" ? 30 : 40}px Inter, system-ui, sans-serif`;
@@ -328,6 +352,8 @@ function makeBadge(n) {
   ctx.scale(2, 2);
   draw(ctx, n, null);
   const tex = new THREE.CanvasTexture(canvas);
+  const entry = { ctx, n, img: null, tex };
+  registry.push(entry);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
   if (n.avatarUrl) {
@@ -339,6 +365,7 @@ function makeBadge(n) {
       if (!pendingAvatars.size) avatarWaiters.splice(0).forEach((r) => r());
     };
     img.onload = () => {
+      entry.img = img;
       draw(ctx, n, img);
       tex.needsUpdate = true;
       settle();
@@ -347,7 +374,7 @@ function makeBadge(n) {
     img.src = n.avatarUrl;
   }
   document.fonts?.ready?.then(() => {
-    if (!n.avatarUrl) {
+    if (!entry.img) {
       draw(ctx, n, null);
       tex.needsUpdate = true;
     }
@@ -666,7 +693,7 @@ var ForceLayout = class {
 // src/scene.ts
 var SEGS_CURVED = 8;
 var tmpColor = new THREE3.Color();
-var bgColor = new THREE3.Color(BG);
+var bgColor = new THREE3.Color(PALETTES.light.bg);
 var vertGlow = `
 attribute float size; attribute vec3 color; attribute float alpha;
 uniform float uScale; uniform float uDensity;
@@ -699,10 +726,11 @@ void main() {
 }`;
 var fragSnow = `
 varying float vA;
+uniform vec3 uColor;
 void main() {
   float r = length(gl_PointCoord - 0.5) * 2.0;
   float a = smoothstep(1.0, 0.2, r) * vA * 0.45;
-  gl_FragColor = vec4(vec3(0.45, 0.52, 0.62), a);
+  gl_FragColor = vec4(uColor, a);
 }`;
 var MapScene = class {
   constructor(_container, canvas, labelLayer, tooltip, cb) {
@@ -746,6 +774,7 @@ var MapScene = class {
     this.width = 1;
     this.height = 1;
     this.initialLayoutPending = false;
+    this.pal = PALETTES.light;
     // ---------- entrance ----------
     /** "waiting": data is in but positions are still being worked out; "playing": the network grows in. */
     this.introState = "off";
@@ -778,9 +807,9 @@ var MapScene = class {
     this.introTo = { dist: 1, yaw: 0, pitch: 0.32, x: 0, y: 0, z: 0 };
     this.renderer = new THREE3.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.renderer.setClearColor(BG, 1);
+    this.renderer.setClearColor(PALETTES.light.bg, 1);
     this.scene = new THREE3.Scene();
-    this.scene.fog = new THREE3.FogExp2(BG, 0.01);
+    this.scene.fog = new THREE3.FogExp2(PALETTES.light.bg, 0.01);
     this.camera = new THREE3.PerspectiveCamera(55, 1, 0.05, 5e3);
     this.rig = new CameraRig(this.camera);
     this.rig.reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
@@ -803,11 +832,11 @@ var MapScene = class {
     for (let i = 0; i < sp.length; i++) sp[i] = r() * 40;
     const sg = new THREE3.BufferGeometry();
     sg.setAttribute("position", new THREE3.BufferAttribute(sp, 3));
-    this.snow = new THREE3.Points(sg, new THREE3.ShaderMaterial({ vertexShader: vertSnow, fragmentShader: fragSnow, uniforms: { uCam: { value: new THREE3.Vector3() }, uBox: { value: 40 }, uScale: { value: 1 }, uAlpha: { value: 0 } }, transparent: true, depthWrite: false }));
+    this.snow = new THREE3.Points(sg, new THREE3.ShaderMaterial({ vertexShader: vertSnow, fragmentShader: fragSnow, uniforms: { uCam: { value: new THREE3.Vector3() }, uBox: { value: 40 }, uScale: { value: 1 }, uAlpha: { value: 0 }, uColor: { value: new THREE3.Color(...PALETTES.light.snow) } }, transparent: true, depthWrite: false }));
     this.snow.frustumCulled = false;
     this.scene.add(this.snow);
     for (let i = 0; i < 2; i++) {
-      const ring = new THREE3.Mesh(new THREE3.RingGeometry(1, 1.09, 64), new THREE3.MeshBasicMaterial({ color: SELECT_COLOR, transparent: true, opacity: 0.95, depthTest: false, side: THREE3.DoubleSide }));
+      const ring = new THREE3.Mesh(new THREE3.RingGeometry(1, 1.09, 64), new THREE3.MeshBasicMaterial({ color: PALETTES.light.select, transparent: true, opacity: 0.95, depthTest: false, side: THREE3.DoubleSide }));
       ring.renderOrder = 10;
       ring.visible = false;
       this.rings.push(ring);
@@ -817,6 +846,17 @@ var MapScene = class {
     new ResizeObserver(() => this.resize()).observe(canvas);
     this.resize();
     requestAnimationFrame((t) => this.loop(t));
+  }
+  /** Switch the map between the light and dark palettes. */
+  setTheme(dark) {
+    this.pal = dark ? PALETTES.dark : PALETTES.light;
+    this.renderer.setClearColor(this.pal.bg, 1);
+    this.scene.fog.color.set(this.pal.bg);
+    bgColor.set(this.pal.bg);
+    this.snow.material.uniforms.uColor.value.setRGB(...this.pal.snow);
+    this.rings.forEach((r) => r.material.color.set(this.pal.select));
+    setBadgeTheme(dark);
+    this.dirty = true;
   }
   // ---------- data ----------
   setData(analysis) {
@@ -1350,7 +1390,7 @@ var MapScene = class {
       ga.pos[i * 3 + 2] = p.z;
       const isMatch = v.matches.has(id);
       const isSel = id === v.selectedNode;
-      const gc = isMatch || isSel ? tmpColor.set(SELECT_COLOR) : tmpColor.set(NODE_STYLE[t].color);
+      const gc = isMatch || isSel ? tmpColor.set(this.pal.select) : tmpColor.set(NODE_STYLE[t].color);
       ga.col[i * 3] = gc.r;
       ga.col[i * 3 + 1] = gc.g;
       ga.col[i * 3 + 2] = gc.b;
@@ -1430,9 +1470,9 @@ var MapScene = class {
     const dashScale = 160 / Math.max(this.rig.currentDist, 1);
     this.edgeGroups.forEach((grp, kind) => {
       const st2 = EDGE_STYLE[kind];
-      tmpColor.set(st2.color);
+      tmpColor.set(this.pal.edge[kind] ?? st2.color);
       const kr = tmpColor.r, kg = tmpColor.g, kb = tmpColor.b;
-      tmpColor.set(NEUTRAL_EDGE);
+      tmpColor.set(this.pal.neutral);
       const nr = tmpColor.r, ng = tmpColor.g, nb = tmpColor.b;
       let o = 0;
       grp.edges.forEach((e, ei) => {
@@ -1509,7 +1549,7 @@ var MapScene = class {
       }
       const g = new LineSegmentsGeometry();
       g.setPositions(arr);
-      const m = new LineMaterial({ color: SELECT_COLOR, linewidth: 5, transparent: true, opacity: 0.28, depthWrite: false, worldUnits: false });
+      const m = new LineMaterial({ color: this.pal.select, linewidth: 5, transparent: true, opacity: 0.28, depthWrite: false, worldUnits: false });
       m.resolution.set(this.width, this.height);
       this.highlight = new LineSegments2(g, m);
       this.highlight.renderOrder = 0;
@@ -1903,7 +1943,7 @@ var shape = (t) => `<span class="shape ${t}" aria-hidden="true"></span>`;
 function edgeSwatch(kind, w = 30) {
   const s = EDGE_STYLE[kind];
   const dash = kind === "interaction" ? 'stroke-dasharray="5 3"' : kind === "shared_topic" || kind === "bridge" ? 'stroke-dasharray="1.5 3.5" stroke-linecap="round"' : "";
-  return `<svg class="edge-swatch" width="${w}" height="8" viewBox="0 0 ${w} 8" aria-hidden="true"><line x1="1" y1="4" x2="${w - 1}" y2="4" stroke="${s.css}" stroke-width="${Math.max(1.2, s.width)}" ${dash}/></svg>`;
+  return `<svg class="edge-swatch" width="${w}" height="8" viewBox="0 0 ${w} 8" aria-hidden="true"><line x1="1" y1="4" x2="${w - 1}" y2="4" stroke="${edgeCss(kind)}" stroke-width="${Math.max(1.2, s.width)}" ${dash}/></svg>`;
 }
 function renderDetails() {
   const panel = $("details");
@@ -2080,6 +2120,8 @@ function commands() {
   return [
     { group: "View", label: "Go to wide view", keys: "0", run: () => scene.overview() },
     { group: "View", label: scene.driftOn ? "Pause motion" : "Resume motion", run: () => setDrift(!scene.driftOn) },
+    { group: "View", label: isDarkTheme() ? "Switch to light theme" : "Switch to dark theme", run: () => setTheme(isDarkTheme() ? "light" : "dark") },
+    { group: "View", label: "Match system theme", run: () => setTheme("system") },
     { group: "View", label: "Reset view (wide view, clear selection and filters)", run: () => resetView() },
     { group: "View", label: power ? "Exit power view" : "Power view: just the map", keys: "P", run: () => setPower(!power) },
     { group: "View", label: scene.showNames ? "Hide names on the map" : "Show names on the map", run: () => toggleNames() },
@@ -2313,6 +2355,7 @@ function setPower(on) {
   $("exitPower").hidden = !on;
   $("resetPower").hidden = !on;
   $("driftPower").hidden = !on;
+  $("themePower").hidden = !on;
   $("btnPower").setAttribute("aria-pressed", String(on));
   if (on) {
     closePalette();
@@ -2345,6 +2388,46 @@ function resetView() {
   announce("View reset: wide view, nothing selected, no filters.");
 }
 $("btnReset").addEventListener("click", resetView);
+var THEME_KEY = "autonomy.theme";
+var SUN_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+var MOON_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
+var systemDark = window.matchMedia?.("(prefers-color-scheme: dark)");
+function themePref() {
+  try {
+    const v = localStorage.getItem(THEME_KEY);
+    return v === "light" || v === "dark" ? v : "system";
+  } catch {
+    return "system";
+  }
+}
+function applyTheme() {
+  const pref = themePref();
+  const dark = pref === "dark" || pref === "system" && !!systemDark?.matches;
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  scene.setTheme(dark);
+  document.querySelectorAll(".theme-btn").forEach((b) => {
+    const label = dark ? "Switch to light theme" : "Switch to dark theme";
+    b.innerHTML = dark ? SUN_ICON : MOON_ICON;
+    b.setAttribute("aria-label", label);
+    b.title = label;
+  });
+  renderLegend();
+  if (!$("minimapWrap").hidden) drawMinimap();
+}
+function setTheme(pref) {
+  try {
+    if (pref === "system") localStorage.removeItem(THEME_KEY);
+    else localStorage.setItem(THEME_KEY, pref);
+  } catch {
+  }
+  applyTheme();
+  announce(pref === "system" ? "Theme follows your system." : `${pref === "dark" ? "Dark" : "Light"} theme.`);
+}
+systemDark?.addEventListener?.("change", () => {
+  if (themePref() === "system") applyTheme();
+});
+$("themePower").addEventListener("click", () => setTheme(isDarkTheme() ? "light" : "dark"));
+$("themeBtn").addEventListener("click", () => setTheme(isDarkTheme() ? "light" : "dark"));
 var PAUSE_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5v14M15.5 5v14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`;
 var PLAY_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>`;
 function setDrift(on) {
@@ -2494,7 +2577,7 @@ function drawMinimap() {
   const c = scene.cameraInfo;
   const px = cx + (c.pos.x - ex.center.x) * s, py = cy + (c.pos.z - ex.center.z) * s;
   const tx = cx + (c.target.x - ex.center.x) * s, ty = cy + (c.target.z - ex.center.z) * s;
-  mctx.strokeStyle = "rgba(22,24,29,.7)";
+  mctx.strokeStyle = isDarkTheme() ? "rgba(232,233,236,.7)" : "rgba(22,24,29,.7)";
   mctx.lineWidth = 1.2;
   mctx.setLineDash([3, 3]);
   mctx.beginPath();
@@ -2655,6 +2738,7 @@ function restoreView() {
   restoring = false;
   saveView();
 }
+applyTheme();
 refresh();
 scene.overview(true);
 restoreView();

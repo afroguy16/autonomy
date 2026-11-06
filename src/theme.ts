@@ -27,3 +27,21 @@ export const SELECT_COLOR = 0x5e6ad2;
 export const SELECT_CSS = "#5E6AD2";
 export const NEUTRAL_EDGE = 0xa3a8b0;
 export const INK = 0x16181d;
+
+// ---------- dark mode ----------
+// The map keeps the same structure in both themes; only these colours change.
+export type MapPalette = { bg: number; neutral: number; select: number; snow: [number, number, number]; edge: Partial<Record<EdgeKind, number>>; edgeCss: Partial<Record<EdgeKind, string>> };
+export const PALETTES: Record<"light" | "dark", MapPalette> = {
+  light: { bg: BG, neutral: NEUTRAL_EDGE, select: SELECT_COLOR, snow: [0.45, 0.52, 0.62], edge: {}, edgeCss: {} },
+  dark: {
+    bg: 0x0d0e11,
+    neutral: 0x464a53,
+    select: 0x7c86ea,
+    snow: [0.62, 0.67, 0.78],
+    // Brighter variants of each kind so lines read on the dark ground.
+    edge: { affiliation: 0xa1a8b3, built: 0xf2a65e, collaboration: 0x4ade80, interaction: 0x38bdf8, shared_topic: 0xf472b6, cluster: 0x6b7280, bridge: 0x6b7280 },
+    edgeCss: { affiliation: "#A1A8B3", built: "#F2A65E", collaboration: "#4ADE80", interaction: "#38BDF8", shared_topic: "#F472B6", cluster: "#6B7280", bridge: "#6B7280" }
+  }
+};
+export const isDarkTheme = () => document.documentElement.dataset.theme === "dark";
+export const edgeCss = (k: EdgeKind) => (isDarkTheme() ? PALETTES.dark.edgeCss[k] : undefined) ?? EDGE_STYLE[k].css;

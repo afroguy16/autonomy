@@ -454,3 +454,51 @@ html.scene-up .boot { background-color: transparent; }
 
 /* Pause / resume the ambient drift: icon-only in the power-view corner. */
 .power-exit.icon-only { width: 40px; padding: 0; justify-content: center; }
+
+/* ===================== Dark mode =====================
+   Same structure, a deep neutral ground, light ink, one softened indigo accent. */
+:root[data-theme="dark"] {
+  --ground: #0b0c0f;
+  --map: #0d0e11;
+  --surface: #16171b;
+  --surface-2: #1d1f24;
+  --line: #26282e;
+  --line-2: #34373e;
+  --ink: #e8e9ec;
+  --ink-2: #c4c7cd;
+  --muted: #8d929b;
+  --link: #9aa2f2;
+  --accent: #7c86ea;
+  --accent-soft: #1e2136;
+  --sel: #7c86ea;
+  --sel-ink: #f3d79a;
+  --warn: #f2a65e;
+  --err: #f87171;
+  color-scheme: dark;
+}
+:root[data-theme="dark"] body { background: var(--ground); color: var(--ink); }
+:root[data-theme="dark"] a:hover { color: #c3c8fb; }
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .hint,
+:root[data-theme="dark"] .power-exit { background: rgba(22, 23, 27, .92); border-color: var(--line-2); box-shadow: 0 4px 16px rgba(0, 0, 0, .35); }
+:root[data-theme="dark"] .lbl { color: var(--ink); text-shadow: 0 0 3px #0d0e11, 0 0 3px #0d0e11, 0 0 2px #0d0e11, 0 0 1px #0d0e11; }
+:root[data-theme="dark"] .toast,
+:root[data-theme="dark"] .btn.primary { background: var(--ink); color: var(--map); }
+:root[data-theme="dark"] .btn.primary:hover { background: #ffffff; color: var(--map); }
+:root[data-theme="dark"] .search-trigger:hover { background: var(--surface-2); }
+:root[data-theme="dark"] .btn[aria-expanded="true"],
+:root[data-theme="dark"] .btn[aria-pressed="true"],
+:root[data-theme="dark"] .chips button[aria-pressed="true"],
+:root[data-theme="dark"] .list-items button[aria-current="true"],
+:root[data-theme="dark"] .callout.interaction { border-color: #343a66; }
+:root[data-theme="dark"] .badge.warn,
+:root[data-theme="dark"] .sample,
+:root[data-theme="dark"] .offmap { background: #2a2214; color: #f3d79a; border-color: #4a3b1c; }
+:root[data-theme="dark"] .warn-text,
+:root[data-theme="dark"] .timeline .missing { color: #f2c17e; }
+:root[data-theme="dark"] .result mark { background: #4a3b1c; }
+:root[data-theme="dark"] .callout.engage { border-color: #1f5563; background: #10252b; }
+:root[data-theme="dark"] dialog::backdrop,
+:root[data-theme="dark"] .palette-backdrop { background: rgba(0, 0, 0, .5); }
+:root[data-theme="dark"] .palette { box-shadow: 0 24px 64px rgba(0, 0, 0, .55), 0 2px 6px rgba(0, 0, 0, .3); }
+:root[data-theme="dark"] .drawer { box-shadow: 0 0 0 1px var(--line), 0 8px 30px rgba(0, 0, 0, .4); }
