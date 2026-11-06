@@ -1,4 +1,3 @@
-import { buildBatch, buildSeed } from "./seed";
 import { analyze, mergeGraph, normalizeGraph, type Analysis } from "./normalize";
 import { MapScene, escapeHtml as esc, type ViewState } from "./scene";
 import { EDGE_STYLE, NODE_STYLE } from "./theme";
@@ -10,7 +9,6 @@ const initialResponse = await fetch("./data/graph-map.json");
 if (!initialResponse.ok) throw new Error(`Could not load research data: ${initialResponse.status} ${initialResponse.statusText}`);
 let graph: GraphMap = normalizeGraph(await initialResponse.json() as Record<string, any>);
 let A: Analysis = analyze(graph);
-let batchNo = 0;
 let onMap = new Set(A.mapNodeIds);
 
 const st = {
@@ -348,7 +346,6 @@ function commands(): Cmd[] {
     { group: "Open", label: "Open filters", run: () => openDrawer("filters") },
     { group: "Open", label: "Open account list", run: () => openDrawer("list") },
     { group: "Open", label: "Open data report", run: () => { renderReport(); $<HTMLDialogElement>("report").showModal(); } },
-    { group: "Data", label: "Add a sample batch of accounts", run: () => $("btnBatch").click() },
     { group: "Data", label: "Load a JSON file…", run: () => $("fileIn").click() }
   ];
 }
@@ -682,13 +679,6 @@ function addData(input: unknown, mode: "merge" | "replace" = "merge") {
   if (mode === "replace") scene.overview();
 }
 
-$("btnBatch").addEventListener("click", () => {
-  batchNo++;
-  const batch = buildBatch(graph, batchNo);
-  addData({ ...batch, topics: [], meta: {} }, "merge");
-  const first = batch.nodes[0]?.id;
-  if (first) { lastHits = []; setTimeout(() => selectNode(first, { fly: true }), 600); }
-});
 let pendingJson: unknown = null;
 async function loadFile(f: File) {
   try {

@@ -1,6 +1,6 @@
 # Autonomy
 
-**Builders of agent infrastructure.** A browser prototype of a 3D, drive-through network map of people, organizations and agents building agent infrastructure. Built with Three.js and TypeScript. It loads the canonical research graph from `data/graph-map.json`. The optional sample batch is invented and links to `example.com`.
+**Builders of agent infrastructure.** A browser prototype of a 3D, drive-through network map of people, organizations and agents building agent infrastructure. Built with Three.js and TypeScript. It loads the canonical research graph from `data/graph-map.json`. This branch uses real research data only; sample records remain on the previous branch.
 
 ## Run it
 
@@ -51,7 +51,6 @@ Positions are never stored. Each load re-runs the layout from the edges, keeping
 
 - `src/types.ts` — the unified data shape, unchanged from the brief
 - `data/graph-map.json` — canonical research dataset loaded by the viewer
-- `src/seed.ts` — deterministic fake sample batches, available on demand
 - `src/normalize.ts` — CPM mapping, merging, validation, and the on-map / off-map decision
 - `src/layout.ts` — 3D force layout driven only by edges
 - `src/camera.ts` — orbit / dive / drive camera with eased, log-scale zoom
