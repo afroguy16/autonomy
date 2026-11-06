@@ -965,7 +965,7 @@ var MapScene = class {
     const fonts = document.fonts?.ready ?? Promise.resolve();
     const timeout = new Promise((r) => setTimeout(r, 1500));
     Promise.race([Promise.all([fonts, avatarsSettled()]), timeout]).then(() => {
-      requestAnimationFrame(() => {
+      setTimeout(() => {
         this.sprites.forEach((sp) => {
           try {
             this.renderer.initTexture(sp.material.map);
@@ -974,7 +974,7 @@ var MapScene = class {
         });
         this.introAssetsPending = false;
         this.introAssetsReady = true;
-      });
+      }, 0);
     });
   }
   /** Show everything at once (used for reduced motion, a restored view, or any input). */
@@ -2538,7 +2538,6 @@ function restoreView() {
 }
 refresh();
 scene.overview(true);
-var firstVisit = !readView();
 restoreView();
 window.setBootCounts?.(A.mapNodeIds.length, A.drawnEdges.length);
-if (firstVisit) scene.playIntro();
+if (!st.selectedNode && !st.selectedEdge) scene.playIntro();

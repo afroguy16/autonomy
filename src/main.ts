@@ -774,9 +774,8 @@ function restoreView() {
 
 refresh();
 scene.overview(true);
-// The full entrance plays on a first visit (and after Reset); a returning visit
-// goes straight back to the remembered view.
-const firstVisit = !readView();
 restoreView();
 (window as any).setBootCounts?.(A.mapNodeIds.length, A.drawnEdges.length);
-if (firstVisit) scene.playIntro();
+// Every load plays the entrance (the same one Reset plays), unless the remembered
+// view has an account or connection selected: then it reopens right there.
+if (!st.selectedNode && !st.selectedEdge) scene.playIntro();

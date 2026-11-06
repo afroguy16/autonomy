@@ -366,11 +366,11 @@ export class MapScene {
     Promise.race([Promise.all([fonts, avatarsSettled()]), timeout]).then(() => {
       // Let the font redraw (badges.ts) run first, then push every texture up now,
       // while the screen is still empty, instead of mid-animation.
-      requestAnimationFrame(() => {
+      setTimeout(() => {
         this.sprites.forEach((sp) => { try { this.renderer.initTexture(sp.material.map); } catch { /* uploads on first draw instead */ } });
         this.introAssetsPending = false;
         this.introAssetsReady = true;
-      });
+      }, 0);
     });
   }
 
