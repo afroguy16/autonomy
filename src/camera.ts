@@ -129,7 +129,7 @@ export class CameraRig {
   overview(center: { x: number; y: number; z: number }, radius: number, instant = false) {
     this.home.set(center.x, center.y, center.z);
     this.target.set(center.x, center.y, center.z);
-    this.dist = this.clampDist(radius * 2.2);
+    this.dist = this.clampDist(radius * 2.35);
     this.pitch = 0.32;
     if (instant) this.snap();
   }

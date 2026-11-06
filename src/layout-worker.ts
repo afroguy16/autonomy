@@ -1,7 +1,7 @@
 import { ForceLayout } from "./layout";
 
 type LayoutRequest = { ids: string[]; pairs: [string, string][] };
-type LayoutResponse = { positions?: [number, number, number][]; done?: boolean; error?: string };
+type LayoutResponse = { positions?: [number, number, number][]; error?: string };
 
 const workerScope = self as unknown as {
   onmessage: ((event: MessageEvent<LayoutRequest>) => void) | null;
@@ -16,19 +16,12 @@ workerScope.onmessage = ({ data }) => {
     while (!layout.settled && iterations < 1500) {
       layout.tick(1);
       iterations++;
-      if (iterations % 18 === 0 && !layout.settled) {
-        const positions = data.ids.map((id) => {
-          const point = layout.get(id)!;
-          return [point.x, point.y, point.z] as [number, number, number];
-        });
-        workerScope.postMessage({ positions, done: false });
-      }
     }
     const positions = data.ids.map((id) => {
       const point = layout.get(id)!;
       return [point.x, point.y, point.z] as [number, number, number];
     });
-    workerScope.postMessage({ positions, done: true });
+    workerScope.postMessage({ positions });
   } catch (error) {
     workerScope.postMessage({ error: error instanceof Error ? error.message : "Layout worker failed." });
   }

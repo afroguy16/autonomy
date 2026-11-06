@@ -402,7 +402,7 @@ var CameraRig = class {
   overview(center, radius, instant = false) {
     this.home.set(center.x, center.y, center.z);
     this.target.set(center.x, center.y, center.z);
-    this.dist = this.clampDist(radius * 2.2);
+    this.dist = this.clampDist(radius * 2.35);
     this.pitch = 0.32;
     if (instant) this.snap();
   }
@@ -564,18 +564,23 @@ var ForceLayout = class {
       this.alpha *= 0.985;
     }
   }
-  /** Radius containing ~95% of nodes, measured from the centroid. */
+  /** Geometric center and radius of the full node cloud, so the overview can frame every account. */
   extent() {
     const list = this.ids.map((id) => this.bodies.get(id));
     if (!list.length) return { center: { x: 0, y: 0, z: 0 }, radius: 10 };
-    const c = { x: 0, y: 0, z: 0 };
-    list.forEach((b) => {
-      c.x += b.x / list.length;
-      c.y += b.y / list.length;
-      c.z += b.z / list.length;
-    });
-    const ds = list.map((b) => Math.hypot(b.x - c.x, b.y - c.y, b.z - c.z)).sort((p, q) => p - q);
-    return { center: c, radius: Math.max(8, ds[Math.floor(ds.length * 0.95)] ?? 10) };
+    const lo = { x: Infinity, y: Infinity, z: Infinity };
+    const hi = { x: -Infinity, y: -Infinity, z: -Infinity };
+    for (const b of list) {
+      lo.x = Math.min(lo.x, b.x);
+      lo.y = Math.min(lo.y, b.y);
+      lo.z = Math.min(lo.z, b.z);
+      hi.x = Math.max(hi.x, b.x);
+      hi.y = Math.max(hi.y, b.y);
+      hi.z = Math.max(hi.z, b.z);
+    }
+    const center = { x: (lo.x + hi.x) / 2, y: (lo.y + hi.y) / 2, z: (lo.z + hi.z) / 2 };
+    const radius = Math.max(...list.map((b) => Math.hypot(b.x - center.x, b.y - center.y, b.z - center.z)));
+    return { center, radius: Math.max(8, radius) };
   }
   get(id) {
     return this.bodies.get(id);
@@ -804,6 +809,8 @@ var MapScene = class {
     try {
       const worker = new Worker(new URL("./layout-worker.js", import.meta.url), { type: "module" });
       worker.onmessage = (event) => {
+        worker.terminate();
+        this.initialLayoutPending = false;
         const positions = event.data?.positions;
         if (positions?.length === ids.length) {
           ids.forEach((id, i) => {
@@ -811,19 +818,13 @@ var MapScene = class {
             const position = positions[i];
             if (!body || !position?.every(Number.isFinite)) return;
             [body.x, body.y, body.z] = position;
-            if (event.data.done) {
-              body.vx = 0;
-              body.vy = 0;
-              body.vz = 0;
-            }
+            body.vx = 0;
+            body.vy = 0;
+            body.vz = 0;
           });
+          this.layout.alpha = 0;
           this.updateExtent();
-          if (!this.rig.userMoved) this.rig.overview(this.extentC, this.extentR);
-        }
-        if (event.data.done || event.data.error) {
-          worker.terminate();
-          this.initialLayoutPending = false;
-          if (event.data.done && positions?.length === ids.length) this.layout.alpha = 0;
+          if (!this.rig.userMoved) this.rig.overview(this.extentC, this.extentR, true);
         }
         this.dirty = true;
       };
@@ -886,7 +887,7 @@ var MapScene = class {
   /** Depth value of the default wide view, used to name depth levels. */
   get overviewDepth() {
     const lo = Math.log(this.rig.minDist), hi = Math.log(this.rig.maxDist);
-    return 1 - (Math.log(this.extentR * 2.2) - lo) / (hi - lo);
+    return 1 - (Math.log(this.extentR * 2.35) - lo) / (hi - lo);
   }
   setDepth(t) {
     const lo = Math.log(this.rig.minDist), hi = Math.log(this.rig.maxDist);
@@ -2276,7 +2277,7 @@ function restoreView() {
     } else if (v.selectedNode && A.nodeById.has(v.selectedNode)) {
       selectNode(v.selectedNode, { fly: false });
     }
-    if (v.camera) scene.rig.setState(v.camera);
+    if (v.camera && (st.selectedNode || st.selectedEdge)) scene.rig.setState(v.camera);
   }
   restoring = false;
   saveView();

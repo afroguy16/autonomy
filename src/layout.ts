@@ -124,14 +124,19 @@ export class ForceLayout {
     }
   }
 
-  /** Radius containing ~95% of nodes, measured from the centroid. */
+  /** Geometric center and radius of the full node cloud, so the overview can frame every account. */
   extent(): { center: Vec3; radius: number } {
     const list = this.ids.map((id) => this.bodies.get(id)!);
     if (!list.length) return { center: { x: 0, y: 0, z: 0 }, radius: 10 };
-    const c = { x: 0, y: 0, z: 0 };
-    list.forEach((b) => { c.x += b.x / list.length; c.y += b.y / list.length; c.z += b.z / list.length; });
-    const ds = list.map((b) => Math.hypot(b.x - c.x, b.y - c.y, b.z - c.z)).sort((p, q) => p - q);
-    return { center: c, radius: Math.max(8, ds[Math.floor(ds.length * 0.95)] ?? 10) };
+    const lo = { x: Infinity, y: Infinity, z: Infinity };
+    const hi = { x: -Infinity, y: -Infinity, z: -Infinity };
+    for (const b of list) {
+      lo.x = Math.min(lo.x, b.x); lo.y = Math.min(lo.y, b.y); lo.z = Math.min(lo.z, b.z);
+      hi.x = Math.max(hi.x, b.x); hi.y = Math.max(hi.y, b.y); hi.z = Math.max(hi.z, b.z);
+    }
+    const center = { x: (lo.x + hi.x) / 2, y: (lo.y + hi.y) / 2, z: (lo.z + hi.z) / 2 };
+    const radius = Math.max(...list.map((b) => Math.hypot(b.x - center.x, b.y - center.y, b.z - center.z)));
+    return { center, radius: Math.max(8, radius) };
   }
 
   get(id: string): Vec3 | undefined { return this.bodies.get(id); }

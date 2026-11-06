@@ -282,7 +282,9 @@ export class MapScene {
     this.initialLayoutPending = true;
     try {
       const worker = new Worker(new URL("./layout-worker.js", import.meta.url), { type: "module" });
-      worker.onmessage = (event: MessageEvent<{ positions?: [number, number, number][]; done?: boolean; error?: string }>) => {
+      worker.onmessage = (event: MessageEvent<{ positions?: [number, number, number][]; error?: string }>) => {
+        worker.terminate();
+        this.initialLayoutPending = false;
         const positions = event.data?.positions;
         if (positions?.length === ids.length) {
           ids.forEach((id, i) => {
@@ -290,15 +292,11 @@ export class MapScene {
             const position = positions[i];
             if (!body || !position?.every(Number.isFinite)) return;
             [body.x, body.y, body.z] = position;
-            if (event.data.done) { body.vx = 0; body.vy = 0; body.vz = 0; }
+            body.vx = 0; body.vy = 0; body.vz = 0;
           });
+          this.layout.alpha = 0;
           this.updateExtent();
-          if (!this.rig.userMoved) this.rig.overview(this.extentC, this.extentR);
-        }
-        if (event.data.done || event.data.error) {
-          worker.terminate();
-          this.initialLayoutPending = false;
-          if (event.data.done && positions?.length === ids.length) this.layout.alpha = 0;
+          if (!this.rig.userMoved) this.rig.overview(this.extentC, this.extentR, true);
         }
         this.dirty = true;
       };
@@ -363,7 +361,7 @@ export class MapScene {
   /** Depth value of the default wide view, used to name depth levels. */
   get overviewDepth() {
     const lo = Math.log(this.rig.minDist), hi = Math.log(this.rig.maxDist);
-    return 1 - (Math.log(this.extentR * 2.2) - lo) / (hi - lo);
+    return 1 - (Math.log(this.extentR * 2.35) - lo) / (hi - lo);
   }
   setDepth(t: number) {
     const lo = Math.log(this.rig.minDist), hi = Math.log(this.rig.maxDist);

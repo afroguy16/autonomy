@@ -759,7 +759,9 @@ function restoreView() {
     } else if (v.selectedNode && A.nodeById.has(v.selectedNode)) {
       selectNode(v.selectedNode, { fly: false });
     }
-    if (v.camera) scene.rig.setState(v.camera);
+    // Keep an unselected map load on the centered overview. Restore a closer
+    // saved camera only when the saved node/edge gives that framing context.
+    if (v.camera && (st.selectedNode || st.selectedEdge)) scene.rig.setState(v.camera);
   }
   restoring = false;
   saveView();
