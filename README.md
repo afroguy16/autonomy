@@ -1,6 +1,6 @@
-# Agent Infrastructure Map (prototype)
+# Autonomy
 
-A browser prototype of a 3D, drive-through network map of people, organizations and agents building agent infrastructure. Built with Three.js and TypeScript. It ships with **fake, seeded sample data**; every account, handle and source is invented and links to `example.com`.
+**Builders of agent infrastructure.** A browser prototype of a 3D, drive-through network map of people, organizations and agents building agent infrastructure. Built with Three.js and TypeScript. It ships with **fake, seeded sample data**; every account, handle and source is invented and links to `example.com`.
 
 ## Run it
 

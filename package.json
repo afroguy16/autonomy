@@ -1,6 +1,7 @@
 {
-  "name": "agent-infra-map",
+  "name": "autonomy",
   "private": true,
+  "description": "Autonomy: a 3D map of the builders of agent infrastructure",
   "version": "0.1.0",
   "type": "module",
   "scripts": {

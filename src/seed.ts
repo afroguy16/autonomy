@@ -265,7 +265,7 @@ export function buildSeed(seed = 7): GraphMap {
   const seeds = orgIds.slice(0, 4);
   return {
     meta: {
-      name: "Agent infrastructure map (sample)",
+      name: "Autonomy (sample data)",
       version: 1,
       updated: "2026-11-06",
       is_sample: true,
