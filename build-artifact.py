@@ -1,0 +1,15 @@
+"""Inline styles.css and app.js into one page for publishing (dist/agent-map.html)."""
+import os, re
+root = os.path.dirname(os.path.abspath(__file__))
+html = open(os.path.join(root, "index.html")).read()
+css = open(os.path.join(root, "styles.css")).read()
+js = open(os.path.join(root, "app.js")).read()
+head = re.search(r"<head>(.*?)</head>", html, re.S).group(1)
+body = re.search(r"<body>(.*?)</body>", html, re.S).group(1)
+head = re.sub(r'<meta charset="utf-8">\s*|<meta name="viewport"[^>]*>\s*', "", head)
+head = head.replace('<link rel="stylesheet" href="styles.css">', "<style>\n" + css + "\n</style>")
+head = head.replace("<title>", '<meta name="claude:viewport-fit-sides" content="cover">\n<title>', 1)
+body = body.replace('<script type="module" src="app.js"></script>', '<script type="module">\n' + js.replace("</script", "<\\/script") + "\n</script>")
+os.makedirs(os.path.join(root, "dist"), exist_ok=True)
+open(os.path.join(root, "dist", "agent-map.html"), "w").write(head.strip() + "\n" + body.strip() + "\n")
+print("dist/agent-map.html", os.path.getsize(os.path.join(root, "dist", "agent-map.html")), "bytes")
