@@ -573,7 +573,7 @@ export class MapScene {
       this.dirty = false;
       const fading = this.updateNodes(dt);
       this.updateEdges();
-      if (this.introState === "off") this.updateLabels();
+      if (this.introState === "off" && !this.initialLayoutPending) this.updateLabels();
       else for (const el of this.labelPool) el.style.display = "none";
       if (fading) this.dirty = true;
       if (this.pickAt) { this.hoverPick(this.pickAt.x, this.pickAt.y); this.pickAt = null; }
@@ -582,6 +582,12 @@ export class MapScene {
       this.glow.material.uniforms.uDensity.value = fogD;
       this.snow.material.uniforms.uCam.value.copy(this.camera.position);
       this.snow.material.uniforms.uAlpha.value = Math.min(1, Math.max(0, (this.extentR * 0.9 - this.rig.currentDist) / (this.extentR * 0.5)));
+      // Never show accounts at their temporary starting positions: draw them only
+      // once the real layout is in.
+      const placed = !this.initialLayoutPending;
+      this.nodeGroup.visible = placed;
+      this.glow.visible = placed;
+      this.edgeGroups.forEach((g) => { g.line.visible = placed; });
       this.renderer.render(this.scene, this.camera);
       if (this.frameN % 4 === 0 || !camMoving) this.cb.onFrame({ depth: this.depth, moving: camMoving, ready: !this.initialLayoutPending });
     }
