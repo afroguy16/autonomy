@@ -8,6 +8,14 @@ import type { Node, NodeType } from "./types";
 
 const S = 128;
 
+// Avatars load over the network; the entrance waits for them so photos don't
+// arrive (and upload to the GPU) in the middle of the animation.
+const pendingAvatars = new Set<HTMLImageElement>();
+const avatarWaiters: (() => void)[] = [];
+export function avatarsSettled(): Promise<void> {
+  return pendingAvatars.size ? new Promise((r) => avatarWaiters.push(r)) : Promise.resolve();
+}
+
 export function initials(n: Node) {
   const name = (n.name ?? n.handle ?? n.id).replace(/^@/, "");
   const parts = name.split(/[\s\-_.]+/).filter(Boolean);
@@ -75,8 +83,11 @@ export function makeBadge(n: Node): any {
   if (n.avatarUrl) {
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.onload = () => { draw(ctx, n, img); tex.needsUpdate = true; };
-    img.src = n.avatarUrl; // on error the initials stay
+    pendingAvatars.add(img);
+    const settle = () => { pendingAvatars.delete(img); if (!pendingAvatars.size) avatarWaiters.splice(0).forEach((r) => r()); };
+    img.onload = () => { draw(ctx, n, img); tex.needsUpdate = true; settle(); };
+    img.onerror = settle; // the initials stay
+    img.src = n.avatarUrl;
   }
   // Redraw once web fonts are ready so initials use the page face.
   (document as any).fonts?.ready?.then(() => { if (!n.avatarUrl) { draw(ctx, n, null); tex.needsUpdate = true; } });

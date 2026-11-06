@@ -266,6 +266,11 @@ var NEUTRAL_EDGE = 10725552;
 
 // src/badges.ts
 var S = 128;
+var pendingAvatars = /* @__PURE__ */ new Set();
+var avatarWaiters = [];
+function avatarsSettled() {
+  return pendingAvatars.size ? new Promise((r) => avatarWaiters.push(r)) : Promise.resolve();
+}
 function initials(n) {
   const name = (n.name ?? n.handle ?? n.id).replace(/^@/, "");
   const parts = name.split(/[\s\-_.]+/).filter(Boolean);
@@ -328,10 +333,17 @@ function makeBadge(n) {
   if (n.avatarUrl) {
     const img = new Image();
     img.crossOrigin = "anonymous";
+    pendingAvatars.add(img);
+    const settle = () => {
+      pendingAvatars.delete(img);
+      if (!pendingAvatars.size) avatarWaiters.splice(0).forEach((r) => r());
+    };
     img.onload = () => {
       draw(ctx, n, img);
       tex.needsUpdate = true;
+      settle();
     };
+    img.onerror = settle;
     img.src = n.avatarUrl;
   }
   document.fonts?.ready?.then(() => {
@@ -738,6 +750,11 @@ var MapScene = class {
     /** "waiting": data is in but positions are still being worked out; "playing": the network grows in. */
     this.introState = "off";
     this.introT = 0;
+    /** Wall-clock start of the entrance, so a slow frame never changes its pace. */
+    this.introStart = 0;
+    /** Badge textures are drawn, photos are in and everything is on the GPU. */
+    this.introAssetsReady = false;
+    this.introAssetsPending = false;
     /** Per account: seconds into the entrance when its badge pops in. */
     this.introAt = new Float32Array(0);
     /** Per account: 0 hidden … 1 full size (overshoots a little while popping). */
@@ -939,7 +956,26 @@ var MapScene = class {
     this.rig.dist = this.extentR * 0.5;
     this.rig.snap();
     this.dirty = true;
-    if (!this.initialLayoutPending) this.startIntro();
+    this.prepareIntroAssets();
+  }
+  /** Wait for fonts and avatar photos (at most 1.5s), then upload every badge to the GPU. */
+  prepareIntroAssets() {
+    if (this.introAssetsReady || this.introAssetsPending) return;
+    this.introAssetsPending = true;
+    const fonts = document.fonts?.ready ?? Promise.resolve();
+    const timeout = new Promise((r) => setTimeout(r, 1500));
+    Promise.race([Promise.all([fonts, avatarsSettled()]), timeout]).then(() => {
+      requestAnimationFrame(() => {
+        this.sprites.forEach((sp) => {
+          try {
+            this.renderer.initTexture(sp.material.map);
+          } catch {
+          }
+        });
+        this.introAssetsPending = false;
+        this.introAssetsReady = true;
+      });
+    });
   }
   /** Show everything at once (used for reduced motion, a restored view, or any input). */
   endIntro() {
@@ -985,7 +1021,7 @@ var MapScene = class {
     const yaw = this.rig.yaw;
     const seed = this.layout.get(this.ids[byDeg[0]]);
     const c = this.extentC;
-    this.introFrom = { dist: this.extentR * 0.45, yaw: yaw - 0.55, pitch: 0.18, x: seed.x, y: seed.y, z: seed.z };
+    this.introFrom = { dist: this.extentR * 0.45, yaw: yaw - 0.3, pitch: 0.2, x: seed.x, y: seed.y, z: seed.z };
     this.introTo = { dist: Math.min(this.rig.maxDist, this.extentR * 2.35), yaw, pitch: 0.32, x: c.x, y: c.y, z: c.z };
     this.rig.home.set(c.x, c.y, c.z);
     this.rig.target.set(seed.x, seed.y, seed.z);
@@ -994,17 +1030,23 @@ var MapScene = class {
     this.rig.pitch = this.introFrom.pitch;
     this.rig.snap();
     this.introT = 0;
+    this.introStart = performance.now();
     this.introState = "playing";
     this.dirty = true;
   }
-  stepIntro(dt) {
+  stepIntro(dt, now) {
     if (this.introState === "waiting") {
       this.rig.yaw += dt * 0.06;
-      if (!this.initialLayoutPending) this.startIntro();
+      this.rig.snap();
+      this.dirty = true;
+      if (!this.initialLayoutPending && this.introAssetsReady) {
+        this.startIntro();
+        this.introStart = now;
+      }
       return;
     }
     if (this.introState !== "playing") return;
-    this.introT += dt;
+    this.introT = (now - this.introStart) / 1e3;
     const T = this.introT;
     const pop = 0.42;
     let all = true;
@@ -1021,6 +1063,7 @@ var MapScene = class {
     this.rig.yaw = f.yaw + (t.yaw - f.yaw) * e;
     this.rig.pitch = f.pitch + (t.pitch - f.pitch) * e;
     this.rig.target.set(f.x + (t.x - f.x) * e, f.y + (t.y - f.y) * e, f.z + (t.z - f.z) * e);
+    this.rig.snap();
     if (all && k >= 1) {
       this.introState = "off";
       this.introS.fill(1);
@@ -1138,13 +1181,14 @@ var MapScene = class {
       if (this.frameN % 10 === 0 || this.layout.settled) this.updateExtent();
       if (!this.rig.userMoved && this.introState === "off") this.rig.overview(this.extentC, this.extentR);
     }
-    this.stepIntro(dt);
+    this.stepIntro(dt, now);
     const camMoving = this.rig.update(dt);
     if (camMoving || layoutMoving || this.dirty || this.pickAt) {
       this.dirty = false;
       const fading = this.updateNodes(dt);
       this.updateEdges();
-      this.updateLabels();
+      if (this.introState === "off") this.updateLabels();
+      else for (const el of this.labelPool) el.style.display = "none";
       if (fading) this.dirty = true;
       if (this.pickAt) {
         this.hoverPick(this.pickAt.x, this.pickAt.y);

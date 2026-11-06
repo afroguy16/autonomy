@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
-import { badgeKey, makeBadge } from "./badges";
+import { avatarsSettled, badgeKey, makeBadge } from "./badges";
 import { CameraRig } from "./camera";
 import { ForceLayout, type Vec3 } from "./layout";
 import type { Analysis } from "./normalize";
@@ -127,6 +127,11 @@ export class MapScene {
   /** "waiting": data is in but positions are still being worked out; "playing": the network grows in. */
   private introState: "off" | "waiting" | "playing" = "off";
   private introT = 0;
+  /** Wall-clock start of the entrance, so a slow frame never changes its pace. */
+  private introStart = 0;
+  /** Badge textures are drawn, photos are in and everything is on the GPU. */
+  private introAssetsReady = false;
+  private introAssetsPending = false;
   /** Per account: seconds into the entrance when its badge pops in. */
   private introAt = new Float32Array(0);
   /** Per account: 0 hidden … 1 full size (overshoots a little while popping). */
@@ -349,7 +354,24 @@ export class MapScene {
     this.rig.dist = this.extentR * 0.5;
     this.rig.snap();
     this.dirty = true;
-    if (!this.initialLayoutPending) this.startIntro();
+    this.prepareIntroAssets();
+  }
+
+  /** Wait for fonts and avatar photos (at most 1.5s), then upload every badge to the GPU. */
+  private prepareIntroAssets() {
+    if (this.introAssetsReady || this.introAssetsPending) return;
+    this.introAssetsPending = true;
+    const fonts = (document as any).fonts?.ready ?? Promise.resolve();
+    const timeout = new Promise<void>((r) => setTimeout(r, 1500));
+    Promise.race([Promise.all([fonts, avatarsSettled()]), timeout]).then(() => {
+      // Let the font redraw (badges.ts) run first, then push every texture up now,
+      // while the screen is still empty, instead of mid-animation.
+      requestAnimationFrame(() => {
+        this.sprites.forEach((sp) => { try { this.renderer.initTexture(sp.material.map); } catch { /* uploads on first draw instead */ } });
+        this.introAssetsPending = false;
+        this.introAssetsReady = true;
+      });
+    });
   }
 
   /** Show everything at once (used for reduced motion, a restored view, or any input). */
@@ -396,7 +418,7 @@ export class MapScene {
     const yaw = this.rig.yaw;
     const seed = this.layout.get(this.ids[byDeg[0]])!;
     const c = this.extentC;
-    this.introFrom = { dist: this.extentR * 0.45, yaw: yaw - 0.55, pitch: 0.18, x: seed.x, y: seed.y, z: seed.z };
+    this.introFrom = { dist: this.extentR * 0.45, yaw: yaw - 0.3, pitch: 0.2, x: seed.x, y: seed.y, z: seed.z };
     this.introTo = { dist: Math.min(this.rig.maxDist, this.extentR * 2.35), yaw, pitch: 0.32, x: c.x, y: c.y, z: c.z };
     this.rig.home.set(c.x, c.y, c.z);
     this.rig.target.set(seed.x, seed.y, seed.z);
@@ -405,19 +427,22 @@ export class MapScene {
     this.rig.pitch = this.introFrom.pitch;
     this.rig.snap();
     this.introT = 0;
+    this.introStart = performance.now();
     this.introState = "playing";
     this.dirty = true;
   }
 
-  private stepIntro(dt: number) {
+  private stepIntro(dt: number, now: number) {
     if (this.introState === "waiting") {
-      // Drift slowly through the empty space while the layout is worked out.
+      // Drift slowly through the empty space while the layout and badges get ready.
       this.rig.yaw += dt * 0.06;
-      if (!this.initialLayoutPending) this.startIntro();
+      this.rig.snap();
+      this.dirty = true;
+      if (!this.initialLayoutPending && this.introAssetsReady) { this.startIntro(); this.introStart = now; }
       return;
     }
     if (this.introState !== "playing") return;
-    this.introT += dt;
+    this.introT = (now - this.introStart) / 1000;
     const T = this.introT;
     const pop = 0.42;
     let all = true;
@@ -435,6 +460,9 @@ export class MapScene {
     this.rig.yaw = f.yaw + (t.yaw - f.yaw) * e;
     this.rig.pitch = f.pitch + (t.pitch - f.pitch) * e;
     this.rig.target.set(f.x + (t.x - f.x) * e, f.y + (t.y - f.y) * e, f.z + (t.z - f.z) * e);
+    // The curve above is the only easing: the camera follows it exactly, with no
+    // second soft-follow layered on top.
+    this.rig.snap();
     if (all && k >= 1) { this.introState = "off"; this.introS.fill(1); }
     this.dirty = true;
   }
@@ -539,13 +567,14 @@ export class MapScene {
       if (this.frameN % 10 === 0 || this.layout.settled) this.updateExtent();
       if (!this.rig.userMoved && this.introState === "off") this.rig.overview(this.extentC, this.extentR);
     }
-    this.stepIntro(dt);
+    this.stepIntro(dt, now);
     const camMoving = this.rig.update(dt);
     if (camMoving || layoutMoving || this.dirty || this.pickAt) {
       this.dirty = false;
       const fading = this.updateNodes(dt);
       this.updateEdges();
-      this.updateLabels();
+      if (this.introState === "off") this.updateLabels();
+      else for (const el of this.labelPool) el.style.display = "none";
       if (fading) this.dirty = true;
       if (this.pickAt) { this.hoverPick(this.pickAt.x, this.pickAt.y); this.pickAt = null; }
       const fogD = 0.3 / Math.max(this.rig.currentDist + this.extentR, this.extentR * 2.4);
