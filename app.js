@@ -1501,7 +1501,8 @@ var MapScene = class {
       const delta = Math.max(-300, Math.min(300, e.deltaY * unit));
       const p = local(e);
       const n = this.ndc(p.x, p.y);
-      this.rig.zoomAt(Math.exp(delta * (e.ctrlKey ? 6e-3 : 14e-4)), n.x, n.y);
+      const zoomGain = e.ctrlKey ? 12e-4 : 65e-5;
+      this.rig.zoomAt(Math.exp(delta * zoomGain), n.x, n.y);
       this.dirty = true;
     }, { passive: false });
     const drivingKeys = /* @__PURE__ */ new Set(["w", "a", "s", "d", "q", "e", "arrowup", "arrowdown", "arrowleft", "arrowright", "pageup", "pagedown", "=", "+", "-", "_"]);

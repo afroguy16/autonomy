@@ -878,7 +878,11 @@ export class MapScene {
       const delta = Math.max(-300, Math.min(300, e.deltaY * unit));
       const p = local(e);
       const n = this.ndc(p.x, p.y);
-      this.rig.zoomAt(Math.exp(delta * (e.ctrlKey ? 0.006 : 0.0014)), n.x, n.y);
+      // Keep a mouse-wheel detent small; rapid wheel events compound quickly
+      // across the map's very broad zoom range. Trackpad pinch gets a little
+      // more gain while remaining much gentler than the browser default.
+      const zoomGain = e.ctrlKey ? 0.0012 : 0.00065;
+      this.rig.zoomAt(Math.exp(delta * zoomGain), n.x, n.y);
       this.dirty = true;
     }, { passive: false });
 
