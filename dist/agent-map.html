@@ -819,12 +819,12 @@ var NODE_STYLE = {
   agent: { color: 14243853, css: "#D9580D", label: "Agent", shape: "Diamond" }
 };
 var EDGE_STYLE = {
-  affiliation: { color: 4937059, css: "#4B5563", width: 1.8, dashed: false, dash: 0, gap: 0, label: "Affiliation", means: "Works at, founded or advises \u2014 sourced." },
-  built: { color: 11817737, css: "#B45309", width: 2.4, dashed: false, dash: 0, gap: 0, label: "Built / operates", means: "Made or runs this agent or project \u2014 sourced." },
-  collaboration: { color: 1409085, css: "#15803D", width: 3.2, dashed: false, dash: 0, gap: 0, label: "Collaboration", means: "Sourced joint work, such as a co-built project or paper." },
-  engagement: { color: 947344, css: "#0E7490", width: 1.7, dashed: true, dash: 1.2, gap: 0.8, label: "Engagement", means: "A reply or quote on X that led the research to this account. It records a discovery path, not collaboration." },
-  shared_topic: { color: 12458077, css: "#BE185D", width: 1.7, dashed: true, dash: 0.35, gap: 0.8, label: "Shared topic", means: "Both work in the same area. No direct relationship is claimed." },
-  cluster: { color: 10265519, css: "#9CA3AF", width: 1.2, dashed: false, dash: 0, gap: 0, label: "Cluster (legacy)", means: "Kept from older data. What it means is not defined yet." }
+  affiliation: { color: 4937059, css: "#4B5563", width: 1.3, dashed: false, dash: 0, gap: 0, label: "Affiliation", means: "Works at, founded or advises \u2014 sourced." },
+  built: { color: 11817737, css: "#B45309", width: 1.6, dashed: false, dash: 0, gap: 0, label: "Built / operates", means: "Made or runs this agent or project \u2014 sourced." },
+  collaboration: { color: 1409085, css: "#15803D", width: 2, dashed: false, dash: 0, gap: 0, label: "Collaboration", means: "Sourced joint work, such as a co-built project or paper." },
+  engagement: { color: 947344, css: "#0E7490", width: 1.1, dashed: true, dash: 1.2, gap: 0.8, label: "Engagement", means: "A reply or quote on X that led the research to this account. It records a discovery path, not collaboration." },
+  shared_topic: { color: 12458077, css: "#BE185D", width: 1.2, dashed: true, dash: 0.35, gap: 0.8, label: "Shared topic", means: "Both work in the same area. No direct relationship is claimed." },
+  cluster: { color: 10265519, css: "#9CA3AF", width: 1, dashed: false, dash: 0, gap: 0, label: "Cluster (legacy)", means: "Kept from older data. What it means is not defined yet." }
 };
 var SELECT_COLOR = 16436245;
 var INK = 1447965;
@@ -1734,7 +1734,7 @@ var MapScene = class {
       }
       const g = new LineSegmentsGeometry();
       g.setPositions(arr);
-      const m = new LineMaterial({ color: SELECT_COLOR, linewidth: 10, transparent: true, opacity: 0.75, depthWrite: false, worldUnits: false });
+      const m = new LineMaterial({ color: SELECT_COLOR, linewidth: 6, transparent: true, opacity: 0.7, depthWrite: false, worldUnits: false });
       m.resolution.set(this.width, this.height);
       this.highlight = new LineSegments2(g, m);
       this.highlight.renderOrder = 0;

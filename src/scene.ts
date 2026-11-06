@@ -566,7 +566,7 @@ export class MapScene {
       for (let j = 0; j < n; j++) { this.edgeEnds(sel, ends, j, n, perp); arr.set(ends, j * 6); }
       const g = new LineSegmentsGeometry();
       g.setPositions(arr);
-      const m = new LineMaterial({ color: SELECT_COLOR, linewidth: 10, transparent: true, opacity: 0.75, depthWrite: false, worldUnits: false });
+      const m = new LineMaterial({ color: SELECT_COLOR, linewidth: 6, transparent: true, opacity: 0.7, depthWrite: false, worldUnits: false });
       m.resolution.set(this.width, this.height);
       this.highlight = new LineSegments2(g, m);
       this.highlight.renderOrder = 0;
