@@ -762,6 +762,8 @@ var MapScene = class {
     this.driftLevel = 0;
     /** Drift may (re)start after this time (ms, performance.now()). */
     this.driftResumeAt = 0;
+    /** Drift's own clock: advances only while drifting, so motion picks up where it left off. */
+    this.driftT = 0;
     /** Per account: seconds into the entrance when its badge pops in. */
     this.introAt = new Float32Array(0);
     /** Per account: 0 hidden … 1 full size (overshoots a little while popping). */
@@ -1094,7 +1096,20 @@ var MapScene = class {
       this.driftLevel = 0;
       return;
     }
-    this.rig.yaw += dt * (Math.PI * 2 / 210) * this.driftLevel;
+    const d\u03C4 = dt * this.driftLevel;
+    const t = this.driftT;
+    this.driftT += d\u03C4;
+    const w = (period) => Math.PI * 2 / period;
+    this.rig.yaw += d\u03C4 * w(210);
+    const wd = w(61);
+    this.rig.dist = this.rig.clampDist(this.rig.dist * Math.exp(0.38 * wd * Math.cos(wd * t + Math.PI) * d\u03C4));
+    const wp = w(83);
+    this.rig.pitch = Math.max(-1.2, Math.min(1.2, this.rig.pitch + 0.28 * wp * Math.cos(wp * t + 1.3) * d\u03C4));
+    const a = this.extentR * 0.18;
+    const wx = w(97), wy = w(131), wz = w(113);
+    this.rig.target.x += a * wx * Math.cos(wx * t + 0.4) * d\u03C4;
+    this.rig.target.y += a * 0.6 * wy * Math.cos(wy * t + 2.1) * d\u03C4;
+    this.rig.target.z += a * wz * Math.cos(wz * t + 4) * d\u03C4;
   }
   /** Called on any direct input: stop drifting now, resume after a quiet spell. */
   noteInput() {

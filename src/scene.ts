@@ -140,6 +140,8 @@ export class MapScene {
   private driftLevel = 0;
   /** Drift may (re)start after this time (ms, performance.now()). */
   private driftResumeAt = 0;
+  /** Drift's own clock: advances only while drifting, so motion picks up where it left off. */
+  private driftT = 0;
   /** Per account: seconds into the entrance when its badge pops in. */
   private introAt = new Float32Array(0);
   /** Per account: 0 hidden … 1 full size (overshoots a little while popping). */
@@ -491,7 +493,28 @@ export class MapScene {
     const tau = goal > this.driftLevel ? 2.2 : 0.35;
     this.driftLevel += (goal - this.driftLevel) * (1 - Math.exp(-dt / tau));
     if (!goal && this.driftLevel < 0.001) { this.driftLevel = 0; return; }
-    this.rig.yaw += dt * ((Math.PI * 2) / 210) * this.driftLevel;
+    // A breathing orbit: the slow turn, plus moving in and out, rising and sinking,
+    // and the orbit centre wandering a little, each on its own long cycle so the
+    // path never visibly repeats. Applied as small per-frame changes (derivatives of
+    // the waves), so it always continues from wherever you left the camera.
+    const dτ = dt * this.driftLevel;
+    const t = this.driftT;
+    this.driftT += dτ;
+    const w = (period: number) => (Math.PI * 2) / period;
+    // Turn: one revolution about every 3.5 minutes.
+    this.rig.yaw += dτ * w(210);
+    // In and out: about ×0.68 … ×1.47 of the distance over ~61s, heading in first.
+    const wd = w(61);
+    this.rig.dist = this.rig.clampDist(this.rig.dist * Math.exp(0.38 * wd * Math.cos(wd * t + Math.PI) * dτ));
+    // Rise and sink: about ±16° over ~83s.
+    const wp = w(83);
+    this.rig.pitch = Math.max(-1.2, Math.min(1.2, this.rig.pitch + 0.28 * wp * Math.cos(wp * t + 1.3) * dτ));
+    // Orbit centre wanders up to ~18% of the map's size.
+    const a = this.extentR * 0.18;
+    const wx = w(97), wy = w(131), wz = w(113);
+    this.rig.target.x += a * wx * Math.cos(wx * t + 0.4) * dτ;
+    this.rig.target.y += a * 0.6 * wy * Math.cos(wy * t + 2.1) * dτ;
+    this.rig.target.z += a * wz * Math.cos(wz * t + 4.0) * dτ;
   }
 
   /** Called on any direct input: stop drifting now, resume after a quiet spell. */
