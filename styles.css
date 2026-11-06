@@ -417,6 +417,9 @@ body.power .legend-btn, body.power .nav-pill { display: none !important; }
    Once the data is in, the overlay turns see-through and the counts tick up. */
 .boot { background: var(--map); transition: opacity 520ms ease, visibility 0s linear 520ms, background-color 600ms ease; }
 html.scene-up .boot { background-color: transparent; }
+/* No text or mark while loading: the map's own space is the loading state.
+   The card only appears if loading fails, to explain and offer a retry. */
+.boot:not([data-state="error"]) .boot-card { display: none; }
 .boot-mark { width: 24px; height: 24px; margin-bottom: 18px; }
 .boot-mark::before, .boot-mark::after, .boot-orbit { display: none; }
 .boot-progress { display: none; }
