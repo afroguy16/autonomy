@@ -459,6 +459,7 @@ export class MapScene {
     const ex = this.layout.extent();
     this.extentC = ex.center;
     this.extentR = ex.radius;
+    this.rig.mapRadius = ex.radius;
     this.rig.maxDist = ex.radius * 12;
     this.rig.home.set(ex.center.x, ex.center.y, ex.center.z);
   }
@@ -759,6 +760,28 @@ export class MapScene {
 
   private bindInput() {
     const c = this.canvas;
+    // Zoom aims at the badge under the pointer, or the nearest one on screen,
+    // so any account can be reached however deep it sits in the map.
+    this.rig.onWheelHandled = () => { this.panMomentum.x = this.panMomentum.y = 0; this.dirty = true; };
+    this.rig.depthAt = (clientX, clientY) => {
+      const r = c.getBoundingClientRect();
+      const x = clientX - r.left, y = clientY - r.top;
+      const hit = this.pick(x, y);
+      if (hit.node) return this.layout.get(hit.node) ?? null;
+      const v = new THREE.Vector3();
+      let best: Vec3 | null = null, bestD = 90 * 90;
+      for (let i = 0; i < this.ids.length; i++) {
+        if (this.visCur[i] < 0.2) continue;
+        const p = this.layout.get(this.ids[i]);
+        if (!p) continue;
+        v.set(p.x, p.y, p.z).project(this.camera);
+        if (v.z < -1 || v.z > 1) continue; // behind the camera or beyond the far plane
+        const sx = (v.x + 1) / 2 * r.width, sy = (1 - v.y) / 2 * r.height;
+        const d = (sx - x) ** 2 + (sy - y) ** 2;
+        if (d < bestD) { bestD = d; best = p; }
+      }
+      return best;
+    };
     // camera-controls owns drag, wheel and pinch (see camera.ts). This only adds
     // tap-to-select, hover, release momentum for pans and the keyboard.
     type Down = { x: number; y: number; startX: number; startY: number; lastAt: number; moved: boolean; pan: boolean };
@@ -813,7 +836,7 @@ export class MapScene {
     c.addEventListener("pointerup", end);
     c.addEventListener("pointercancel", end);
     c.addEventListener("pointerleave", () => { this.hoverAt = null; if (!pointers.size) { this.tooltip.hidden = true; this.hoverNode = null; this.hoverEdge = null; this.dirty = true; } });
-    c.addEventListener("wheel", (e) => { e.preventDefault(); this.rig.userMoved = true; this.panMomentum.x = this.panMomentum.y = 0; this.dirty = true; }, { passive: false });
+    c.addEventListener("wheel", (e) => { e.preventDefault(); this.panMomentum.x = this.panMomentum.y = 0; this.dirty = true; }, { passive: false });
 
     const drivingKeys = new Set(["w", "a", "s", "d", "q", "e", "arrowup", "arrowdown", "arrowleft", "arrowright", "pageup", "pagedown", "=", "+", "-", "_"]);
     c.addEventListener("keydown", (e) => {

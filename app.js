@@ -360,16 +360,30 @@ var CameraRig = class {
     this._max = 600;
     this.tmp = new THREE2.Vector3();
     this.tmp2 = new THREE2.Vector3();
+    /**
+     * Where the user is pointing, in 3D: the badge under the cursor, or the nearest
+     * one on screen. Set by the scene. Zoom aims there, so you can always reach it.
+     */
+    this.depthAt = null;
+    /** World size of the map, so the forward dive moves at a useful speed. */
+    this.mapRadius = 50;
+    this.lastWheelAt = 0;
+    /** Called when the rig consumes a wheel event itself, so the scene can redraw. */
+    this.onWheelHandled = null;
+    this.wheelAnchor = null;
     this.camera = camera;
+    this.dom = dom;
     const c = new CameraControls(camera, dom);
     this.controls = c;
     c.minDistance = this._min;
     c.maxDistance = this._max;
     c.infinityDolly = false;
-    dom.addEventListener("wheel", (e) => {
-      c.infinityDolly = e.deltaY < 0;
-    }, { capture: true, passive: true });
-    c.dollyToCursor = true;
+    window.addEventListener("wheel", (e) => {
+      if (e.target === dom) this.beforeWheel(e);
+    }, { capture: true, passive: false });
+    window.addEventListener("pointerdown", (e) => {
+      if (e.target === dom) c.mouseButtons.left = e.shiftKey ? ACTION.ROTATE : ACTION.TRUCK;
+    }, { capture: true });
     c.smoothTime = 0.12;
     c.draggingSmoothTime = 0.05;
     c.dollySpeed = 1;
@@ -379,7 +393,7 @@ var CameraRig = class {
     c.mouseButtons.left = ACTION.TRUCK;
     c.mouseButtons.middle = ACTION.DOLLY;
     c.mouseButtons.right = ACTION.ROTATE;
-    c.mouseButtons.wheel = ACTION.DOLLY;
+    c.mouseButtons.wheel = ACTION.NONE;
     if ("shiftLeft" in c.mouseButtons) c.mouseButtons.shiftLeft = ACTION.ROTATE;
     c.touches.one = ACTION.TOUCH_TRUCK;
     c.touches.two = ACTION.TOUCH_DOLLY_TRUCK;
@@ -391,6 +405,68 @@ var CameraRig = class {
       this.userMoved = true;
     });
     c.setLookAt(0, 0, 120, 0, 0, 0, false);
+  }
+  /**
+   * Wheel and trackpad zoom. Each event scales the camera (position and focus
+   * point together) about one 3D anchor, so the anchor stays exactly under the
+   * pointer; the library's spring then smooths the motion.
+   * Zooming in anchors on the badge under the pointer (or the nearest one), so any
+   * account can be reached. Past the closest orbit distance the camera keeps
+   * flying forward at a steady pace, through the map.
+   */
+  beforeWheel(e) {
+    e.preventDefault();
+    const c = this.controls;
+    const now = performance.now();
+    const gestureStart = now - this.lastWheelAt > 250;
+    this.lastWheelAt = now;
+    this.userMoved = true;
+    this.onWheelHandled?.();
+    const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
+    const dy = Math.max(-150, Math.min(150, e.deltaY * unit * (e.ctrlKey ? 4 : 1)));
+    if (!dy) return;
+    const zoomIn = dy < 0;
+    const r = this.dom.getBoundingClientRect();
+    const nx = (e.clientX - r.left) / Math.max(1, r.width) * 2 - 1;
+    const ny = -((e.clientY - r.top) / Math.max(1, r.height)) * 2 + 1;
+    const t = c.getTarget(new THREE2.Vector3(), true);
+    const p = c.getPosition(new THREE2.Vector3(), true);
+    const d = p.distanceTo(t);
+    if (gestureStart || !this.wheelAnchor || this.wheelAnchor.zoomIn !== zoomIn) {
+      let pt = null;
+      if (zoomIn && this.depthAt) {
+        const q = this.depthAt(e.clientX, e.clientY);
+        if (q) pt = new THREE2.Vector3(q.x, q.y, q.z);
+      }
+      if (!pt) {
+        const ray = this.tmp.set(nx, ny, 0.5).unproject(this.camera).sub(this.camera.position).normalize();
+        const fwd = this.forward();
+        pt = this.camera.position.clone().addScaledVector(ray, d / Math.max(0.05, ray.dot(fwd)));
+      }
+      this.wheelAnchor = { pt, zoomIn };
+    }
+    const anchor = this.wheelAnchor.pt;
+    if (zoomIn && d * Math.exp(dy * 5e-3) < this._min) {
+      const ray = this.tmp.set(nx, ny, 0.5).unproject(this.camera).sub(this.camera.position).normalize();
+      const step = -dy * this.mapRadius * 12e-4;
+      t.addScaledVector(ray, step);
+      p.addScaledVector(ray, step);
+      this.wheelAnchor = null;
+    } else {
+      let f = Math.exp(dy * 5e-3);
+      f = Math.min(Math.max(f, this._min / d), this._max / d);
+      if (Math.abs(1 - f) < 1e-6) return;
+      t.sub(anchor).multiplyScalar(f).add(anchor);
+      p.sub(anchor).multiplyScalar(f).add(anchor);
+      if (!zoomIn) {
+        const nd = d * f;
+        const k = this._max - d > 1e-6 ? Math.min(1, (nd - d) / (this._max - d)) : 1;
+        const shift = this.home.clone().sub(t).multiplyScalar(k);
+        t.add(shift);
+        p.add(shift);
+      }
+    }
+    c.setLookAt(p.x, p.y, p.z, t.x, t.y, t.z, !this.reducedMotion);
   }
   setReducedMotion(on) {
     this.reducedMotion = on;
@@ -1085,6 +1161,7 @@ var MapScene = class {
     const ex = this.layout.extent();
     this.extentC = ex.center;
     this.extentR = ex.radius;
+    this.rig.mapRadius = ex.radius;
     this.rig.maxDist = ex.radius * 12;
     this.rig.home.set(ex.center.x, ex.center.y, ex.center.z);
   }
@@ -1401,6 +1478,32 @@ var MapScene = class {
   }
   bindInput() {
     const c = this.canvas;
+    this.rig.onWheelHandled = () => {
+      this.panMomentum.x = this.panMomentum.y = 0;
+      this.dirty = true;
+    };
+    this.rig.depthAt = (clientX, clientY) => {
+      const r = c.getBoundingClientRect();
+      const x = clientX - r.left, y = clientY - r.top;
+      const hit = this.pick(x, y);
+      if (hit.node) return this.layout.get(hit.node) ?? null;
+      const v = new THREE3.Vector3();
+      let best = null, bestD = 90 * 90;
+      for (let i = 0; i < this.ids.length; i++) {
+        if (this.visCur[i] < 0.2) continue;
+        const p = this.layout.get(this.ids[i]);
+        if (!p) continue;
+        v.set(p.x, p.y, p.z).project(this.camera);
+        if (v.z < -1 || v.z > 1) continue;
+        const sx = (v.x + 1) / 2 * r.width, sy = (1 - v.y) / 2 * r.height;
+        const d = (sx - x) ** 2 + (sy - y) ** 2;
+        if (d < bestD) {
+          bestD = d;
+          best = p;
+        }
+      }
+      return best;
+    };
     const pointers = /* @__PURE__ */ new Map();
     const local = (e) => {
       const r = c.getBoundingClientRect();
@@ -1473,7 +1576,6 @@ var MapScene = class {
     });
     c.addEventListener("wheel", (e) => {
       e.preventDefault();
-      this.rig.userMoved = true;
       this.panMomentum.x = this.panMomentum.y = 0;
       this.dirty = true;
     }, { passive: false });
