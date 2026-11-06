@@ -38,26 +38,26 @@ function shapePath(ctx: CanvasRenderingContext2D, type: NodeType, inset: number)
 function draw(ctx: CanvasRenderingContext2D, n: Node, img: HTMLImageElement | null) {
   const style = NODE_STYLE[n.type];
   ctx.clearRect(0, 0, S, S);
-  // White outline keeps neighbouring badges apart.
-  shapePath(ctx, n.type, 1);
-  ctx.fillStyle = "#ffffff";
-  ctx.fill();
-  shapePath(ctx, n.type, 8);
+  // Quiet badge: white face, type shown by a coloured ring and the shape itself.
+  shapePath(ctx, n.type, 4);
   ctx.fillStyle = style.css;
+  ctx.fill();
+  shapePath(ctx, n.type, n.type === "agent" ? 19 : 16);
+  ctx.fillStyle = "#ffffff";
   ctx.fill();
   if (img) {
     ctx.save();
-    shapePath(ctx, n.type, 14);
+    shapePath(ctx, n.type, n.type === "agent" ? 21 : 18);
     ctx.clip();
     const scale = Math.max(S / img.width, S / img.height);
     ctx.drawImage(img, (S - img.width * scale) / 2, (S - img.height * scale) / 2, img.width * scale, img.height * scale);
     ctx.restore();
     return;
   }
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = "#2b2f36";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = `700 ${n.type === "agent" ? 36 : 46}px "IBM Plex Sans", system-ui, sans-serif`;
+  ctx.font = `600 ${n.type === "agent" ? 30 : 40}px Inter, system-ui, sans-serif`;
   ctx.fillText(initials(n), S / 2, S / 2 + 2);
 }
 

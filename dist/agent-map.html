@@ -2,7 +2,7 @@
 <title>Autonomy | Builders of agent infrastructure</title>
 <meta name="description" content="Autonomy is a 3D map of the people, organizations and agents building agent infrastructure, and how they connect.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* Layout: full-bleed 3D map under a solid top bar; floating cards for legend, camera, minimap; side drawers for detail. */
 :root {
@@ -234,6 +234,182 @@ body.power #list { display: none !important; }
 .power-exit:hover, .power-exit:focus-visible { opacity: 1; }
 body.power #stage:has(#details:not([hidden])) .power-exit { right: 434px; }
 
+/* ===================== Linear pass =====================
+   Restraint: neutral surfaces, one indigo accent, Inter, hairlines, minimal chrome. */
+:root {
+  --ground: #fbfbfb;
+  --map: #fcfcfd;
+  --surface: #ffffff;
+  --surface-2: #f4f4f5;
+  --line: #e8e8eb;
+  --line-2: #dcdce0;
+  --ink: #1b1c1f;
+  --ink-2: #3c3f44;
+  --muted: #6b6f76;
+  --link: #5e6ad2;
+  --accent: #5e6ad2;
+  --accent-soft: #eef0fc;
+  --sel: #5e6ad2;
+  --person: #3b82f6;
+  --org: #8b5cf6;
+  --agent: #f97316;
+  --radius: 10px;
+  --display: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --body: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h2 { letter-spacing: -0.01em; }
+kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 4px; border: 1px solid var(--line-2); background: var(--surface); color: var(--muted); font: 500 11px var(--body); }
+
+/* Top bar */
+.topbar { padding-block: 8px; gap: 12px; border-bottom-color: var(--line); }
+.brand { min-width: 0; gap: 9px; }
+.brand svg { width: 22px; height: 22px; }
+.brand .title { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.brand .sub { font-size: 12px; }
+.search-trigger { flex: 1 1 280px; max-width: 460px; height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); font: 400 13px var(--body); cursor: pointer; text-align: left; }
+.search-trigger:hover { border-color: var(--line-2); background: #efeff1; }
+.search-trigger span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn { height: 32px; padding: 0 10px; border-radius: 7px; font-size: 13px; font-weight: 500; border-color: var(--line); }
+.btn:hover { background: var(--surface-2); }
+.btn[aria-expanded="true"], .btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: #d5d9f6; }
+.btn.ghost { border-style: solid; color: var(--muted); }
+.badge { background: var(--accent); color: #fff; }
+.badge.warn { background: #fdecc8; color: #8a5300; }
+.sample { background: #fef7e0; color: #8a5300; border-color: #f3dfa3; font-weight: 500; }
+.icon-btn { width: 32px; height: 32px; border-radius: 7px; border-color: transparent; background: transparent; color: var(--muted); }
+.icon-btn:hover { background: var(--surface-2); color: var(--ink); }
+.icon-btn.sm { width: 28px; height: 28px; }
+.icon-btn.xs { width: 22px; height: 22px; border-radius: 5px; }
+
+/* Map labels: plain text with a halo, no boxes */
+.lbl { background: none; border: 0; box-shadow: none; padding: 0 2px; font: 500 12px/1.3 var(--body); color: var(--ink); letter-spacing: -0.005em; text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 2px #fff, 0 0 1px #fff; }
+.lbl .h { font-size: 11px; color: var(--muted); }
+.lbl.sel { background: none; color: var(--accent); font-weight: 600; font-size: 12.5px; }
+.lbl.sel .h { color: var(--muted); }
+.lbl.focus { font-weight: 500; }
+.lbl.match { box-shadow: none; color: var(--accent); }
+.tooltip { border-radius: 8px; border-color: var(--line); font-size: 12px; padding: 6px 9px; box-shadow: 0 4px 14px rgba(0, 0, 0, .08); }
+
+/* Cards, legend popover, controls */
+.card { background: rgba(255, 255, 255, .96); border-color: var(--line); box-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 4px 14px rgba(0, 0, 0, .05); }
+.legend-btn { position: absolute; left: 14px; bottom: 14px; z-index: 6; display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 8px 0 11px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, .96); color: var(--ink-2); font: 500 12px var(--body); cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, .04); }
+.legend-btn:hover, .legend-btn[aria-expanded="true"] { color: var(--ink); border-color: var(--line-2); }
+.legend { bottom: 52px; width: 300px; padding: 12px 14px; }
+.legend-head h2 { font-size: 13px; }
+.legend ul { font-size: 12.5px; }
+.legend-edges { font-size: 12px !important; }
+.nav-pill { position: absolute; right: 14px; bottom: 14px; z-index: 6; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 999px; }
+.pill-btn { width: 30px; height: 30px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-2); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.pill-btn:hover { background: var(--surface-2); color: var(--ink); }
+.pill-btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.pill-sep { width: 1px; height: 16px; background: var(--line); margin: 0 3px; }
+.minimap { bottom: 58px; padding: 6px; }
+.minimap canvas { background: var(--surface-2); }
+.hint { bottom: 18px; font-size: 11.5px; color: var(--muted); border-color: var(--line); padding: 5px 12px; }
+.hint kbd { margin: 0 1px; }
+.filter-bar { border-color: var(--line); font-size: 12.5px; }
+.toast { background: var(--ink); font-weight: 500; font-size: 12.5px; border-radius: 8px; }
+@media (min-width: 761px) {
+  #stage:has(#details:not([hidden])) .nav-pill,
+  #stage:has(#details:not([hidden])) .minimap { right: 434px; }
+  #stage:has(#filters:not([hidden])) .legend-btn,
+  #stage:has(#list:not([hidden])) .legend-btn { left: 374px; }
+}
+body.power .legend-btn, body.power .nav-pill { display: none !important; }
+
+/* Command menu */
+.palette-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(15, 16, 20, .18); display: flex; justify-content: center; align-items: flex-start; padding: 12vh max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px)); }
+.palette { width: min(640px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 24px 64px rgba(15, 16, 20, .18), 0 2px 6px rgba(15, 16, 20, .06); overflow: hidden; display: flex; flex-direction: column; max-height: 70vh; }
+.palette-input { display: flex; align-items: center; gap: 10px; padding: 0 14px; height: 52px; border-bottom: 1px solid var(--line); color: var(--muted); }
+.palette-input input { flex: 1; min-width: 0; height: 100%; border: 0; outline: none; background: transparent; font: 400 15px var(--body); color: var(--ink); }
+.palette-list { overflow: auto; padding: 6px; }
+.p-group { padding: 10px 10px 4px; font-size: 11px; font-weight: 500; color: var(--muted); }
+.p-item { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 10px; border-radius: 7px; cursor: pointer; font-size: 13.5px; color: var(--ink); }
+.p-item[aria-selected="true"] { background: var(--surface-2); }
+.p-label { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p-meta { flex: 1; min-width: 0; color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p-meta mark { background: var(--accent-soft); color: var(--accent); border-radius: 2px; }
+.p-type { color: var(--muted); font-size: 12px; margin-left: auto; }
+.p-cmd-icon { width: 12px; color: var(--muted); text-align: center; }
+.p-item kbd { margin-left: auto; }
+.p-empty { padding: 18px 12px; color: var(--muted); font-size: 13px; }
+.palette-foot { display: flex; gap: 14px; padding: 8px 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11.5px; }
+.palette-foot span { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Details panel: issue-sidebar style */
+.drawer.right { width: 400px; }
+.d-head { padding: 14px 18px 12px; gap: 8px; border-bottom-color: var(--line); }
+.d-top { min-height: 28px; }
+.crumb { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 500; color: var(--muted); }
+.crumb .sep { color: var(--line-2); }
+.d-actions { display: inline-flex; gap: 2px; }
+.d-name { font-size: 20px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.25; }
+.d-name.sm { font-size: 16px; }
+.d-name .verb { color: var(--muted); font-weight: 500; }
+.d-summary { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--ink-2); }
+.d-body { padding: 12px 18px 28px; gap: 20px; }
+.props { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 2px 12px; margin: 0; font-size: 13px; }
+.props dt { color: var(--muted); padding: 6px 0; }
+.props dd { margin: 0; padding: 4px 0; min-height: 28px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; color: var(--ink); min-width: 0; }
+.props dd a { display: inline-flex; align-items: center; gap: 4px; color: var(--ink); text-decoration: none; font-weight: 500; }
+.props dd a:hover { color: var(--accent); }
+.props .sep { color: var(--line-2); }
+.props .handle { font-size: 13px; font-weight: 500; }
+.p-note { color: var(--muted); font-size: 12px; flex-basis: 100%; }
+.warn-text { color: #8a5300; }
+.d-sec h3 { font-size: 11.5px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--muted); margin-bottom: 8px; }
+.notes { border-style: solid; border-color: var(--line); background: var(--surface-2); font-size: 13px; }
+.chips button { min-height: 24px; padding: 0 8px; border-radius: 6px; border-color: var(--line); font-size: 12px; }
+.chips button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: #d5d9f6; }
+.plain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.plain a { display: inline-flex; gap: 4px; align-items: center; color: var(--ink); font-weight: 500; text-decoration: none; }
+.plain .m { display: block; color: var(--muted); font-size: 12px; }
+.conn-group { margin-top: 4px; gap: 2px; }
+.conn-group .gh { font-size: 12px; font-weight: 500; color: var(--ink-2); padding: 6px 0 2px; }
+.conn-group .gh .count { color: var(--muted); font-weight: 400; }
+.conn.dim { opacity: .5; }
+.conn .main { min-height: 40px; border-color: transparent; padding: 4px 8px; border-radius: 7px; }
+.conn .main:hover, .conn .main:focus-visible { background: var(--surface-2); }
+.conn .main b { font-size: 13px; font-weight: 500; }
+.conn .main .s { font-size: 12px; }
+.conf { font-size: 12px; color: var(--muted); }
+.kbd-tip { margin: 8px 0 0; font-size: 11.5px; color: var(--muted); display: flex; gap: 4px; align-items: center; }
+.callout { border-radius: 8px; border-color: var(--line); background: var(--surface-2); font-size: 13px; padding: 10px 12px; }
+.callout.engage { border-color: #d5d9f6; background: var(--accent-soft); }
+.link-btn { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0; color: var(--ink); font: 500 13px var(--body); cursor: pointer; }
+.crumb .link-btn { color: var(--muted); font-size: 12px; }
+.link-btn:hover { color: var(--accent); }
+.timeline { list-style: none; margin: 0; padding: 0; position: relative; }
+.timeline li { position: relative; padding: 0 0 14px 18px; font-size: 13px; display: flex; flex-direction: column; gap: 2px; }
+.timeline li::before { content: ""; position: absolute; left: 3px; top: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--surface); border: 1.5px solid var(--line-2); }
+.timeline li::after { content: ""; position: absolute; left: 6.5px; top: 16px; bottom: 0; width: 1px; background: var(--line); }
+.timeline li:last-child::after { display: none; }
+.timeline a { color: var(--ink); text-decoration: none; font-weight: 500; }
+.timeline a:hover { color: var(--accent); }
+.t-date { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.t-meta { font-size: 12px; color: var(--muted); }
+.timeline .missing { color: #8a5300; }
+
+/* Drawers & lists */
+.drawer { box-shadow: 0 0 0 1px var(--line), 0 8px 30px rgba(0, 0, 0, .06); }
+.row { font-size: 13px; min-height: 32px; }
+.row input { accent-color: var(--accent); }
+.list-items button { min-height: 44px; font-size: 13px; border-radius: 7px; }
+.list-items button[aria-current="true"] { border: 1px solid #d5d9f6; background: var(--accent-soft); }
+.shape.person { background: var(--person); }
+.shape.organization { background: var(--org); }
+.shape.agent { background: var(--agent); }
+@media (max-width: 760px) {
+  .search-trigger { order: 3; flex-basis: 100%; max-width: none; }
+  .legend { left: 8px; right: 8px; bottom: 48px; width: auto; }
+  .legend-btn { left: 8px; bottom: 8px; }
+  .nav-pill { right: 8px; bottom: 8px; top: auto; transform: none; }
+  .palette-backdrop { padding-top: 8vh; }
+}
+
 </style>
 <script type="importmap">
 { "imports": {
@@ -244,26 +420,25 @@ body.power #stage:has(#details:not([hidden])) .power-exit { right: 434px; }
 <div id="app">
   <header class="topbar">
     <div class="brand">
-      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="7" cy="8" r="4" fill="#2563EB"/><rect x="15" y="4" width="7" height="7" rx="1" fill="#5B21B6"/><rect x="10" y="15" width="6" height="6" fill="#D9580D" transform="rotate(45 13 18)"/><path d="M7 8 L18 7.5 M7 8 L13 18" stroke="#9CA3AF" stroke-width="1.2"/></svg>
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="7" cy="8" r="4" fill="#3B82F6"/><rect x="15" y="4" width="7" height="7" rx="1" fill="#8B5CF6"/><rect x="10" y="15" width="6" height="6" fill="#F97316" transform="rotate(45 13 18)"/><path d="M7 8 L18 7.5 M7 8 L13 18" stroke="#9CA3AF" stroke-width="1.2"/></svg>
       <div>
         <div class="title">Autonomy</div>
         <div class="sub"><span>Builders of agent infrastructure</span> · <span id="counts">Loading…</span> <span class="sample" id="sampleFlag" hidden>Sample data</span></div>
       </div>
     </div>
-    <div class="search" role="search">
-      <label for="q" class="sr">Search accounts, handles and notes</label>
-      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <input id="q" type="search" autocomplete="off" placeholder="Search accounts, handles, notes, projects" role="combobox" aria-expanded="false" aria-controls="results" aria-autocomplete="list">
-      <kbd>/</kbd>
-      <div id="results" class="results" role="listbox" aria-label="Search results" hidden></div>
-    </div>
+    <button type="button" class="search-trigger" id="openPalette" aria-haspopup="dialog" aria-controls="palette">
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Search accounts or run a command…</span>
+      <kbd id="kbdHint">⌘K</kbd>
+    </button>
     <div class="tools">
       <button type="button" id="btnFilters" class="btn" aria-expanded="false" aria-controls="filters">Filters <span class="badge" id="filterBadge" hidden></span></button>
       <button type="button" id="btnList" class="btn" aria-expanded="false" aria-controls="list">List</button>
       <button type="button" id="btnPower" class="btn" title="Hide everything but the map (P)">Power view</button>
       <button type="button" id="btnReport" class="btn">Data <span class="badge warn" id="issueBadge" hidden></span></button>
-      <button type="button" id="btnBatch" class="btn ghost" title="Adds a few new fake accounts to show how the map re-settles">+ Sample batch</button>
-      <label class="btn ghost file">Load JSON<input type="file" id="fileIn" accept="application/json,.json"></label>
+      <!-- Reachable from the ⌘K menu: "Add a sample batch", "Load a JSON file". -->
+      <button type="button" id="btnBatch" class="btn ghost" hidden>+ Sample batch</button>
+      <label class="btn ghost file" hidden>Load JSON<input type="file" id="fileIn" accept="application/json,.json"></label>
     </div>
   </header>
 
@@ -298,29 +473,30 @@ body.power #stage:has(#details:not([hidden])) .power-exit { right: 434px; }
       <div id="detailsBody"></div>
     </aside>
 
-    <section id="legend" class="legend card" aria-label="Legend">
-      <div class="legend-head"><h2>Legend</h2><span><button type="button" class="link small" id="namesToggle" aria-pressed="false">Show names</button><button type="button" class="link small" id="legendToggle" aria-expanded="true">Hide lines</button></span></div>
+    <button type="button" id="legendBtn" class="legend-btn" aria-expanded="false" aria-controls="legend">Legend <kbd>?</kbd></button>
+    <section id="legend" class="legend card" aria-label="Legend" hidden>
+      <div class="legend-head"><h2>Legend</h2><button type="button" class="icon-btn sm" id="legendClose" aria-label="Close legend">✕</button></div>
       <ul id="legendNodes" class="legend-nodes"></ul>
       <ul id="legendEdges" class="legend-edges"></ul>
-      <p class="small muted note">Placement comes from the links in the data. Being close does not mean working together.</p>
+      <p class="small muted note">Lines are grey until you select an account, hover a line or filter by kind; then they take these colours. Placement comes from the links in the data; being close does not mean working together.</p>
     </section>
 
-    <nav id="nav" class="nav card" aria-label="Camera">
-      <button type="button" id="zoomIn" class="icon-btn" aria-label="Zoom in">+</button>
-      <label for="depth" class="sr">Depth (zoom)</label>
-      <input id="depth" type="range" min="0" max="1000" value="0" orient="vertical" aria-orientation="vertical">
-      <button type="button" id="zoomOut" class="icon-btn" aria-label="Zoom out">−</button>
-      <button type="button" id="home" class="icon-btn" aria-label="Back to wide view" title="Back to wide view (0)"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      <div class="depth-read" id="depthRead" aria-hidden="true">Surface</div>
+    <nav id="nav" class="nav-pill card" aria-label="Camera">
+      <button type="button" id="zoomOut" class="pill-btn" aria-label="Zoom out" title="Zoom out (−)"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      <button type="button" id="home" class="pill-btn" aria-label="Back to wide view" title="Wide view (0)"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button type="button" id="zoomIn" class="pill-btn" aria-label="Zoom in" title="Zoom in (+)"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      <span class="pill-sep" aria-hidden="true"></span>
+      <button type="button" id="namesBtn" class="pill-btn" aria-pressed="false" aria-label="Show names on the map" title="Names"><span style="font-weight:600;font-size:13px">Aa</span></button>
+      <button type="button" id="miniBtn" class="pill-btn" aria-pressed="false" aria-label="Show minimap" title="Minimap"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="14" cy="11" r="2" fill="currentColor"/></svg></button>
     </nav>
 
-    <figure class="minimap card" id="minimapWrap">
+    <figure class="minimap card" id="minimapWrap" hidden>
       <canvas id="minimap" width="168" height="168" aria-label="Top-down overview. Click to move there." role="img"></canvas>
       <figcaption class="small muted">Top view · click to go</figcaption>
     </figure>
 
     <div id="filterBar" class="filter-bar" hidden></div>
-    <div id="hint" class="hint">Drag to look around · scroll to dive toward the pointer · W/S drive · A/D turn · 0 or ⤢ returns to the wide view</div>
+    <div id="hint" class="hint">Drag to look · scroll to dive · W/S drive · A/D turn · <kbd>⌘K</kbd> search</div>
     <div id="toast" class="toast" role="status" hidden></div>
     <button type="button" id="exitPower" class="power-exit" hidden title="Show the controls again (P)"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Exit power view</button>
   </main>
@@ -334,6 +510,18 @@ body.power #stage:has(#details:not([hidden])) .power-exit { right: 434px; }
     <div id="loadBody"></div>
     <div class="choice"><button type="button" class="btn primary" id="loadMerge">Merge into current map</button><button type="button" class="btn" id="loadReplace">Replace current map</button></div>
   </dialog>
+  <div id="palette" class="palette-backdrop" hidden>
+    <div class="palette" role="dialog" aria-modal="true" aria-label="Search and commands">
+      <div class="palette-input">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <label for="pq" class="sr">Search accounts or type a command</label>
+        <input id="pq" type="text" autocomplete="off" spellcheck="false" placeholder="Search accounts, handles, notes… or type a command" role="combobox" aria-expanded="true" aria-controls="plist" aria-autocomplete="list">
+        <kbd>esc</kbd>
+      </div>
+      <div id="plist" class="palette-list" role="listbox" aria-label="Results"></div>
+      <div class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span><kbd>esc</kbd> close</span></div>
+    </div>
+  </div>
   <div id="live" class="sr" aria-live="polite"></div>
 </div>
 <noscript>This prototype needs JavaScript and WebGL.</noscript>
@@ -815,20 +1003,20 @@ import * as THREE from "three";
 // src/theme.ts
 var BG = 16514041;
 var NODE_STYLE = {
-  person: { color: 2450411, css: "#2563EB", label: "Person", shape: "Circle" },
-  organization: { color: 5972406, css: "#5B21B6", label: "Organization", shape: "Rounded square" },
-  agent: { color: 14243853, css: "#D9580D", label: "Agent", shape: "Diamond" }
+  person: { color: 3900150, css: "#3B82F6", label: "Person", shape: "Circle" },
+  organization: { color: 9133302, css: "#8B5CF6", label: "Organization", shape: "Rounded square" },
+  agent: { color: 16347926, css: "#F97316", label: "Agent", shape: "Diamond" }
 };
 var EDGE_STYLE = {
-  affiliation: { color: 4937059, css: "#4B5563", width: 1.3, dashed: false, dash: 0, gap: 0, label: "Affiliation", means: "Works at, founded or advises \u2014 sourced." },
-  built: { color: 11817737, css: "#B45309", width: 1.6, dashed: false, dash: 0, gap: 0, label: "Built / operates", means: "Made or runs this agent or project \u2014 sourced." },
-  collaboration: { color: 1409085, css: "#15803D", width: 2, dashed: false, dash: 0, gap: 0, label: "Collaboration", means: "Sourced joint work, such as a co-built project or paper." },
-  engagement: { color: 947344, css: "#0E7490", width: 1.1, dashed: true, dash: 1.2, gap: 0.8, label: "Engagement", means: "A reply or quote on X that led the research to this account. It records a discovery path, not collaboration." },
-  shared_topic: { color: 12458077, css: "#BE185D", width: 1.2, dashed: true, dash: 0.35, gap: 0.8, label: "Shared topic", means: "Both work in the same area. No direct relationship is claimed." },
+  affiliation: { color: 4937059, css: "#4B5563", width: 1, dashed: false, dash: 0, gap: 0, label: "Affiliation", means: "Works at, founded or advises \u2014 sourced." },
+  built: { color: 11817737, css: "#B45309", width: 1, dashed: false, dash: 0, gap: 0, label: "Built / operates", means: "Made or runs this agent or project \u2014 sourced." },
+  collaboration: { color: 1409085, css: "#15803D", width: 1, dashed: false, dash: 0, gap: 0, label: "Collaboration", means: "Sourced joint work, such as a co-built project or paper." },
+  engagement: { color: 947344, css: "#0E7490", width: 1, dashed: true, dash: 1.2, gap: 0.8, label: "Engagement", means: "A reply or quote on X that led the research to this account. It records a discovery path, not collaboration." },
+  shared_topic: { color: 12458077, css: "#BE185D", width: 1, dashed: true, dash: 0.35, gap: 0.8, label: "Shared topic", means: "Both work in the same area. No direct relationship is claimed." },
   cluster: { color: 10265519, css: "#9CA3AF", width: 1, dashed: false, dash: 0, gap: 0, label: "Cluster (legacy)", means: "Kept from older data. What it means is not defined yet." }
 };
-var SELECT_COLOR = 16436245;
-var INK = 1447965;
+var SELECT_COLOR = 6187730;
+var NEUTRAL_EDGE = 10725552;
 
 // src/badges.ts
 var S = 128;
@@ -860,25 +1048,25 @@ function shapePath(ctx, type, inset) {
 function draw(ctx, n, img) {
   const style = NODE_STYLE[n.type];
   ctx.clearRect(0, 0, S, S);
-  shapePath(ctx, n.type, 1);
-  ctx.fillStyle = "#ffffff";
-  ctx.fill();
-  shapePath(ctx, n.type, 8);
+  shapePath(ctx, n.type, 4);
   ctx.fillStyle = style.css;
+  ctx.fill();
+  shapePath(ctx, n.type, n.type === "agent" ? 19 : 16);
+  ctx.fillStyle = "#ffffff";
   ctx.fill();
   if (img) {
     ctx.save();
-    shapePath(ctx, n.type, 14);
+    shapePath(ctx, n.type, n.type === "agent" ? 21 : 18);
     ctx.clip();
     const scale = Math.max(S / img.width, S / img.height);
     ctx.drawImage(img, (S - img.width * scale) / 2, (S - img.height * scale) / 2, img.width * scale, img.height * scale);
     ctx.restore();
     return;
   }
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = "#2b2f36";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = `700 ${n.type === "agent" ? 36 : 46}px "IBM Plex Sans", system-ui, sans-serif`;
+  ctx.font = `600 ${n.type === "agent" ? 30 : 40}px Inter, system-ui, sans-serif`;
   ctx.fillText(initials(n), S / 2, S / 2 + 2);
 }
 function makeBadge(n) {
@@ -1191,7 +1379,7 @@ var ForceLayout = class {
       c.y += b.y / list.length;
       c.z += b.z / list.length;
     });
-    const ds = list.map((b) => Math.hypot(b.x - c.x, b.y - c.y, b.z - c.z)).sort((p, q2) => p - q2);
+    const ds = list.map((b) => Math.hypot(b.x - c.x, b.y - c.y, b.z - c.z)).sort((p, q) => p - q);
     return { center: c, radius: Math.max(8, ds[Math.floor(ds.length * 0.95)] ?? 10) };
   }
   get(id) {
@@ -1312,7 +1500,7 @@ var MapScene = class {
     this.snow.frustumCulled = false;
     this.scene.add(this.snow);
     for (let i = 0; i < 2; i++) {
-      const ring = new THREE3.Mesh(new THREE3.RingGeometry(1, 1.09, 64), new THREE3.MeshBasicMaterial({ color: INK, transparent: true, opacity: 0.95, depthTest: false, side: THREE3.DoubleSide }));
+      const ring = new THREE3.Mesh(new THREE3.RingGeometry(1, 1.09, 64), new THREE3.MeshBasicMaterial({ color: SELECT_COLOR, transparent: true, opacity: 0.95, depthTest: false, side: THREE3.DoubleSide }));
       ring.renderOrder = 10;
       ring.visible = false;
       this.rings.push(ring);
@@ -1599,8 +1787,8 @@ var MapScene = class {
       let alpha = 0;
       if (dimSel) alpha *= 0.3;
       if (dimFilter) alpha *= v.hideFiltered ? 0 : 0.3;
-      if (isMatch) alpha = 0.75;
-      if (isSel) alpha = 0.8;
+      if (isMatch) alpha = 0.35;
+      if (isSel) alpha = 0.4;
       ga.alpha[i] = alpha;
     }
     const geo = this.glow.geometry;
@@ -1648,14 +1836,14 @@ var MapScene = class {
     const off = (info.k - (info.n - 1) / 2) * Math.min(len * 0.28, 3.2);
     const sign = e.source < e.target ? 1 : -1;
     const cx = (a.x + b.x) / 2 + perp.x * off * sign, cy = (a.y + b.y) / 2 + perp.y * off * sign, cz = (a.z + b.z) / 2 + perp.z * off * sign;
-    const q2 = (t, p0, p1, p2) => (1 - t) * (1 - t) * p0 + 2 * (1 - t) * t * p1 + t * t * p2;
+    const q = (t, p0, p1, p2) => (1 - t) * (1 - t) * p0 + 2 * (1 - t) * t * p1 + t * t * p2;
     const t0 = ta + (tb - ta) * kSeg / segs, t1 = ta + (tb - ta) * (kSeg + 1) / segs;
-    out[0] = q2(t0, a.x, cx, b.x);
-    out[1] = q2(t0, a.y, cy, b.y);
-    out[2] = q2(t0, a.z, cz, b.z);
-    out[3] = q2(t1, a.x, cx, b.x);
-    out[4] = q2(t1, a.y, cy, b.y);
-    out[5] = q2(t1, a.z, cz, b.z);
+    out[0] = q(t0, a.x, cx, b.x);
+    out[1] = q(t0, a.y, cy, b.y);
+    out[2] = q(t0, a.z, cz, b.z);
+    out[3] = q(t1, a.x, cx, b.x);
+    out[4] = q(t1, a.y, cy, b.y);
+    out[5] = q(t1, a.z, cz, b.z);
   }
   updateEdges() {
     const v = this.view;
@@ -1671,18 +1859,26 @@ var MapScene = class {
     this.edgeGroups.forEach((grp, kind) => {
       const st2 = EDGE_STYLE[kind];
       tmpColor.set(st2.color);
-      const cr = tmpColor.r, cg = tmpColor.g, cb = tmpColor.b;
+      const kr = tmpColor.r, kg = tmpColor.g, kb = tmpColor.b;
+      tmpColor.set(NEUTRAL_EDGE);
+      const nr = tmpColor.r, ng = tmpColor.g, nb = tmpColor.b;
       let o = 0;
       grp.edges.forEach((e, ei) => {
         const ia = this.index.get(e.source), ib = this.index.get(e.target);
         const base = kind === "engagement" ? 0.42 : kind === "cluster" ? 0.35 : 0.8;
         let s = Math.min(this.visCur[ia], this.visCur[ib]) * base;
         if (v.filtersActive && !v.edgeMatch(e)) s *= v.hideFiltered ? 0 : 0.06;
+        let colored = !!v.colorKinds && (!v.filtersActive || v.edgeMatch(e));
         if (selActive) {
           const incident = e.id === v.selectedEdge || v.selectedNode && (e.source === v.selectedNode || e.target === v.selectedNode) && !v.selectedEdge;
           s = incident ? 1 : s * 0.12;
+          if (incident) colored = true;
         }
-        if (e.id === this.hoverEdge) s = Math.max(s, 1);
+        if (e.id === this.hoverEdge) {
+          s = Math.max(s, 1);
+          colored = true;
+        }
+        const cr = colored ? kr : nr, cg = colored ? kg : ng, cb = colored ? kb : nb;
         this.edgeStrength.set(e.id, s);
         const a = this.layout.get(e.source), b = this.layout.get(e.target);
         dir.set(b.x - a.x, b.y - a.y, b.z - a.z);
@@ -1735,7 +1931,7 @@ var MapScene = class {
       }
       const g = new LineSegmentsGeometry();
       g.setPositions(arr);
-      const m = new LineMaterial({ color: SELECT_COLOR, linewidth: 6, transparent: true, opacity: 0.7, depthWrite: false, worldUnits: false });
+      const m = new LineMaterial({ color: SELECT_COLOR, linewidth: 5, transparent: true, opacity: 0.28, depthWrite: false, worldUnits: false });
       m.resolution.set(this.width, this.height);
       this.highlight = new LineSegments2(g, m);
       this.highlight.renderOrder = 0;
@@ -2037,8 +2233,8 @@ function focusSet() {
   return s;
 }
 function search(qRaw) {
-  const q2 = qRaw.trim().toLowerCase().replace(/^@/, "");
-  if (q2.length < 2) return [];
+  const q = qRaw.trim().toLowerCase().replace(/^@/, "");
+  if (q.length < 2) return [];
   const hits = [];
   for (const n of A.nodeById.values()) {
     const fields = [
@@ -2051,11 +2247,11 @@ function search(qRaw) {
     ];
     let best = null;
     for (const [field, text, w] of fields) {
-      const i = text.toLowerCase().indexOf(q2);
+      const i = text.toLowerCase().indexOf(q);
       if (i < 0) continue;
       const wordStart = i === 0 || /[\s@_\-·]/.test(text[i - 1]);
       const score = w * (i === 0 ? 1.6 : wordStart ? 1.25 : 1);
-      if (!best || score > best.score) best = { id: n.id, score, field, snippet: highlight(text, i, q2.length) };
+      if (!best || score > best.score) best = { id: n.id, score, field, snippet: highlight(text, i, q.length) };
     }
     if (best) {
       best.score += Math.min(10, A.degree.get(n.id) ?? 0) * 0.5 - (onMap.has(n.id) ? 0 : 5);
@@ -2078,7 +2274,8 @@ function pushView() {
     nodeMatch,
     edgeMatch,
     filtersActive: filtersActive(),
-    hideFiltered: st.hideFiltered
+    hideFiltered: st.hideFiltered,
+    colorKinds: st.kinds.size < EDGE_KINDS.length
   };
   scene.setView(view);
 }
@@ -2128,12 +2325,6 @@ function conf(c) {
   const bars = [6, 9, 12].map((h, i) => `<i style="height:${h}px" class="${i < lvl ? "on" : ""}"></i>`).join("");
   return `<span class="conf"><span class="bars" aria-hidden="true">${bars}</span>${c ? c[0].toUpperCase() + c.slice(1) : "Not assessed"}</span>`;
 }
-function sourceItem(id) {
-  const s = A.sourceById.get(id);
-  if (!s) return `<li class="missing">Missing source record \u201C${escapeHtml(id)}\u201D</li>`;
-  const meta = [s.publisher, s.date].filter(Boolean).join(" \xB7 ");
-  return `<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.title ?? s.url)} \u2197</a>${meta ? `<span class="m">${escapeHtml(meta)}</span>` : ""}</li>`;
-}
 function renderDetails() {
   const panel = $("details");
   if (st.selectedEdge) {
@@ -2153,6 +2344,25 @@ function renderDetails() {
   panel.hidden = false;
   $("detailsBody").innerHTML = nodeHtml(n);
 }
+var ICON = {
+  close: `<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+  locate: `<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>`,
+  copy: `<svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+  ext: `<svg width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  back: `<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+};
+var prop = (label, value) => value ? `<dt>${label}</dt><dd>${value}</dd>` : "";
+function timeline(ids) {
+  const seen = /* @__PURE__ */ new Map();
+  ids.forEach(({ id, why }) => {
+    if (!seen.has(id)) seen.set(id, []);
+    if (!seen.get(id).includes(why)) seen.get(id).push(why);
+  });
+  const rows = Array.from(seen.entries()).map(([id, why]) => ({ id, why, src: A.sourceById.get(id) }));
+  rows.sort((a, b) => (b.src?.date ?? "").localeCompare(a.src?.date ?? ""));
+  if (!rows.length) return `<p class="muted small">No sources on record.</p>`;
+  return `<ol class="timeline">${rows.map((r) => r.src ? `<li><span class="t-date">${escapeHtml(r.src.date ?? "Undated")}</span><a href="${escapeHtml(r.src.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(r.src.title ?? r.src.url)}</a><span class="t-meta">${escapeHtml([r.src.publisher, `supports ${r.why.join(", ")}`].filter(Boolean).join(" \xB7 "))}</span></li>` : `<li class="missing"><span class="t-date">\u2014</span>Missing source record \u201C${escapeHtml(r.id)}\u201D<span class="t-meta">supports ${escapeHtml(r.why.join(", "))}</span></li>`).join("")}</ol>`;
+}
 function nodeHtml(n) {
   const style = NODE_STYLE[n.type];
   const off = A.offMap.find((o) => o.id === n.id);
@@ -2162,46 +2372,52 @@ function nodeHtml(n) {
   const groups = EDGE_KINDS.map((k) => ({ k, list: edges.filter((e) => e.kind === k) })).filter((g) => g.list.length);
   const conns = groups.map((g) => `
     <div class="conn-group">
-      <div class="gh">${edgeSwatch(g.k, 22)}${EDGE_STYLE[g.k].label} \xB7 ${g.list.length}</div>
+      <div class="gh">${edgeSwatch(g.k, 18)}${EDGE_STYLE[g.k].label}<span class="count">${g.list.length}</span></div>
       ${g.list.map((e) => {
     const other = e.source === n.id ? e.target : e.source;
     const o = A.nodeById.get(other);
     const phrase = e.source === n.id ? `${escapeHtml(e.label ?? g.k)} ${escapeHtml(nodeName(other))}` : `${escapeHtml(nodeName(other))} ${escapeHtml(e.label ?? g.k)} this account`;
-    const dim = filtersActive() && !edgeMatch(e) ? ' style="opacity:.55"' : "";
-    return `<div class="conn"${dim}>
+    const dim = filtersActive() && !edgeMatch(e) ? " dim" : "";
+    return `<div class="conn${dim}">
           <button type="button" class="main" data-act="edge" data-id="${escapeHtml(e.id)}" aria-label="Inspect relationship: ${phrase}">${shape(o.type)}<span class="t"><b>${escapeHtml(nodeName(other))}</b><span class="s">${phrase}</span></span>${conf(e.confidence)}</button>
-          <button type="button" class="icon-btn" data-act="go" data-id="${escapeHtml(other)}" aria-label="Go to ${escapeHtml(nodeName(other))}" title="Go to ${escapeHtml(nodeName(other))}">\u2192</button>
+          <button type="button" class="icon-btn sm" data-act="go" data-id="${escapeHtml(other)}" aria-label="Go to ${escapeHtml(nodeName(other))}" title="Go to ${escapeHtml(nodeName(other))}">\u2192</button>
         </div>`;
   }).join("")}
     </div>`).join("");
-  const claims = n.claims.filter((c) => c.source_ids.length);
+  const evidence = [
+    ...n.inclusion_source_ids.map((id) => ({ id, why: "inclusion" })),
+    ...n.claims.flatMap((c) => c.source_ids.map((id) => ({ id, why: c.field }))),
+    ...n.projects.flatMap((p) => p.source_ids.map((id) => ({ id, why: p.name })))
+  ];
+  const profiles = [
+    x ? `<a href="${escapeHtml(x)}" target="_blank" rel="noopener noreferrer">X ${ICON.ext}</a>` : "",
+    li ? `<a href="${escapeHtml(li)}" target="_blank" rel="noopener noreferrer">LinkedIn ${ICON.ext}</a>` : ""
+  ].filter(Boolean).join('<span class="sep">\xB7</span>');
+  const topics = n.topics.length ? `<span class="chips">${n.topics.map((t) => `<button type="button" data-act="topic" data-id="${escapeHtml(t)}" aria-pressed="${st.topics.has(t)}">${escapeHtml(A.topicLabel.get(t) ?? t)}</button>`).join("")}</span>` : "";
   return `
   <div class="d-head">
-    <div class="d-top"><span class="chip">${shape(n.type)}${style.label}</span>
-      <span>${st.selectedNode && onMap.has(n.id) ? `<button type="button" class="icon-btn" data-act="locate" aria-label="Center on map" title="Center on map">\u25CE</button> ` : ""}<button type="button" class="icon-btn" data-act="close" aria-label="Close details">\u2715</button></span></div>
+    <div class="d-top">
+      <span class="crumb">${shape(n.type)}${style.label}${graph.meta.is_sample ? ` <span class="sample">Sample</span>` : ""}</span>
+      <span class="d-actions">${st.selectedNode && onMap.has(n.id) ? `<button type="button" class="icon-btn sm" data-act="locate" aria-label="Center on map" title="Center on map">${ICON.locate}</button>` : ""}<button type="button" class="icon-btn sm" data-act="close" aria-label="Close details" title="Close (Esc)">${ICON.close}</button></span>
+    </div>
     <h2 class="d-name">${escapeHtml(n.name ?? handle)}</h2>
-    <div class="handle-row">
-      <span class="handle">@${escapeHtml(handle)}</span>
-      <button type="button" class="btn sm" data-act="copy" data-id="@${escapeHtml(handle)}">Copy handle</button>
-    </div>
-    <div class="handle-row">
-      ${x ? `<a class="btn primary" href="${escapeHtml(x)}" target="_blank" rel="noopener noreferrer">Open X profile \u2197</a>` : ""}
-      ${li ? `<a class="btn sm" href="${escapeHtml(li)}" target="_blank" rel="noopener noreferrer">LinkedIn \u2197</a>` : ""}
-      ${!x && !li ? `<span class="small" style="color:var(--warn)">No public profile on record</span>` : ""}
-      ${graph.meta.is_sample ? `<span class="sample">Sample data</span>` : ""}
-    </div>
+    ${n.summary ? `<p class="d-summary">${escapeHtml(n.summary)}</p>` : ""}
   </div>
   <div class="d-body">
     ${off ? `<div class="offmap"><b>Not on the map.</b> ${escapeHtml(off.reason)}. The record is kept in the data; no connection has been invented for it.</div>` : ""}
-    ${n.summary ? `<section class="d-sec"><h3>What they build</h3><p>${escapeHtml(n.summary)}</p></section>` : ""}
+    <dl class="props">
+      ${prop("Handle", `<span class="handle">@${escapeHtml(handle)}</span><button type="button" class="icon-btn xs" data-act="copy" data-id="@${escapeHtml(handle)}" aria-label="Copy handle" title="Copy handle">${ICON.copy}</button>`)}
+      ${prop("Profile", profiles || `<span class="warn-text">No public profile on record</span>`)}
+      ${prop("Type", `${shape(n.type)}${style.label}`)}
+      ${prop("Topics", topics)}
+      ${prop("Confidence", `${conf(n.confidence)}${n.confidence_note ? `<span class="p-note">${escapeHtml(n.confidence_note)}</span>` : ""}`)}
+      ${prop("Connections", String(edges.length))}
+      ${prop("Added", n.added_at ? escapeHtml(n.added_at) : "")}
+    </dl>
     ${n.notes ? `<section class="d-sec"><h3>Research notes</h3><div class="notes">${escapeHtml(n.notes)}</div></section>` : ""}
-    ${n.topics.length ? `<section class="d-sec"><h3>Topics</h3><div class="chips">${n.topics.map((t) => `<button type="button" data-act="topic" data-id="${escapeHtml(t)}" aria-pressed="${st.topics.has(t)}">${escapeHtml(A.topicLabel.get(t) ?? t)}${st.topics.has(t) ? " \u2713" : ""}</button>`).join("")}</div></section>` : ""}
-    ${n.projects.length ? `<section class="d-sec"><h3>Projects</h3><ul class="src-list">${n.projects.map((p) => `<li><b>${p.url ? `<a href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.name)} \u2197</a>` : escapeHtml(p.name)}</b><span class="m">${escapeHtml(p.description ?? "")}</span></li>`).join("")}</ul></section>` : ""}
-    <section class="d-sec"><h3>Connections \xB7 ${edges.length}</h3>${conns || `<p class="muted">No connections on record.</p>`}</section>
-    <section class="d-sec"><h3>Why this account is included</h3><ul class="src-list">${n.inclusion_source_ids.map(sourceItem).join("") || `<li class="missing">No inclusion evidence on record.</li>`}</ul></section>
-    ${claims.length ? `<section class="d-sec"><h3>Sources for statements</h3><ul class="src-list">${claims.map((c) => `<li><span class="m">${escapeHtml(c.field)}</span><ul class="src-list">${c.source_ids.map(sourceItem).join("")}</ul></li>`).join("")}</ul></section>` : ""}
-    <section class="d-sec"><h3>Confidence</h3><p>${conf(n.confidence)} ${n.confidence_note ? `<span class="small muted">\u2014 ${escapeHtml(n.confidence_note)}</span>` : ""}</p>${n.confidence && graph.meta.confidence_levels?.[n.confidence] ? `<p class="small muted">${escapeHtml(graph.meta.confidence_levels[n.confidence])}</p>` : ""}</section>
-    ${n.added_at ? `<p class="small muted">Added ${escapeHtml(n.added_at)}</p>` : ""}
+    ${n.projects.length ? `<section class="d-sec"><h3>Projects</h3><ul class="plain">${n.projects.map((p) => `<li>${p.url ? `<a href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.name)} ${ICON.ext}</a>` : `<b>${escapeHtml(p.name)}</b>`}<span class="m">${escapeHtml(p.description ?? "")}</span></li>`).join("")}</ul></section>` : ""}
+    <section class="d-sec"><h3>Connections</h3>${conns || `<p class="muted small">No connections on record.</p>`}<p class="kbd-tip"><kbd>J</kbd><kbd>K</kbd> move between connections</p></section>
+    <section class="d-sec"><h3>Evidence</h3>${timeline(evidence)}</section>
   </div>`;
 }
 function edgeHtml(e) {
@@ -2209,27 +2425,42 @@ function edgeHtml(e) {
   const a = A.nodeById.get(e.source), b = A.nodeById.get(e.target);
   const pairOthers = A.drawnEdges.filter((x) => x.id !== e.id && (x.source === e.source && x.target === e.target || x.source === e.target && x.target === e.source));
   const project = e.project_id ? [a, b].flatMap((n) => n.projects).find((p) => p.id === e.project_id) : void 0;
-  const explain = e.kind === "engagement" ? `<div class="callout engage"><b>Discovery path, not collaboration.</b> This records a reply or quote on X that led the research from one account to the other. On its own it does not mean they work together.</div>` : e.kind === "shared_topic" ? `<div class="callout"><b>Same area of work.</b> Both are linked to the same topic. No direct relationship between them is claimed.</div>` : e.kind === "cluster" ? `<div class="callout"><b>Legacy link.</b> Kept from older data. What a cluster link means has not been defined, so read nothing into it yet.</div>` : `<div class="callout"><b>${s.label}.</b> ${escapeHtml(s.means)}</div>`;
+  const explain = e.kind === "engagement" ? `<div class="callout engage"><b>Discovery path, not collaboration.</b> A reply or quote on X led the research from one account to the other. On its own it does not mean they work together.</div>` : e.kind === "shared_topic" ? `<div class="callout"><b>Same area of work.</b> Both are linked to the same topic. No direct relationship between them is claimed.</div>` : e.kind === "cluster" ? `<div class="callout"><b>Legacy link.</b> Kept from older data. What a cluster link means has not been defined, so read nothing into it yet.</div>` : "";
   const period = e.period && (e.period.start || e.period.end) ? `${e.period.start ?? "?"} \u2013 ${e.period.end ?? "present"}` : "";
+  const who = (n) => `<button type="button" class="link-btn" data-act="select" data-id="${escapeHtml(n.id)}">${shape(n.type)}${escapeHtml(nodeName(n.id))}</button>`;
   return `
   <div class="d-head">
-    <div class="d-top"><span class="chip">${edgeSwatch(e.kind, 22)}Connection \xB7 ${s.label}</span>
-      <span>${st.edgeFromNode ? `<button type="button" class="btn sm" data-act="back">\u2190 ${escapeHtml(nodeName(st.edgeFromNode))}</button> ` : ""}<button type="button" class="icon-btn" data-act="close" aria-label="Close details">\u2715</button></span></div>
-    <h2 class="d-name" style="font-size:21px">${escapeHtml(nodeName(a.id))} <span class="muted" style="font-weight:500">${escapeHtml(e.label ?? e.kind)}</span> ${escapeHtml(nodeName(b.id))}</h2>
-    ${graph.meta.is_sample ? `<div><span class="sample">Sample data</span></div>` : ""}
+    <div class="d-top">
+      <span class="crumb">${st.edgeFromNode ? `<button type="button" class="link-btn" data-act="back">${ICON.back}${escapeHtml(nodeName(st.edgeFromNode))}</button><span class="sep">/</span>` : ""}Connection${graph.meta.is_sample ? ` <span class="sample">Sample</span>` : ""}</span>
+      <span class="d-actions"><button type="button" class="icon-btn sm" data-act="close" aria-label="Close details" title="Close (Esc)">${ICON.close}</button></span>
+    </div>
+    <h2 class="d-name sm">${escapeHtml(nodeName(a.id))} <span class="verb">${escapeHtml(e.label ?? e.kind)}</span> ${escapeHtml(nodeName(b.id))}</h2>
   </div>
   <div class="d-body">
     ${explain}
-    ${e.detail ? `<section class="d-sec"><h3>Detail</h3><p>${escapeHtml(e.detail)}</p></section>` : ""}
-    ${period ? `<section class="d-sec"><h3>Period</h3><p>${escapeHtml(period)}</p></section>` : ""}
-    ${project ? `<section class="d-sec"><h3>Project</h3><p>${escapeHtml(project.name)}</p></section>` : ""}
-    ${e.topic_ids?.length ? `<section class="d-sec"><h3>Shared topic</h3><div class="chips">${e.topic_ids.map((t) => `<button type="button" data-act="topic" data-id="${escapeHtml(t)}">${escapeHtml(A.topicLabel.get(t) ?? t)}</button>`).join("")}</div></section>` : ""}
-    <section class="d-sec"><h3>Evidence</h3>${e.source_ids.length ? `<ul class="src-list">${e.source_ids.map(sourceItem).join("")}</ul>` : `<p class="muted">No direct evidence links these two${e.kind === "shared_topic" ? "; the topic comes from each account\u2019s own sources" : ""}.</p>`}</section>
-    <section class="d-sec"><h3>Confidence</h3><p>${conf(e.confidence)}</p>${e.note ? `<p class="small muted" style="margin-top:6px">${escapeHtml(e.note)}</p>` : ""}</section>
-    ${pairOthers.length ? `<section class="d-sec"><h3>Other relationships between these two</h3><p class="small muted" style="margin-bottom:6px">Each is a separate record with its own evidence and its own line on the map.</p>${pairOthers.map((x) => `<div class="conn"><button type="button" class="main" data-act="edge" data-id="${escapeHtml(x.id)}">${edgeSwatch(x.kind, 22)}<span class="t"><b>${EDGE_STYLE[x.kind].label}</b><span class="s">${escapeHtml(nodeName(x.source))} ${escapeHtml(x.label ?? x.kind)} ${escapeHtml(nodeName(x.target))}</span></span>${conf(x.confidence)}</button></div>`).join("")}</section>` : ""}
-    <section class="d-sec"><h3>Go to</h3><div class="pair-ends">${[a, b].map((n) => `<div class="conn"><button type="button" class="main" data-act="select" data-id="${escapeHtml(n.id)}">${shape(n.type)}<span class="t"><b>${escapeHtml(nodeName(n.id))}</b><span class="s">${NODE_STYLE[n.type].label} \xB7 @${escapeHtml(n.handle ?? n.id)}</span></span></button></div>`).join("")}</div></section>
+    <dl class="props">
+      ${prop("Kind", `${edgeSwatch(e.kind, 18)}${s.label}`)}
+      ${prop("From", who(a))}
+      ${prop("To", who(b))}
+      ${prop("Detail", e.detail ? escapeHtml(e.detail) : "")}
+      ${prop("Period", escapeHtml(period))}
+      ${prop("Project", project ? escapeHtml(project.name) : "")}
+      ${prop("Topic", e.topic_ids?.length ? `<span class="chips">${e.topic_ids.map((t) => `<button type="button" data-act="topic" data-id="${escapeHtml(t)}">${escapeHtml(A.topicLabel.get(t) ?? t)}</button>`).join("")}</span>` : "")}
+      ${prop("Confidence", `${conf(e.confidence)}${e.note ? `<span class="p-note">${escapeHtml(e.note)}</span>` : ""}`)}
+    </dl>
+    <section class="d-sec"><h3>Evidence</h3>${e.source_ids.length ? timeline(e.source_ids.map((id) => ({ id, why: "this connection" }))) : `<p class="muted small">No direct evidence links these two${e.kind === "shared_topic" ? "; the topic comes from each account\u2019s own sources" : ""}.</p>`}</section>
+    ${pairOthers.length ? `<section class="d-sec"><h3>Also between these two</h3>${pairOthers.map((x) => `<div class="conn"><button type="button" class="main" data-act="edge" data-id="${escapeHtml(x.id)}">${edgeSwatch(x.kind, 18)}<span class="t"><b>${EDGE_STYLE[x.kind].label}</b><span class="s">${escapeHtml(nodeName(x.source))} ${escapeHtml(x.label ?? x.kind)} ${escapeHtml(nodeName(x.target))}</span></span>${conf(x.confidence)}</button></div>`).join("")}<p class="small muted">Each is a separate record with its own evidence and its own line on the map.</p></section>` : ""}
   </div>`;
 }
+$("details").addEventListener("keydown", (ev) => {
+  const k = ev.key.toLowerCase();
+  if (k !== "j" && k !== "k") return;
+  const rows = Array.from($("details").querySelectorAll(".conn .main"));
+  if (!rows.length) return;
+  const at = rows.indexOf(document.activeElement);
+  rows[Math.max(0, Math.min(rows.length - 1, at + (k === "j" ? 1 : -1)))].focus();
+  ev.preventDefault();
+});
 $("details").addEventListener("click", (ev) => {
   const btn = ev.target.closest("[data-act]");
   if (!btn) return;
@@ -2264,91 +2495,157 @@ $("details").addEventListener("click", (ev) => {
       break;
   }
 });
-var q = $("q");
-var results = $("results");
-function renderResults() {
-  lastHits = search(st.query);
-  const shown = lastHits.slice(0, 10);
-  st.resultIdx = Math.min(st.resultIdx, Math.max(0, shown.length - 1));
-  if (!st.query.trim() || st.query.trim().length < 2) {
-    results.hidden = true;
-    q.setAttribute("aria-expanded", "false");
-    pushView();
-    renderList();
-    return;
-  }
-  const fieldLabel = { name: "name", handle: "handle", notes: "research notes", summary: "summary", project: "project", topic: "topic" };
-  const mapHits = shown.filter((h) => onMap.has(h.id)), offHits = shown.filter((h) => !onMap.has(h.id));
-  const item = (h, i2) => {
-    const n = A.nodeById.get(h.id);
-    return `<button type="button" class="result" role="option" id="res-${i2}" aria-selected="${i2 === st.resultIdx}" data-id="${escapeHtml(h.id)}">${shape(n.type)}<span><span>${escapeHtml(n.name ?? n.id)}</span><span class="meta">@${escapeHtml(n.handle ?? n.id)} \xB7 ${NODE_STYLE[n.type].label}${h.field !== "name" && h.field !== "handle" ? ` \xB7 in ${fieldLabel[h.field]}: ${h.snippet}` : ""}</span></span></button>`;
+var palette = $("palette");
+var pq = $("pq");
+var plist = $("plist");
+var pItems = [];
+var pIdx = 0;
+var isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+$("kbdHint").textContent = isMac ? "\u2318K" : "Ctrl K";
+function commands() {
+  const power = document.body.classList.contains("power");
+  const setTypes = (t) => () => {
+    st.types = /* @__PURE__ */ new Set([t]);
+    syncFilterInputs();
+    onFiltersChanged();
   };
-  let i = 0;
-  results.innerHTML = shown.length ? `${mapHits.length ? `<div class="group">On the map \xB7 ${lastHits.filter((h) => onMap.has(h.id)).length}</div>${mapHits.map((h) => item(h, i++)).join("")}` : ""}${offHits.length ? `<div class="group">Not on the map (no connections)</div>${offHits.map((h) => item(h, i++)).join("")}` : ""}<div class="group" style="text-transform:none;letter-spacing:0">\u2191 \u2193 move \xB7 Enter go \xB7 Esc close \xB7 matches glow on the map</div>` : `<div class="group" style="text-transform:none;letter-spacing:0">No accounts match \u201C${escapeHtml(st.query)}\u201D.</div>`;
-  results.hidden = false;
-  q.setAttribute("aria-expanded", "true");
-  q.setAttribute("aria-activedescendant", shown.length ? `res-${st.resultIdx}` : "");
+  return [
+    { group: "View", label: "Go to wide view", keys: "0", run: () => scene.overview() },
+    { group: "View", label: power ? "Exit power view" : "Power view: just the map", keys: "P", run: () => setPower(!power) },
+    { group: "View", label: scene.showNames ? "Hide names on the map" : "Show names on the map", run: toggleNames },
+    { group: "View", label: $("minimapWrap").hidden ? "Show minimap" : "Hide minimap", run: toggleMinimap },
+    { group: "View", label: "Show legend", keys: "?", run: () => toggleLegend(true) },
+    { group: "Filter", label: "Show only people", run: setTypes("person") },
+    { group: "Filter", label: "Show only organizations", run: setTypes("organization") },
+    { group: "Filter", label: "Show only agents", run: setTypes("agent") },
+    { group: "Filter", label: "Hide engagement lines (discovery paths)", run: () => {
+      st.kinds.delete("engagement");
+      syncFilterInputs();
+      onFiltersChanged();
+    } },
+    { group: "Filter", label: "Hide low-confidence connections", run: () => {
+      st.hideLow = true;
+      syncFilterInputs();
+      onFiltersChanged();
+    } },
+    { group: "Filter", label: "Clear filters", run: clearFilters },
+    { group: "Open", label: "Open filters", run: () => openDrawer("filters") },
+    { group: "Open", label: "Open account list", run: () => openDrawer("list") },
+    { group: "Open", label: "Open data report", run: () => {
+      renderReport();
+      $("report").showModal();
+    } },
+    { group: "Data", label: "Add a sample batch of accounts", run: () => $("btnBatch").click() },
+    { group: "Data", label: "Load a JSON file\u2026", run: () => $("fileIn").click() }
+  ];
+}
+function renderPalette() {
+  const query = pq.value.trim();
+  st.query = query;
+  lastHits = search(query);
+  const accounts = query.length >= 2 ? [...lastHits.filter((h) => onMap.has(h.id)), ...lastHits.filter((h) => !onMap.has(h.id))].slice(0, 8) : [];
+  const ql = query.toLowerCase();
+  const cmds = commands().filter((c) => !ql || c.label.toLowerCase().includes(ql) || c.group.toLowerCase().includes(ql));
+  pItems = [...accounts.map((hit) => ({ kind: "account", hit })), ...cmds.map((cmd) => ({ kind: "cmd", cmd }))];
+  pIdx = Math.min(pIdx, Math.max(0, pItems.length - 1));
+  const fieldLabel = { notes: "notes", summary: "summary", project: "project", topic: "topic" };
+  let html = "";
+  let lastGroup = "";
+  pItems.forEach((it, i) => {
+    const group = it.kind === "account" ? onMap.has(it.hit.id) ? "Accounts" : "Not on the map" : it.cmd.group;
+    if (group !== lastGroup) {
+      html += `<div class="p-group">${escapeHtml(group)}</div>`;
+      lastGroup = group;
+    }
+    if (it.kind === "account") {
+      const n = A.nodeById.get(it.hit.id);
+      const extra = fieldLabel[it.hit.field] ? `<span class="p-meta">in ${fieldLabel[it.hit.field]}: ${it.hit.snippet}</span>` : `<span class="p-meta">@${escapeHtml(n.handle ?? n.id)}</span>`;
+      html += `<div class="p-item" role="option" id="p-${i}" data-i="${i}" aria-selected="${i === pIdx}">${shape(n.type)}<span class="p-label">${escapeHtml(n.name ?? n.id)}</span>${extra}<span class="p-type">${NODE_STYLE[n.type].label}</span></div>`;
+    } else {
+      html += `<div class="p-item" role="option" id="p-${i}" data-i="${i}" aria-selected="${i === pIdx}"><span class="p-cmd-icon" aria-hidden="true">\u203A</span><span class="p-label">${escapeHtml(it.cmd.label)}</span>${it.cmd.keys ? `<kbd>${escapeHtml(it.cmd.keys)}</kbd>` : ""}</div>`;
+    }
+  });
+  plist.innerHTML = html || `<div class="p-empty">Nothing matches \u201C${escapeHtml(query)}\u201D.</div>`;
+  pq.setAttribute("aria-activedescendant", pItems.length ? `p-${pIdx}` : "");
+  plist.querySelector(`#p-${pIdx}`)?.scrollIntoView({ block: "nearest" });
   pushView();
   renderList();
 }
-function orderedHits() {
-  const s = lastHits.slice(0, 10);
-  return [...s.filter((h) => onMap.has(h.id)), ...s.filter((h) => !onMap.has(h.id))];
+function openPalette(prefill = "") {
+  palette.hidden = false;
+  pq.value = prefill;
+  pIdx = 0;
+  renderPalette();
+  pq.focus();
 }
-q.addEventListener("input", () => {
-  st.query = q.value;
-  st.resultIdx = 0;
-  renderResults();
+function closePalette() {
+  if (palette.hidden) return;
+  palette.hidden = true;
+  st.query = "";
+  lastHits = [];
+  pushView();
+  renderList();
+  $("map").focus();
+}
+function runItem(i) {
+  const it = pItems[i];
+  if (!it) return;
+  closePalette();
+  if (it.kind === "account") selectNode(it.hit.id, { fly: true });
+  else it.cmd.run();
+}
+pq.addEventListener("input", () => {
+  pIdx = 0;
+  renderPalette();
 });
-q.addEventListener("focus", () => {
-  if (st.query.trim().length >= 2) renderResults();
-});
-q.addEventListener("keydown", (e) => {
-  const hits = orderedHits();
+pq.addEventListener("keydown", (e) => {
   if (e.key === "ArrowDown") {
-    st.resultIdx = Math.min(hits.length - 1, st.resultIdx + 1);
-    renderResults();
+    pIdx = Math.min(pItems.length - 1, pIdx + 1);
+    renderPalette();
     e.preventDefault();
   } else if (e.key === "ArrowUp") {
-    st.resultIdx = Math.max(0, st.resultIdx - 1);
-    renderResults();
+    pIdx = Math.max(0, pIdx - 1);
+    renderPalette();
     e.preventDefault();
   } else if (e.key === "Enter") {
-    const h = hits[st.resultIdx];
-    if (h) pickResult(h.id);
+    runItem(pIdx);
     e.preventDefault();
   } else if (e.key === "Escape") {
-    if (!results.hidden) {
-      results.hidden = true;
-      q.setAttribute("aria-expanded", "false");
-    } else {
-      q.value = "";
-      st.query = "";
-      renderResults();
-    }
+    closePalette();
+    e.preventDefault();
   }
 });
-results.addEventListener("click", (e) => {
-  const b = e.target.closest(".result");
-  if (b?.dataset.id) pickResult(b.dataset.id);
-});
-function pickResult(id) {
-  results.hidden = true;
-  q.setAttribute("aria-expanded", "false");
-  selectNode(id, { fly: true });
-}
-document.addEventListener("click", (e) => {
-  if (!e.target.closest(".search")) {
-    results.hidden = true;
-    q.setAttribute("aria-expanded", "false");
+plist.addEventListener("mousemove", (e) => {
+  const el = e.target.closest(".p-item");
+  if (el && Number(el.dataset.i) !== pIdx) {
+    pIdx = Number(el.dataset.i);
+    plist.querySelectorAll(".p-item").forEach((x) => x.setAttribute("aria-selected", String(x === el)));
   }
 });
+plist.addEventListener("click", (e) => {
+  const el = e.target.closest(".p-item");
+  if (el) runItem(Number(el.dataset.i));
+});
+palette.addEventListener("mousedown", (e) => {
+  if (e.target === palette) closePalette();
+});
+$("openPalette").addEventListener("click", () => openPalette());
 document.addEventListener("keydown", (e) => {
   const tag = (document.activeElement?.tagName ?? "").toLowerCase();
-  if (e.key === "/" && tag !== "input" && tag !== "select" && tag !== "textarea") {
+  const typing = tag === "input" || tag === "select" || tag === "textarea";
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
     e.preventDefault();
-    q.focus();
-    q.select();
+    if (palette.hidden) openPalette();
+    else closePalette();
+    return;
+  }
+  if (typing) return;
+  if (e.key === "/") {
+    e.preventDefault();
+    openPalette();
+  } else if (e.key === "?") {
+    e.preventDefault();
+    toggleLegend();
   }
 });
 function toggleSet(s, v) {
@@ -2429,6 +2726,9 @@ $("sort").addEventListener("change", (e) => {
   st.sort = e.target.value;
   renderList();
 });
+function openDrawer(which) {
+  if ($(which).hidden) toggleDrawer(which);
+}
 function toggleDrawer(which) {
   const el = $(which), other = $(which === "filters" ? "list" : "filters");
   const open = el.hidden;
@@ -2452,7 +2752,7 @@ function setPower(on) {
   $("exitPower").hidden = !on;
   $("btnPower").setAttribute("aria-pressed", String(on));
   if (on) {
-    results.hidden = true;
+    closePalette();
     $("filters").hidden = true;
     $("list").hidden = true;
   }
@@ -2475,17 +2775,29 @@ try {
   if (localStorage.getItem("agentMap.power") === "1") setPower(true);
 } catch {
 }
-$("namesToggle").addEventListener("click", () => {
+function toggleNames() {
   const on = !scene.showNames;
   scene.setShowNames(on);
-  $("namesToggle").textContent = on ? "Hide names" : "Show names";
-  $("namesToggle").setAttribute("aria-pressed", String(on));
-});
-$("legendToggle").addEventListener("click", () => {
-  const c = $("legend").classList.toggle("collapsed");
-  $("legendToggle").textContent = c ? "Show lines" : "Hide lines";
-  $("legendToggle").setAttribute("aria-expanded", String(!c));
-});
+  $("namesBtn").setAttribute("aria-pressed", String(on));
+  $("namesBtn").setAttribute("aria-label", on ? "Hide names on the map" : "Show names on the map");
+  announce(on ? "Names shown on the map." : "Names hidden; hover or select an account to see its name.");
+}
+function toggleLegend(force) {
+  const open = force ?? $("legend").hidden;
+  $("legend").hidden = !open;
+  $("legendBtn").setAttribute("aria-expanded", String(open));
+}
+function toggleMinimap() {
+  const show = $("minimapWrap").hidden;
+  $("minimapWrap").hidden = !show;
+  $("miniBtn").setAttribute("aria-pressed", String(show));
+  $("miniBtn").setAttribute("aria-label", show ? "Hide minimap" : "Show minimap");
+  if (show) drawMinimap();
+}
+$("namesBtn").addEventListener("click", toggleNames);
+$("miniBtn").addEventListener("click", toggleMinimap);
+$("legendBtn").addEventListener("click", () => toggleLegend());
+$("legendClose").addEventListener("click", () => toggleLegend(false));
 function renderCounts() {
   $("counts").textContent = `${A.mapNodeIds.length} accounts \xB7 ${A.drawnEdges.length} connections`;
   $("sampleFlag").hidden = !graph.meta.is_sample;
@@ -2527,29 +2839,14 @@ $("reportBody").addEventListener("click", (e) => {
     selectNode(b.dataset.open, { fly: false });
   }
 });
-var depth = $("depth");
-var depthDragging = false;
-depth.addEventListener("pointerdown", () => {
-  depthDragging = true;
-});
-window.addEventListener("pointerup", () => {
-  depthDragging = false;
-});
-depth.addEventListener("input", () => scene.setDepth(Number(depth.value) / 1e3));
 $("zoomIn").addEventListener("click", () => scene.zoomBy(0.6));
 $("zoomOut").addEventListener("click", () => scene.zoomBy(1 / 0.6));
 $("home").addEventListener("click", () => scene.overview());
-var depthName = (t) => {
-  const ov = scene.overviewDepth;
-  return t < ov - 0.04 ? "Far out" : t < ov + 0.12 ? "Surface" : t < ov + 0.35 ? "Shallow" : t < ov + 0.55 ? "Deep" : "Deepest";
-};
 var mini = $("minimap");
 var mctx = mini.getContext("2d");
 var lastMini = 0;
-function frameUi(d) {
-  if (!depthDragging && document.activeElement !== depth) depth.value = String(Math.round(d * 1e3));
-  depth.setAttribute("aria-valuetext", `${depthName(d)}, ${Math.round(d * 100)}% zoomed in`);
-  $("depthRead").textContent = depthName(d);
+function frameUi(_d) {
+  if ($("minimapWrap").hidden) return;
   const now = performance.now();
   if (now - lastMini > 120) {
     lastMini = now;
@@ -2574,7 +2871,7 @@ function drawMinimap() {
     mctx.fillRect(x - 1.2, y - 1.2, 2.4, 2.4);
     if (id === sel) {
       mctx.globalAlpha = 1;
-      mctx.strokeStyle = "#16181D";
+      mctx.strokeStyle = "#5E6AD2";
       mctx.lineWidth = 2;
       mctx.beginPath();
       mctx.arc(x, y, 5, 0, Math.PI * 2);
@@ -2593,11 +2890,11 @@ function drawMinimap() {
   mctx.lineTo(tx, ty);
   mctx.stroke();
   mctx.setLineDash([]);
-  mctx.fillStyle = "#16181D";
+  mctx.fillStyle = "#5E6AD2";
   mctx.beginPath();
   mctx.arc(Math.max(4, Math.min(mini.width - 4, px)), Math.max(4, Math.min(mini.height - 4, py)), 4, 0, Math.PI * 2);
   mctx.fill();
-  mctx.strokeStyle = "#16181D";
+  mctx.strokeStyle = "#5E6AD2";
   mctx.beginPath();
   mctx.arc(tx, ty, 6, 0, Math.PI * 2);
   mctx.stroke();
@@ -2628,7 +2925,7 @@ function refresh(msg) {
   renderLegend();
   renderCounts();
   renderDetails();
-  if (st.query) renderResults();
+  if (!palette.hidden) renderPalette();
   else renderList();
   onFiltersChanged();
   if (msg) toast(msg);

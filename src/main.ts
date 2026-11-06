@@ -2,7 +2,7 @@ import { buildBatch, buildSeed } from "./seed";
 import { analyze, mergeGraph, normalizeGraph, type Analysis } from "./normalize";
 import { MapScene, escapeHtml as esc, type ViewState } from "./scene";
 import { EDGE_STYLE, NODE_STYLE } from "./theme";
-import { EDGE_KINDS, NODE_TYPES, type Confidence, type Edge, type EdgeKind, type GraphMap, type Node, type NodeType, type Source } from "./types";
+import { EDGE_KINDS, NODE_TYPES, type Confidence, type Edge, type EdgeKind, type GraphMap, type Node, type NodeType, } from "./types";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -99,7 +99,8 @@ function pushView() {
     matches: new Set(lastHits.filter((h) => onMap.has(h.id)).slice(0, 40).map((h) => h.id)),
     nodeMatch, edgeMatch,
     filtersActive: filtersActive(),
-    hideFiltered: st.hideFiltered
+    hideFiltered: st.hideFiltered,
+    colorKinds: st.kinds.size < EDGE_KINDS.length
   };
   scene.setView(view);
 }
@@ -156,12 +157,6 @@ function conf(c?: Confidence | null) {
   const bars = [6, 9, 12].map((h, i) => `<i style="height:${h}px" class="${i < lvl ? "on" : ""}"></i>`).join("");
   return `<span class="conf"><span class="bars" aria-hidden="true">${bars}</span>${c ? c[0].toUpperCase() + c.slice(1) : "Not assessed"}</span>`;
 }
-function sourceItem(id: string) {
-  const s: Source | undefined = A.sourceById.get(id);
-  if (!s) return `<li class="missing">Missing source record “${esc(id)}”</li>`;
-  const meta = [s.publisher, s.date].filter(Boolean).join(" · ");
-  return `<li><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.title ?? s.url)} ↗</a>${meta ? `<span class="m">${esc(meta)}</span>` : ""}</li>`;
-}
 
 function renderDetails() {
   const panel = $("details");
@@ -175,6 +170,27 @@ function renderDetails() {
   $("detailsBody").innerHTML = nodeHtml(n);
 }
 
+const ICON = {
+  close: `<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+  locate: `<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>`,
+  copy: `<svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+  ext: `<svg width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  back: `<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+};
+const prop = (label: string, value: string) => value ? `<dt>${label}</dt><dd>${value}</dd>` : "";
+
+/** Evidence as a dated timeline: every source behind the account or relationship, newest first. */
+function timeline(ids: { id: string; why: string }[]) {
+  const seen = new Map<string, string[]>();
+  ids.forEach(({ id, why }) => { if (!seen.has(id)) seen.set(id, []); if (!seen.get(id)!.includes(why)) seen.get(id)!.push(why); });
+  const rows = Array.from(seen.entries()).map(([id, why]) => ({ id, why, src: A.sourceById.get(id) }));
+  rows.sort((a, b) => (b.src?.date ?? "").localeCompare(a.src?.date ?? ""));
+  if (!rows.length) return `<p class="muted small">No sources on record.</p>`;
+  return `<ol class="timeline">${rows.map((r) => r.src
+    ? `<li><span class="t-date">${esc(r.src.date ?? "Undated")}</span><a href="${esc(r.src.url)}" target="_blank" rel="noopener noreferrer">${esc(r.src.title ?? r.src.url)}</a><span class="t-meta">${esc([r.src.publisher, `supports ${r.why.join(", ")}`].filter(Boolean).join(" · "))}</span></li>`
+    : `<li class="missing"><span class="t-date">—</span>Missing source record “${esc(r.id)}”<span class="t-meta">supports ${esc(r.why.join(", "))}</span></li>`).join("")}</ol>`;
+}
+
 function nodeHtml(n: Node) {
   const style = NODE_STYLE[n.type];
   const off = A.offMap.find((o) => o.id === n.id);
@@ -184,46 +200,52 @@ function nodeHtml(n: Node) {
   const groups = EDGE_KINDS.map((k) => ({ k, list: edges.filter((e) => e.kind === k) })).filter((g) => g.list.length);
   const conns = groups.map((g) => `
     <div class="conn-group">
-      <div class="gh">${edgeSwatch(g.k, 22)}${EDGE_STYLE[g.k].label} · ${g.list.length}</div>
+      <div class="gh">${edgeSwatch(g.k, 18)}${EDGE_STYLE[g.k].label}<span class="count">${g.list.length}</span></div>
       ${g.list.map((e) => {
         const other = e.source === n.id ? e.target : e.source;
         const o = A.nodeById.get(other)!;
         const phrase = e.source === n.id ? `${esc(e.label ?? g.k)} ${esc(nodeName(other))}` : `${esc(nodeName(other))} ${esc(e.label ?? g.k)} this account`;
-        const dim = filtersActive() && !edgeMatch(e) ? ' style="opacity:.55"' : "";
-        return `<div class="conn"${dim}>
+        const dim = filtersActive() && !edgeMatch(e) ? " dim" : "";
+        return `<div class="conn${dim}">
           <button type="button" class="main" data-act="edge" data-id="${esc(e.id)}" aria-label="Inspect relationship: ${phrase}">${shape(o.type)}<span class="t"><b>${esc(nodeName(other))}</b><span class="s">${phrase}</span></span>${conf(e.confidence)}</button>
-          <button type="button" class="icon-btn" data-act="go" data-id="${esc(other)}" aria-label="Go to ${esc(nodeName(other))}" title="Go to ${esc(nodeName(other))}">→</button>
+          <button type="button" class="icon-btn sm" data-act="go" data-id="${esc(other)}" aria-label="Go to ${esc(nodeName(other))}" title="Go to ${esc(nodeName(other))}">→</button>
         </div>`;
       }).join("")}
     </div>`).join("");
-  const claims = n.claims.filter((c) => c.source_ids.length);
+  const evidence = [
+    ...n.inclusion_source_ids.map((id) => ({ id, why: "inclusion" })),
+    ...n.claims.flatMap((c) => c.source_ids.map((id) => ({ id, why: c.field }))),
+    ...n.projects.flatMap((p) => p.source_ids.map((id) => ({ id, why: p.name })))
+  ];
+  const profiles = [
+    x ? `<a href="${esc(x)}" target="_blank" rel="noopener noreferrer">X ${ICON.ext}</a>` : "",
+    li ? `<a href="${esc(li)}" target="_blank" rel="noopener noreferrer">LinkedIn ${ICON.ext}</a>` : ""
+  ].filter(Boolean).join('<span class="sep">·</span>');
+  const topics = n.topics.length ? `<span class="chips">${n.topics.map((t) => `<button type="button" data-act="topic" data-id="${esc(t)}" aria-pressed="${st.topics.has(t)}">${esc(A.topicLabel.get(t) ?? t)}</button>`).join("")}</span>` : "";
   return `
   <div class="d-head">
-    <div class="d-top"><span class="chip">${shape(n.type)}${style.label}</span>
-      <span>${st.selectedNode && onMap.has(n.id) ? `<button type="button" class="icon-btn" data-act="locate" aria-label="Center on map" title="Center on map">◎</button> ` : ""}<button type="button" class="icon-btn" data-act="close" aria-label="Close details">✕</button></span></div>
+    <div class="d-top">
+      <span class="crumb">${shape(n.type)}${style.label}${graph.meta.is_sample ? ` <span class="sample">Sample</span>` : ""}</span>
+      <span class="d-actions">${st.selectedNode && onMap.has(n.id) ? `<button type="button" class="icon-btn sm" data-act="locate" aria-label="Center on map" title="Center on map">${ICON.locate}</button>` : ""}<button type="button" class="icon-btn sm" data-act="close" aria-label="Close details" title="Close (Esc)">${ICON.close}</button></span>
+    </div>
     <h2 class="d-name">${esc(n.name ?? handle)}</h2>
-    <div class="handle-row">
-      <span class="handle">@${esc(handle)}</span>
-      <button type="button" class="btn sm" data-act="copy" data-id="@${esc(handle)}">Copy handle</button>
-    </div>
-    <div class="handle-row">
-      ${x ? `<a class="btn primary" href="${esc(x)}" target="_blank" rel="noopener noreferrer">Open X profile ↗</a>` : ""}
-      ${li ? `<a class="btn sm" href="${esc(li)}" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>` : ""}
-      ${!x && !li ? `<span class="small" style="color:var(--warn)">No public profile on record</span>` : ""}
-      ${graph.meta.is_sample ? `<span class="sample">Sample data</span>` : ""}
-    </div>
+    ${n.summary ? `<p class="d-summary">${esc(n.summary)}</p>` : ""}
   </div>
   <div class="d-body">
     ${off ? `<div class="offmap"><b>Not on the map.</b> ${esc(off.reason)}. The record is kept in the data; no connection has been invented for it.</div>` : ""}
-    ${n.summary ? `<section class="d-sec"><h3>What they build</h3><p>${esc(n.summary)}</p></section>` : ""}
+    <dl class="props">
+      ${prop("Handle", `<span class="handle">@${esc(handle)}</span><button type="button" class="icon-btn xs" data-act="copy" data-id="@${esc(handle)}" aria-label="Copy handle" title="Copy handle">${ICON.copy}</button>`)}
+      ${prop("Profile", profiles || `<span class="warn-text">No public profile on record</span>`)}
+      ${prop("Type", `${shape(n.type)}${style.label}`)}
+      ${prop("Topics", topics)}
+      ${prop("Confidence", `${conf(n.confidence)}${n.confidence_note ? `<span class="p-note">${esc(n.confidence_note)}</span>` : ""}`)}
+      ${prop("Connections", String(edges.length))}
+      ${prop("Added", n.added_at ? esc(n.added_at) : "")}
+    </dl>
     ${n.notes ? `<section class="d-sec"><h3>Research notes</h3><div class="notes">${esc(n.notes)}</div></section>` : ""}
-    ${n.topics.length ? `<section class="d-sec"><h3>Topics</h3><div class="chips">${n.topics.map((t) => `<button type="button" data-act="topic" data-id="${esc(t)}" aria-pressed="${st.topics.has(t)}">${esc(A.topicLabel.get(t) ?? t)}${st.topics.has(t) ? " ✓" : ""}</button>`).join("")}</div></section>` : ""}
-    ${n.projects.length ? `<section class="d-sec"><h3>Projects</h3><ul class="src-list">${n.projects.map((p) => `<li><b>${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(p.name)} ↗</a>` : esc(p.name)}</b><span class="m">${esc(p.description ?? "")}</span></li>`).join("")}</ul></section>` : ""}
-    <section class="d-sec"><h3>Connections · ${edges.length}</h3>${conns || `<p class="muted">No connections on record.</p>`}</section>
-    <section class="d-sec"><h3>Why this account is included</h3><ul class="src-list">${n.inclusion_source_ids.map(sourceItem).join("") || `<li class="missing">No inclusion evidence on record.</li>`}</ul></section>
-    ${claims.length ? `<section class="d-sec"><h3>Sources for statements</h3><ul class="src-list">${claims.map((c) => `<li><span class="m">${esc(c.field)}</span><ul class="src-list">${c.source_ids.map(sourceItem).join("")}</ul></li>`).join("")}</ul></section>` : ""}
-    <section class="d-sec"><h3>Confidence</h3><p>${conf(n.confidence)} ${n.confidence_note ? `<span class="small muted">— ${esc(n.confidence_note)}</span>` : ""}</p>${n.confidence && graph.meta.confidence_levels?.[n.confidence] ? `<p class="small muted">${esc(graph.meta.confidence_levels[n.confidence]!)}</p>` : ""}</section>
-    ${n.added_at ? `<p class="small muted">Added ${esc(n.added_at)}</p>` : ""}
+    ${n.projects.length ? `<section class="d-sec"><h3>Projects</h3><ul class="plain">${n.projects.map((p) => `<li>${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(p.name)} ${ICON.ext}</a>` : `<b>${esc(p.name)}</b>`}<span class="m">${esc(p.description ?? "")}</span></li>`).join("")}</ul></section>` : ""}
+    <section class="d-sec"><h3>Connections</h3>${conns || `<p class="muted small">No connections on record.</p>`}<p class="kbd-tip"><kbd>J</kbd><kbd>K</kbd> move between connections</p></section>
+    <section class="d-sec"><h3>Evidence</h3>${timeline(evidence)}</section>
   </div>`;
 }
 
@@ -233,32 +255,49 @@ function edgeHtml(e: Edge) {
   const pairOthers = A.drawnEdges.filter((x) => x.id !== e.id && ((x.source === e.source && x.target === e.target) || (x.source === e.target && x.target === e.source)));
   const project = e.project_id ? [a, b].flatMap((n) => n.projects).find((p) => p.id === e.project_id) : undefined;
   const explain = e.kind === "engagement"
-    ? `<div class="callout engage"><b>Discovery path, not collaboration.</b> This records a reply or quote on X that led the research from one account to the other. On its own it does not mean they work together.</div>`
+    ? `<div class="callout engage"><b>Discovery path, not collaboration.</b> A reply or quote on X led the research from one account to the other. On its own it does not mean they work together.</div>`
     : e.kind === "shared_topic"
       ? `<div class="callout"><b>Same area of work.</b> Both are linked to the same topic. No direct relationship between them is claimed.</div>`
       : e.kind === "cluster"
         ? `<div class="callout"><b>Legacy link.</b> Kept from older data. What a cluster link means has not been defined, so read nothing into it yet.</div>`
-        : `<div class="callout"><b>${s.label}.</b> ${esc(s.means)}</div>`;
+        : "";
   const period = e.period && (e.period.start || e.period.end) ? `${e.period.start ?? "?"} – ${e.period.end ?? "present"}` : "";
+  const who = (n: Node) => `<button type="button" class="link-btn" data-act="select" data-id="${esc(n.id)}">${shape(n.type)}${esc(nodeName(n.id))}</button>`;
   return `
   <div class="d-head">
-    <div class="d-top"><span class="chip">${edgeSwatch(e.kind, 22)}Connection · ${s.label}</span>
-      <span>${st.edgeFromNode ? `<button type="button" class="btn sm" data-act="back">← ${esc(nodeName(st.edgeFromNode))}</button> ` : ""}<button type="button" class="icon-btn" data-act="close" aria-label="Close details">✕</button></span></div>
-    <h2 class="d-name" style="font-size:21px">${esc(nodeName(a.id))} <span class="muted" style="font-weight:500">${esc(e.label ?? e.kind)}</span> ${esc(nodeName(b.id))}</h2>
-    ${graph.meta.is_sample ? `<div><span class="sample">Sample data</span></div>` : ""}
+    <div class="d-top">
+      <span class="crumb">${st.edgeFromNode ? `<button type="button" class="link-btn" data-act="back">${ICON.back}${esc(nodeName(st.edgeFromNode))}</button><span class="sep">/</span>` : ""}Connection${graph.meta.is_sample ? ` <span class="sample">Sample</span>` : ""}</span>
+      <span class="d-actions"><button type="button" class="icon-btn sm" data-act="close" aria-label="Close details" title="Close (Esc)">${ICON.close}</button></span>
+    </div>
+    <h2 class="d-name sm">${esc(nodeName(a.id))} <span class="verb">${esc(e.label ?? e.kind)}</span> ${esc(nodeName(b.id))}</h2>
   </div>
   <div class="d-body">
     ${explain}
-    ${e.detail ? `<section class="d-sec"><h3>Detail</h3><p>${esc(e.detail)}</p></section>` : ""}
-    ${period ? `<section class="d-sec"><h3>Period</h3><p>${esc(period)}</p></section>` : ""}
-    ${project ? `<section class="d-sec"><h3>Project</h3><p>${esc(project.name)}</p></section>` : ""}
-    ${e.topic_ids?.length ? `<section class="d-sec"><h3>Shared topic</h3><div class="chips">${e.topic_ids.map((t) => `<button type="button" data-act="topic" data-id="${esc(t)}">${esc(A.topicLabel.get(t) ?? t)}</button>`).join("")}</div></section>` : ""}
-    <section class="d-sec"><h3>Evidence</h3>${e.source_ids.length ? `<ul class="src-list">${e.source_ids.map(sourceItem).join("")}</ul>` : `<p class="muted">No direct evidence links these two${e.kind === "shared_topic" ? "; the topic comes from each account’s own sources" : ""}.</p>`}</section>
-    <section class="d-sec"><h3>Confidence</h3><p>${conf(e.confidence)}</p>${e.note ? `<p class="small muted" style="margin-top:6px">${esc(e.note)}</p>` : ""}</section>
-    ${pairOthers.length ? `<section class="d-sec"><h3>Other relationships between these two</h3><p class="small muted" style="margin-bottom:6px">Each is a separate record with its own evidence and its own line on the map.</p>${pairOthers.map((x) => `<div class="conn"><button type="button" class="main" data-act="edge" data-id="${esc(x.id)}">${edgeSwatch(x.kind, 22)}<span class="t"><b>${EDGE_STYLE[x.kind].label}</b><span class="s">${esc(nodeName(x.source))} ${esc(x.label ?? x.kind)} ${esc(nodeName(x.target))}</span></span>${conf(x.confidence)}</button></div>`).join("")}</section>` : ""}
-    <section class="d-sec"><h3>Go to</h3><div class="pair-ends">${[a, b].map((n) => `<div class="conn"><button type="button" class="main" data-act="select" data-id="${esc(n.id)}">${shape(n.type)}<span class="t"><b>${esc(nodeName(n.id))}</b><span class="s">${NODE_STYLE[n.type].label} · @${esc(n.handle ?? n.id)}</span></span></button></div>`).join("")}</div></section>
+    <dl class="props">
+      ${prop("Kind", `${edgeSwatch(e.kind, 18)}${s.label}`)}
+      ${prop("From", who(a))}
+      ${prop("To", who(b))}
+      ${prop("Detail", e.detail ? esc(e.detail) : "")}
+      ${prop("Period", esc(period))}
+      ${prop("Project", project ? esc(project.name) : "")}
+      ${prop("Topic", e.topic_ids?.length ? `<span class="chips">${e.topic_ids.map((t) => `<button type="button" data-act="topic" data-id="${esc(t)}">${esc(A.topicLabel.get(t) ?? t)}</button>`).join("")}</span>` : "")}
+      ${prop("Confidence", `${conf(e.confidence)}${e.note ? `<span class="p-note">${esc(e.note)}</span>` : ""}`)}
+    </dl>
+    <section class="d-sec"><h3>Evidence</h3>${e.source_ids.length ? timeline(e.source_ids.map((id) => ({ id, why: "this connection" }))) : `<p class="muted small">No direct evidence links these two${e.kind === "shared_topic" ? "; the topic comes from each account’s own sources" : ""}.</p>`}</section>
+    ${pairOthers.length ? `<section class="d-sec"><h3>Also between these two</h3>${pairOthers.map((x) => `<div class="conn"><button type="button" class="main" data-act="edge" data-id="${esc(x.id)}">${edgeSwatch(x.kind, 18)}<span class="t"><b>${EDGE_STYLE[x.kind].label}</b><span class="s">${esc(nodeName(x.source))} ${esc(x.label ?? x.kind)} ${esc(nodeName(x.target))}</span></span>${conf(x.confidence)}</button></div>`).join("")}<p class="small muted">Each is a separate record with its own evidence and its own line on the map.</p></section>` : ""}
   </div>`;
 }
+
+// J / K step through the connection rows in the details panel.
+$("details").addEventListener("keydown", (ev) => {
+  const k = ev.key.toLowerCase();
+  if (k !== "j" && k !== "k") return;
+  const rows = Array.from($("details").querySelectorAll<HTMLButtonElement>(".conn .main"));
+  if (!rows.length) return;
+  const at = rows.indexOf(document.activeElement as HTMLButtonElement);
+  rows[Math.max(0, Math.min(rows.length - 1, at + (k === "j" ? 1 : -1)))].focus();
+  ev.preventDefault();
+});
 
 $("details").addEventListener("click", (ev) => {
   const btn = (ev.target as HTMLElement).closest("[data-act]") as HTMLElement | null;
@@ -276,51 +315,114 @@ $("details").addEventListener("click", (ev) => {
   }
 });
 
-// ---------------- search ----------------
+// ---------------- command menu (⌘K) ----------------
 
-const q = $<HTMLInputElement>("q");
-const results = $("results");
-function renderResults() {
-  lastHits = search(st.query);
-  const shown = lastHits.slice(0, 10);
-  st.resultIdx = Math.min(st.resultIdx, Math.max(0, shown.length - 1));
-  if (!st.query.trim() || st.query.trim().length < 2) { results.hidden = true; q.setAttribute("aria-expanded", "false"); pushView(); renderList(); return; }
-  const fieldLabel: Record<string, string> = { name: "name", handle: "handle", notes: "research notes", summary: "summary", project: "project", topic: "topic" };
-  const mapHits = shown.filter((h) => onMap.has(h.id)), offHits = shown.filter((h) => !onMap.has(h.id));
-  const item = (h: Hit, i: number) => {
-    const n = A.nodeById.get(h.id)!;
-    return `<button type="button" class="result" role="option" id="res-${i}" aria-selected="${i === st.resultIdx}" data-id="${esc(h.id)}">${shape(n.type)}<span><span>${esc(n.name ?? n.id)}</span><span class="meta">@${esc(n.handle ?? n.id)} · ${NODE_STYLE[n.type].label}${h.field !== "name" && h.field !== "handle" ? ` · in ${fieldLabel[h.field]}: ${h.snippet}` : ""}</span></span></button>`;
-  };
-  let i = 0;
-  results.innerHTML = shown.length
-    ? `${mapHits.length ? `<div class="group">On the map · ${lastHits.filter((h) => onMap.has(h.id)).length}</div>${mapHits.map((h) => item(h, i++)).join("")}` : ""}${offHits.length ? `<div class="group">Not on the map (no connections)</div>${offHits.map((h) => item(h, i++)).join("")}` : ""}<div class="group" style="text-transform:none;letter-spacing:0">↑ ↓ move · Enter go · Esc close · matches glow on the map</div>`
-    : `<div class="group" style="text-transform:none;letter-spacing:0">No accounts match “${esc(st.query)}”.</div>`;
-  results.hidden = false;
-  q.setAttribute("aria-expanded", "true");
-  q.setAttribute("aria-activedescendant", shown.length ? `res-${st.resultIdx}` : "");
+type Cmd = { label: string; group: string; keys?: string; run: () => void };
+type PItem = { kind: "account"; hit: Hit } | { kind: "cmd"; cmd: Cmd };
+const palette = $("palette");
+const pq = $<HTMLInputElement>("pq");
+const plist = $("plist");
+let pItems: PItem[] = [];
+let pIdx = 0;
+const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+$("kbdHint").textContent = isMac ? "⌘K" : "Ctrl K";
+
+function commands(): Cmd[] {
+  const power = document.body.classList.contains("power");
+  const setTypes = (t: NodeType) => () => { st.types = new Set([t]); syncFilterInputs(); onFiltersChanged(); };
+  return [
+    { group: "View", label: "Go to wide view", keys: "0", run: () => scene.overview() },
+    { group: "View", label: power ? "Exit power view" : "Power view: just the map", keys: "P", run: () => setPower(!power) },
+    { group: "View", label: scene.showNames ? "Hide names on the map" : "Show names on the map", run: toggleNames },
+    { group: "View", label: $("minimapWrap").hidden ? "Show minimap" : "Hide minimap", run: toggleMinimap },
+    { group: "View", label: "Show legend", keys: "?", run: () => toggleLegend(true) },
+    { group: "Filter", label: "Show only people", run: setTypes("person") },
+    { group: "Filter", label: "Show only organizations", run: setTypes("organization") },
+    { group: "Filter", label: "Show only agents", run: setTypes("agent") },
+    { group: "Filter", label: "Hide engagement lines (discovery paths)", run: () => { st.kinds.delete("engagement"); syncFilterInputs(); onFiltersChanged(); } },
+    { group: "Filter", label: "Hide low-confidence connections", run: () => { st.hideLow = true; syncFilterInputs(); onFiltersChanged(); } },
+    { group: "Filter", label: "Clear filters", run: clearFilters },
+    { group: "Open", label: "Open filters", run: () => openDrawer("filters") },
+    { group: "Open", label: "Open account list", run: () => openDrawer("list") },
+    { group: "Open", label: "Open data report", run: () => { renderReport(); $<HTMLDialogElement>("report").showModal(); } },
+    { group: "Data", label: "Add a sample batch of accounts", run: () => $("btnBatch").click() },
+    { group: "Data", label: "Load a JSON file…", run: () => $("fileIn").click() }
+  ];
+}
+
+function renderPalette() {
+  const query = pq.value.trim();
+  st.query = query;
+  lastHits = search(query);
+  const accounts = query.length >= 2 ? [...lastHits.filter((h) => onMap.has(h.id)), ...lastHits.filter((h) => !onMap.has(h.id))].slice(0, 8) : [];
+  const ql = query.toLowerCase();
+  const cmds = commands().filter((c) => !ql || c.label.toLowerCase().includes(ql) || c.group.toLowerCase().includes(ql));
+  pItems = [...accounts.map((hit) => ({ kind: "account" as const, hit })), ...cmds.map((cmd) => ({ kind: "cmd" as const, cmd }))];
+  pIdx = Math.min(pIdx, Math.max(0, pItems.length - 1));
+  const fieldLabel: Record<string, string> = { notes: "notes", summary: "summary", project: "project", topic: "topic" };
+  let html = "";
+  let lastGroup = "";
+  pItems.forEach((it, i) => {
+    const group = it.kind === "account" ? (onMap.has(it.hit.id) ? "Accounts" : "Not on the map") : it.cmd.group;
+    if (group !== lastGroup) { html += `<div class="p-group">${esc(group)}</div>`; lastGroup = group; }
+    if (it.kind === "account") {
+      const n = A.nodeById.get(it.hit.id)!;
+      const extra = fieldLabel[it.hit.field] ? `<span class="p-meta">in ${fieldLabel[it.hit.field]}: ${it.hit.snippet}</span>` : `<span class="p-meta">@${esc(n.handle ?? n.id)}</span>`;
+      html += `<div class="p-item" role="option" id="p-${i}" data-i="${i}" aria-selected="${i === pIdx}">${shape(n.type)}<span class="p-label">${esc(n.name ?? n.id)}</span>${extra}<span class="p-type">${NODE_STYLE[n.type].label}</span></div>`;
+    } else {
+      html += `<div class="p-item" role="option" id="p-${i}" data-i="${i}" aria-selected="${i === pIdx}"><span class="p-cmd-icon" aria-hidden="true">›</span><span class="p-label">${esc(it.cmd.label)}</span>${it.cmd.keys ? `<kbd>${esc(it.cmd.keys)}</kbd>` : ""}</div>`;
+    }
+  });
+  plist.innerHTML = html || `<div class="p-empty">Nothing matches “${esc(query)}”.</div>`;
+  pq.setAttribute("aria-activedescendant", pItems.length ? `p-${pIdx}` : "");
+  plist.querySelector(`#p-${pIdx}`)?.scrollIntoView({ block: "nearest" });
   pushView();
   renderList();
 }
-function orderedHits() { const s = lastHits.slice(0, 10); return [...s.filter((h) => onMap.has(h.id)), ...s.filter((h) => !onMap.has(h.id))]; }
-q.addEventListener("input", () => { st.query = q.value; st.resultIdx = 0; renderResults(); });
-q.addEventListener("focus", () => { if (st.query.trim().length >= 2) renderResults(); });
-q.addEventListener("keydown", (e) => {
-  const hits = orderedHits();
-  if (e.key === "ArrowDown") { st.resultIdx = Math.min(hits.length - 1, st.resultIdx + 1); renderResults(); e.preventDefault(); }
-  else if (e.key === "ArrowUp") { st.resultIdx = Math.max(0, st.resultIdx - 1); renderResults(); e.preventDefault(); }
-  else if (e.key === "Enter") { const h = hits[st.resultIdx]; if (h) pickResult(h.id); e.preventDefault(); }
-  else if (e.key === "Escape") { if (!results.hidden) { results.hidden = true; q.setAttribute("aria-expanded", "false"); } else { q.value = ""; st.query = ""; renderResults(); } }
-});
-results.addEventListener("click", (e) => { const b = (e.target as HTMLElement).closest(".result") as HTMLElement | null; if (b?.dataset.id) pickResult(b.dataset.id); });
-function pickResult(id: string) {
-  results.hidden = true;
-  q.setAttribute("aria-expanded", "false");
-  selectNode(id, { fly: true });
+function openPalette(prefill = "") {
+  palette.hidden = false;
+  pq.value = prefill;
+  pIdx = 0;
+  renderPalette();
+  pq.focus();
 }
-document.addEventListener("click", (e) => { if (!(e.target as HTMLElement).closest(".search")) { results.hidden = true; q.setAttribute("aria-expanded", "false"); } });
+function closePalette() {
+  if (palette.hidden) return;
+  palette.hidden = true;
+  st.query = "";
+  lastHits = [];
+  pushView();
+  renderList();
+  $("map").focus();
+}
+function runItem(i: number) {
+  const it = pItems[i];
+  if (!it) return;
+  closePalette();
+  if (it.kind === "account") selectNode(it.hit.id, { fly: true });
+  else it.cmd.run();
+}
+pq.addEventListener("input", () => { pIdx = 0; renderPalette(); });
+pq.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown") { pIdx = Math.min(pItems.length - 1, pIdx + 1); renderPalette(); e.preventDefault(); }
+  else if (e.key === "ArrowUp") { pIdx = Math.max(0, pIdx - 1); renderPalette(); e.preventDefault(); }
+  else if (e.key === "Enter") { runItem(pIdx); e.preventDefault(); }
+  else if (e.key === "Escape") { closePalette(); e.preventDefault(); }
+});
+plist.addEventListener("mousemove", (e) => {
+  const el = (e.target as HTMLElement).closest(".p-item") as HTMLElement | null;
+  if (el && Number(el.dataset.i) !== pIdx) { pIdx = Number(el.dataset.i); plist.querySelectorAll(".p-item").forEach((x) => x.setAttribute("aria-selected", String(x === el))); }
+});
+plist.addEventListener("click", (e) => { const el = (e.target as HTMLElement).closest(".p-item") as HTMLElement | null; if (el) runItem(Number(el.dataset.i)); });
+palette.addEventListener("mousedown", (e) => { if (e.target === palette) closePalette(); });
+$("openPalette").addEventListener("click", () => openPalette());
 document.addEventListener("keydown", (e) => {
   const tag = (document.activeElement?.tagName ?? "").toLowerCase();
-  if (e.key === "/" && tag !== "input" && tag !== "select" && tag !== "textarea") { e.preventDefault(); q.focus(); q.select(); }
+  const typing = tag === "input" || tag === "select" || tag === "textarea";
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); if (palette.hidden) openPalette(); else closePalette(); return; }
+  if (typing) return;
+  if (e.key === "/") { e.preventDefault(); openPalette(); }
+  else if (e.key === "?") { e.preventDefault(); toggleLegend(); }
 });
 
 // ---------------- filters ----------------
@@ -393,6 +495,7 @@ function renderList() {
 $("listItems").addEventListener("click", (e) => { const b = (e.target as HTMLElement).closest("button[data-id]") as HTMLElement | null; if (b) selectNode(b.dataset.id!, { fly: true }); });
 $<HTMLSelectElement>("sort").addEventListener("change", (e) => { st.sort = (e.target as HTMLSelectElement).value; renderList(); });
 
+function openDrawer(which: "filters" | "list") { if ($(which).hidden) toggleDrawer(which); }
 function toggleDrawer(which: "filters" | "list") {
   const el = $(which), other = $(which === "filters" ? "list" : "filters");
   const open = el.hidden;
@@ -418,7 +521,7 @@ function setPower(on: boolean) {
   document.body.classList.toggle("power", on);
   $("exitPower").hidden = !on;
   $("btnPower").setAttribute("aria-pressed", String(on));
-  if (on) { results.hidden = true; $("filters").hidden = true; $("list").hidden = true; }
+  if (on) { closePalette(); $("filters").hidden = true; $("list").hidden = true; }
   try { localStorage.setItem("agentMap.power", on ? "1" : "0"); } catch { /* storage unavailable */ }
   announce(on ? "Power view: only the map is shown. Press P to show the controls." : "Controls shown.");
   ($(on ? "map" : "btnPower") as HTMLElement).focus();
@@ -433,17 +536,29 @@ document.addEventListener("keydown", (e) => {
 });
 try { if (localStorage.getItem("agentMap.power") === "1") setPower(true); } catch { /* storage unavailable */ }
 
-$("namesToggle").addEventListener("click", () => {
+function toggleNames() {
   const on = !scene.showNames;
   scene.setShowNames(on);
-  $("namesToggle").textContent = on ? "Hide names" : "Show names";
-  $("namesToggle").setAttribute("aria-pressed", String(on));
-});
-$("legendToggle").addEventListener("click", () => {
-  const c = $("legend").classList.toggle("collapsed");
-  $("legendToggle").textContent = c ? "Show lines" : "Hide lines";
-  $("legendToggle").setAttribute("aria-expanded", String(!c));
-});
+  $("namesBtn").setAttribute("aria-pressed", String(on));
+  $("namesBtn").setAttribute("aria-label", on ? "Hide names on the map" : "Show names on the map");
+  announce(on ? "Names shown on the map." : "Names hidden; hover or select an account to see its name.");
+}
+function toggleLegend(force?: boolean) {
+  const open = force ?? $("legend").hidden;
+  $("legend").hidden = !open;
+  $("legendBtn").setAttribute("aria-expanded", String(open));
+}
+function toggleMinimap() {
+  const show = $("minimapWrap").hidden;
+  $("minimapWrap").hidden = !show;
+  $("miniBtn").setAttribute("aria-pressed", String(show));
+  $("miniBtn").setAttribute("aria-label", show ? "Hide minimap" : "Show minimap");
+  if (show) drawMinimap();
+}
+$("namesBtn").addEventListener("click", toggleNames);
+$("miniBtn").addEventListener("click", toggleMinimap);
+$("legendBtn").addEventListener("click", () => toggleLegend());
+$("legendClose").addEventListener("click", () => toggleLegend(false));
 
 function renderCounts() {
   $("counts").textContent = `${A.mapNodeIds.length} accounts · ${A.drawnEdges.length} connections`;
@@ -481,26 +596,15 @@ $("reportBody").addEventListener("click", (e) => {
 
 // ---------------- camera UI ----------------
 
-const depth = $<HTMLInputElement>("depth");
-let depthDragging = false;
-depth.addEventListener("pointerdown", () => { depthDragging = true; });
-window.addEventListener("pointerup", () => { depthDragging = false; });
-depth.addEventListener("input", () => scene.setDepth(Number(depth.value) / 1000));
 $("zoomIn").addEventListener("click", () => scene.zoomBy(0.6));
 $("zoomOut").addEventListener("click", () => scene.zoomBy(1 / 0.6));
 $("home").addEventListener("click", () => scene.overview());
 
-const depthName = (t: number) => {
-  const ov = scene.overviewDepth;
-  return t < ov - 0.04 ? "Far out" : t < ov + 0.12 ? "Surface" : t < ov + 0.35 ? "Shallow" : t < ov + 0.55 ? "Deep" : "Deepest";
-};
 const mini = $<HTMLCanvasElement>("minimap");
 const mctx = mini.getContext("2d")!;
 let lastMini = 0;
-function frameUi(d: number) {
-  if (!depthDragging && document.activeElement !== depth) depth.value = String(Math.round(d * 1000));
-  depth.setAttribute("aria-valuetext", `${depthName(d)}, ${Math.round(d * 100)}% zoomed in`);
-  $("depthRead").textContent = depthName(d);
+function frameUi(_d: number) {
+  if ($("minimapWrap").hidden) return;
   const now = performance.now();
   if (now - lastMini > 120) { lastMini = now; drawMinimap(); }
 }
@@ -520,7 +624,7 @@ function drawMinimap() {
     mctx.globalAlpha = filtersActive() && !nodeMatch(id) ? 0.15 : 0.35 + 0.65 * scene.visibility(id);
     mctx.fillStyle = NODE_STYLE[t].css;
     mctx.fillRect(x - 1.2, y - 1.2, 2.4, 2.4);
-    if (id === sel) { mctx.globalAlpha = 1; mctx.strokeStyle = "#16181D"; mctx.lineWidth = 2; mctx.beginPath(); mctx.arc(x, y, 5, 0, Math.PI * 2); mctx.stroke(); }
+    if (id === sel) { mctx.globalAlpha = 1; mctx.strokeStyle = "#5E6AD2"; mctx.lineWidth = 2; mctx.beginPath(); mctx.arc(x, y, 5, 0, Math.PI * 2); mctx.stroke(); }
   }
   mctx.globalAlpha = 1;
   const c = scene.cameraInfo;
@@ -528,8 +632,8 @@ function drawMinimap() {
   const tx = cx + (c.target.x - ex.center.x) * s, ty = cy + (c.target.z - ex.center.z) * s;
   mctx.strokeStyle = "rgba(22,24,29,.7)"; mctx.lineWidth = 1.2; mctx.setLineDash([3, 3]);
   mctx.beginPath(); mctx.moveTo(px, py); mctx.lineTo(tx, ty); mctx.stroke(); mctx.setLineDash([]);
-  mctx.fillStyle = "#16181D"; mctx.beginPath(); mctx.arc(Math.max(4, Math.min(mini.width - 4, px)), Math.max(4, Math.min(mini.height - 4, py)), 4, 0, Math.PI * 2); mctx.fill();
-  mctx.strokeStyle = "#16181D"; mctx.beginPath(); mctx.arc(tx, ty, 6, 0, Math.PI * 2); mctx.stroke();
+  mctx.fillStyle = "#5E6AD2"; mctx.beginPath(); mctx.arc(Math.max(4, Math.min(mini.width - 4, px)), Math.max(4, Math.min(mini.height - 4, py)), 4, 0, Math.PI * 2); mctx.fill();
+  mctx.strokeStyle = "#5E6AD2"; mctx.beginPath(); mctx.arc(tx, ty, 6, 0, Math.PI * 2); mctx.stroke();
 }
 mini.addEventListener("click", (e) => {
   const r = mini.getBoundingClientRect();
@@ -555,7 +659,7 @@ function refresh(msg?: string) {
   renderLegend();
   renderCounts();
   renderDetails();
-  if (st.query) renderResults(); else renderList();
+  if (!palette.hidden) renderPalette(); else renderList();
   onFiltersChanged();
   if (msg) toast(msg);
 }

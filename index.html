@@ -6,7 +6,7 @@
 <title>Autonomy | Builders of agent infrastructure</title>
 <meta name="description" content="Autonomy is a 3D map of the people, organizations and agents building agent infrastructure, and how they connect.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <script type="importmap">
 { "imports": {
@@ -19,26 +19,25 @@
 <div id="app">
   <header class="topbar">
     <div class="brand">
-      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="7" cy="8" r="4" fill="#2563EB"/><rect x="15" y="4" width="7" height="7" rx="1" fill="#5B21B6"/><rect x="10" y="15" width="6" height="6" fill="#D9580D" transform="rotate(45 13 18)"/><path d="M7 8 L18 7.5 M7 8 L13 18" stroke="#9CA3AF" stroke-width="1.2"/></svg>
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="7" cy="8" r="4" fill="#3B82F6"/><rect x="15" y="4" width="7" height="7" rx="1" fill="#8B5CF6"/><rect x="10" y="15" width="6" height="6" fill="#F97316" transform="rotate(45 13 18)"/><path d="M7 8 L18 7.5 M7 8 L13 18" stroke="#9CA3AF" stroke-width="1.2"/></svg>
       <div>
         <div class="title">Autonomy</div>
         <div class="sub"><span>Builders of agent infrastructure</span> · <span id="counts">Loading…</span> <span class="sample" id="sampleFlag" hidden>Sample data</span></div>
       </div>
     </div>
-    <div class="search" role="search">
-      <label for="q" class="sr">Search accounts, handles and notes</label>
-      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <input id="q" type="search" autocomplete="off" placeholder="Search accounts, handles, notes, projects" role="combobox" aria-expanded="false" aria-controls="results" aria-autocomplete="list">
-      <kbd>/</kbd>
-      <div id="results" class="results" role="listbox" aria-label="Search results" hidden></div>
-    </div>
+    <button type="button" class="search-trigger" id="openPalette" aria-haspopup="dialog" aria-controls="palette">
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Search accounts or run a command…</span>
+      <kbd id="kbdHint">⌘K</kbd>
+    </button>
     <div class="tools">
       <button type="button" id="btnFilters" class="btn" aria-expanded="false" aria-controls="filters">Filters <span class="badge" id="filterBadge" hidden></span></button>
       <button type="button" id="btnList" class="btn" aria-expanded="false" aria-controls="list">List</button>
       <button type="button" id="btnPower" class="btn" title="Hide everything but the map (P)">Power view</button>
       <button type="button" id="btnReport" class="btn">Data <span class="badge warn" id="issueBadge" hidden></span></button>
-      <button type="button" id="btnBatch" class="btn ghost" title="Adds a few new fake accounts to show how the map re-settles">+ Sample batch</button>
-      <label class="btn ghost file">Load JSON<input type="file" id="fileIn" accept="application/json,.json"></label>
+      <!-- Reachable from the ⌘K menu: "Add a sample batch", "Load a JSON file". -->
+      <button type="button" id="btnBatch" class="btn ghost" hidden>+ Sample batch</button>
+      <label class="btn ghost file" hidden>Load JSON<input type="file" id="fileIn" accept="application/json,.json"></label>
     </div>
   </header>
 
@@ -73,29 +72,30 @@
       <div id="detailsBody"></div>
     </aside>
 
-    <section id="legend" class="legend card" aria-label="Legend">
-      <div class="legend-head"><h2>Legend</h2><span><button type="button" class="link small" id="namesToggle" aria-pressed="false">Show names</button><button type="button" class="link small" id="legendToggle" aria-expanded="true">Hide lines</button></span></div>
+    <button type="button" id="legendBtn" class="legend-btn" aria-expanded="false" aria-controls="legend">Legend <kbd>?</kbd></button>
+    <section id="legend" class="legend card" aria-label="Legend" hidden>
+      <div class="legend-head"><h2>Legend</h2><button type="button" class="icon-btn sm" id="legendClose" aria-label="Close legend">✕</button></div>
       <ul id="legendNodes" class="legend-nodes"></ul>
       <ul id="legendEdges" class="legend-edges"></ul>
-      <p class="small muted note">Placement comes from the links in the data. Being close does not mean working together.</p>
+      <p class="small muted note">Lines are grey until you select an account, hover a line or filter by kind; then they take these colours. Placement comes from the links in the data; being close does not mean working together.</p>
     </section>
 
-    <nav id="nav" class="nav card" aria-label="Camera">
-      <button type="button" id="zoomIn" class="icon-btn" aria-label="Zoom in">+</button>
-      <label for="depth" class="sr">Depth (zoom)</label>
-      <input id="depth" type="range" min="0" max="1000" value="0" orient="vertical" aria-orientation="vertical">
-      <button type="button" id="zoomOut" class="icon-btn" aria-label="Zoom out">−</button>
-      <button type="button" id="home" class="icon-btn" aria-label="Back to wide view" title="Back to wide view (0)"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      <div class="depth-read" id="depthRead" aria-hidden="true">Surface</div>
+    <nav id="nav" class="nav-pill card" aria-label="Camera">
+      <button type="button" id="zoomOut" class="pill-btn" aria-label="Zoom out" title="Zoom out (−)"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      <button type="button" id="home" class="pill-btn" aria-label="Back to wide view" title="Wide view (0)"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button type="button" id="zoomIn" class="pill-btn" aria-label="Zoom in" title="Zoom in (+)"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      <span class="pill-sep" aria-hidden="true"></span>
+      <button type="button" id="namesBtn" class="pill-btn" aria-pressed="false" aria-label="Show names on the map" title="Names"><span style="font-weight:600;font-size:13px">Aa</span></button>
+      <button type="button" id="miniBtn" class="pill-btn" aria-pressed="false" aria-label="Show minimap" title="Minimap"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="14" cy="11" r="2" fill="currentColor"/></svg></button>
     </nav>
 
-    <figure class="minimap card" id="minimapWrap">
+    <figure class="minimap card" id="minimapWrap" hidden>
       <canvas id="minimap" width="168" height="168" aria-label="Top-down overview. Click to move there." role="img"></canvas>
       <figcaption class="small muted">Top view · click to go</figcaption>
     </figure>
 
     <div id="filterBar" class="filter-bar" hidden></div>
-    <div id="hint" class="hint">Drag to look around · scroll to dive toward the pointer · W/S drive · A/D turn · 0 or ⤢ returns to the wide view</div>
+    <div id="hint" class="hint">Drag to look · scroll to dive · W/S drive · A/D turn · <kbd>⌘K</kbd> search</div>
     <div id="toast" class="toast" role="status" hidden></div>
     <button type="button" id="exitPower" class="power-exit" hidden title="Show the controls again (P)"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Exit power view</button>
   </main>
@@ -109,6 +109,18 @@
     <div id="loadBody"></div>
     <div class="choice"><button type="button" class="btn primary" id="loadMerge">Merge into current map</button><button type="button" class="btn" id="loadReplace">Replace current map</button></div>
   </dialog>
+  <div id="palette" class="palette-backdrop" hidden>
+    <div class="palette" role="dialog" aria-modal="true" aria-label="Search and commands">
+      <div class="palette-input">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <label for="pq" class="sr">Search accounts or type a command</label>
+        <input id="pq" type="text" autocomplete="off" spellcheck="false" placeholder="Search accounts, handles, notes… or type a command" role="combobox" aria-expanded="true" aria-controls="plist" aria-autocomplete="list">
+        <kbd>esc</kbd>
+      </div>
+      <div id="plist" class="palette-list" role="listbox" aria-label="Results"></div>
+      <div class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span><kbd>esc</kbd> close</span></div>
+    </div>
+  </div>
   <div id="live" class="sr" aria-live="polite"></div>
 </div>
 <noscript>This prototype needs JavaScript and WebGL.</noscript>

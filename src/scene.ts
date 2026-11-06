@@ -6,7 +6,7 @@ import { badgeKey, makeBadge } from "./badges";
 import { CameraRig } from "./camera";
 import { ForceLayout, type Vec3 } from "./layout";
 import type { Analysis } from "./normalize";
-import { BG, EDGE_STYLE, INK, NODE_STYLE, SELECT_COLOR } from "./theme";
+import { BG, EDGE_STYLE, NEUTRAL_EDGE, NODE_STYLE, SELECT_COLOR } from "./theme";
 import { EDGE_KINDS, type Edge, type EdgeKind, type NodeType } from "./types";
 
 export type ViewState = {
@@ -20,6 +20,8 @@ export type ViewState = {
   edgeMatch: (e: Edge) => boolean;
   filtersActive: boolean;
   hideFiltered: boolean;
+  /** Colour every visible line by its kind (e.g. while filtering by connection kind). */
+  colorKinds?: boolean;
 };
 
 export type SceneCallbacks = {
@@ -166,7 +168,7 @@ export class MapScene {
     this.scene.add(this.snow);
 
     for (let i = 0; i < 2; i++) {
-      const ring = new THREE.Mesh(new THREE.RingGeometry(1.0, 1.09, 64), new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: 0.95, depthTest: false, side: THREE.DoubleSide }));
+      const ring = new THREE.Mesh(new THREE.RingGeometry(1.0, 1.09, 64), new THREE.MeshBasicMaterial({ color: SELECT_COLOR, transparent: true, opacity: 0.95, depthTest: false, side: THREE.DoubleSide }));
       ring.renderOrder = 10;
       ring.visible = false;
       this.rings.push(ring);
@@ -448,8 +450,8 @@ export class MapScene {
       let alpha = 0;
       if (dimSel) alpha *= 0.3;
       if (dimFilter) alpha *= v.hideFiltered ? 0 : 0.3;
-      if (isMatch) alpha = 0.75;
-      if (isSel) alpha = 0.8;
+      if (isMatch) alpha = 0.35;
+      if (isSel) alpha = 0.4;
       ga.alpha[i] = alpha;
     }
     const geo = this.glow.geometry;
@@ -510,7 +512,9 @@ export class MapScene {
     this.edgeGroups.forEach((grp, kind) => {
       const st = EDGE_STYLE[kind];
       tmpColor.set(st.color);
-      const cr = tmpColor.r, cg = tmpColor.g, cb = tmpColor.b;
+      const kr = tmpColor.r, kg = tmpColor.g, kb = tmpColor.b;
+      tmpColor.set(NEUTRAL_EDGE);
+      const nr = tmpColor.r, ng = tmpColor.g, nb = tmpColor.b;
       let o = 0;
       grp.edges.forEach((e, ei) => {
         const ia = this.index.get(e.source)!, ib = this.index.get(e.target)!;
@@ -518,11 +522,15 @@ export class MapScene {
         const base = kind === "engagement" ? 0.42 : kind === "cluster" ? 0.35 : 0.8;
         let s = Math.min(this.visCur[ia], this.visCur[ib]) * base;
         if (v.filtersActive && !v.edgeMatch(e)) s *= v.hideFiltered ? 0 : 0.06;
+        // Lines are neutral grey; they take their kind colour only when you are looking at them.
+        let colored = !!v.colorKinds && (!v.filtersActive || v.edgeMatch(e));
         if (selActive) {
           const incident = e.id === v.selectedEdge || (v.selectedNode && (e.source === v.selectedNode || e.target === v.selectedNode) && !v.selectedEdge);
           s = incident ? 1 : s * 0.12;
+          if (incident) colored = true;
         }
-        if (e.id === this.hoverEdge) s = Math.max(s, 1);
+        if (e.id === this.hoverEdge) { s = Math.max(s, 1); colored = true; }
+        const cr = colored ? kr : nr, cg = colored ? kg : ng, cb = colored ? kb : nb;
         this.edgeStrength.set(e.id, s);
         const a = this.layout.get(e.source)!, b = this.layout.get(e.target)!;
         dir.set(b.x - a.x, b.y - a.y, b.z - a.z);
@@ -566,7 +574,7 @@ export class MapScene {
       for (let j = 0; j < n; j++) { this.edgeEnds(sel, ends, j, n, perp); arr.set(ends, j * 6); }
       const g = new LineSegmentsGeometry();
       g.setPositions(arr);
-      const m = new LineMaterial({ color: SELECT_COLOR, linewidth: 6, transparent: true, opacity: 0.7, depthWrite: false, worldUnits: false });
+      const m = new LineMaterial({ color: SELECT_COLOR, linewidth: 5, transparent: true, opacity: 0.28, depthWrite: false, worldUnits: false });
       m.resolution.set(this.width, this.height);
       this.highlight = new LineSegments2(g, m);
       this.highlight.renderOrder = 0;
