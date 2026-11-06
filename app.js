@@ -346,139 +346,175 @@ var badgeKey = (n) => `${n.type}|${n.name ?? ""}|${n.handle ?? ""}|${n.avatarUrl
 
 // src/camera.ts
 import * as THREE2 from "three";
+import CameraControls from "camera-controls";
+CameraControls.install({ THREE: THREE2 });
+var ACTION = CameraControls.ACTION;
 var CameraRig = class {
-  constructor(camera) {
-    this.target = new THREE2.Vector3();
-    /** Centre of the whole map; zooming out drifts back toward it. */
+  constructor(camera, dom) {
+    /** Centre of the whole map, used by the wide view. */
     this.home = new THREE2.Vector3();
-    this.dist = 120;
-    this.yaw = 0.7;
-    this.pitch = 0.32;
-    this.cTarget = new THREE2.Vector3();
-    this.cDist = 120;
-    this.cYaw = 0.7;
-    this.cPitch = 0.32;
-    this.minDist = 0.35;
-    this.maxDist = 600;
     this.reducedMotion = false;
     /** Set when the user has moved the camera themselves. */
     this.userMoved = false;
+    this._min = 0.35;
+    this._max = 600;
+    this.tmp = new THREE2.Vector3();
+    this.tmp2 = new THREE2.Vector3();
     this.camera = camera;
+    const c = new CameraControls(camera, dom);
+    this.controls = c;
+    c.minDistance = this._min;
+    c.maxDistance = this._max;
+    c.infinityDolly = false;
+    dom.addEventListener("wheel", (e) => {
+      c.infinityDolly = e.deltaY < 0;
+    }, { capture: true, passive: true });
+    c.dollyToCursor = true;
+    c.smoothTime = 0.12;
+    c.draggingSmoothTime = 0.05;
+    c.dollySpeed = 1;
+    c.truckSpeed = 2;
+    c.minPolarAngle = 0.12;
+    c.maxPolarAngle = Math.PI - 0.12;
+    c.mouseButtons.left = ACTION.TRUCK;
+    c.mouseButtons.middle = ACTION.DOLLY;
+    c.mouseButtons.right = ACTION.ROTATE;
+    c.mouseButtons.wheel = ACTION.DOLLY;
+    if ("shiftLeft" in c.mouseButtons) c.mouseButtons.shiftLeft = ACTION.ROTATE;
+    c.touches.one = ACTION.TOUCH_TRUCK;
+    c.touches.two = ACTION.TOUCH_DOLLY_TRUCK;
+    c.touches.three = ACTION.TOUCH_ROTATE;
+    c.addEventListener("controlstart", () => {
+      this.userMoved = true;
+    });
+    c.addEventListener("control", () => {
+      this.userMoved = true;
+    });
+    c.setLookAt(0, 0, 120, 0, 0, 0, false);
   }
-  offset(dist, yaw, pitch) {
-    return new THREE2.Vector3(Math.cos(pitch) * Math.sin(yaw), Math.sin(pitch), Math.cos(pitch) * Math.cos(yaw)).multiplyScalar(dist);
+  setReducedMotion(on) {
+    this.reducedMotion = on;
+    this.controls.smoothTime = on ? 1e-4 : 0.12;
+    this.controls.draggingSmoothTime = on ? 1e-4 : 0.05;
   }
-  /** Position the desired state would put the camera at. */
-  desiredPosition() {
-    return this.target.clone().add(this.offset(this.dist, this.yaw, this.pitch));
+  get minDist() {
+    return this._min;
   }
-  forward() {
-    return this.offset(1, this.cYaw, this.cPitch).negate();
+  set minDist(v) {
+    this._min = v;
+    this.controls.minDistance = v;
   }
-  update(dt) {
-    const k = this.reducedMotion ? 1 : 1 - Math.exp(-dt * 7);
-    this.cTarget.lerp(this.target, k);
-    this.cDist = Math.exp(Math.log(this.cDist) + (Math.log(this.dist) - Math.log(this.cDist)) * k);
-    let dy = this.yaw - this.cYaw;
-    dy = Math.atan2(Math.sin(dy), Math.cos(dy));
-    this.cYaw += dy * k;
-    this.cPitch += (this.pitch - this.cPitch) * k;
-    this.camera.position.copy(this.cTarget).add(this.offset(this.cDist, this.cYaw, this.cPitch));
-    this.camera.lookAt(this.cTarget);
-    const moving = this.cTarget.distanceToSquared(this.target) > 1e-6 || Math.abs(this.cDist - this.dist) > 1e-4 * this.dist || Math.abs(dy) > 1e-5 || Math.abs(this.pitch - this.cPitch) > 1e-5;
-    return moving;
+  get maxDist() {
+    return this._max;
+  }
+  set maxDist(v) {
+    this._max = v;
+    this.controls.maxDistance = v;
+  }
+  /** Desired (end) target and distance. */
+  get target() {
+    return this.controls.getTarget(new THREE2.Vector3(), true);
+  }
+  get dist() {
+    return this.controls.distance;
+  }
+  /** Values the camera is showing right now. */
+  get currentTarget() {
+    return this.controls.getTarget(new THREE2.Vector3(), false);
   }
   get currentDist() {
-    return this.cDist;
-  }
-  get currentTarget() {
-    return this.cTarget;
+    return this.camera.position.distanceTo(this.controls.getTarget(this.tmp, false));
   }
   get currentYaw() {
-    return this.cYaw;
+    return this.controls.azimuthAngle;
+  }
+  forward() {
+    return this.camera.getWorldDirection(new THREE2.Vector3());
+  }
+  /** Advances the spring; returns true while the camera is still moving. */
+  update(dt) {
+    return this.controls.update(dt);
   }
   clampDist(d) {
-    return Math.min(this.maxDist, Math.max(this.minDist, d));
+    return Math.min(this._max, Math.max(this._min, d));
+  }
+  /** Pan by a screen-space pixel delta (used by release momentum). */
+  pan(dx, dy, viewportH) {
+    const scale = this.currentDist * 2 * Math.tan(this.camera.fov * Math.PI / 360) / viewportH;
+    this.controls.truck(-dx * scale, -dy * scale, false);
+    this.userMoved = true;
   }
   orbit(dx, dy) {
-    this.yaw -= dx * 5e-3;
-    this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch + dy * 5e-3));
-    this.cYaw = this.yaw;
-    this.cPitch = this.pitch;
+    this.controls.rotate(-dx * 5e-3, -dy * 5e-3, false);
     this.userMoved = true;
   }
-  pan(dx, dy, viewportH) {
-    const scale = this.cDist * 2 * Math.tan(this.camera.fov * Math.PI / 360) / viewportH;
-    const fwd = this.offset(1, this.cYaw, this.cPitch).negate();
-    const right = new THREE2.Vector3().crossVectors(fwd, new THREE2.Vector3(0, 1, 0)).normalize();
-    const up = new THREE2.Vector3().crossVectors(right, fwd).normalize();
-    const delta = right.multiplyScalar(-dx * scale).addScaledVector(up, dy * scale);
-    this.target.add(delta);
-    this.cTarget.add(delta);
-    this.userMoved = true;
-  }
-  /** factor < 1 zooms in. ndc is the cursor position in normalized device coords. */
-  zoomAt(factor, ndcX = 0, ndcY = 0) {
-    const newDist = this.clampDist(this.dist * factor);
-    const f = newDist / this.dist;
-    if (Math.abs(1 - f) < 1e-6) return;
-    const cam = this.camera.clone();
-    cam.position.copy(this.desiredPosition());
-    cam.lookAt(this.target);
-    cam.updateMatrixWorld();
-    const dir = new THREE2.Vector3(ndcX, ndcY, 0.5).unproject(cam).sub(cam.position).normalize();
-    const viewDirection = this.target.clone().sub(cam.position).normalize();
-    const rayDepth = this.dist / Math.max(0.01, dir.dot(viewDirection));
-    const anchor = cam.position.clone().addScaledVector(dir, rayDepth);
-    const shift = anchor.sub(this.target).multiplyScalar(1 - f);
-    this.target.add(shift);
-    this.cTarget.add(shift);
-    this.dist = newDist;
+  /** factor < 1 zooms in, around the screen point (ndc) given. */
+  zoomAt(factor, ndcX = 0, ndcY = 0, smooth = true) {
+    const c = this.controls;
+    const d = c.distance;
+    const nd = d * factor;
+    if (nd < this._min) {
+      c.forward(d * (1 - factor), smooth);
+    } else if (ndcX === 0 && ndcY === 0) {
+      c.dollyTo(this.clampDist(nd), smooth);
+    } else {
+      const ray = this.tmp.set(ndcX, ndcY, 0.5).unproject(this.camera).sub(this.camera.position).normalize();
+      const fwd = this.forward();
+      const anchor = this.tmp2.copy(this.camera.position).addScaledVector(ray, d / Math.max(0.05, ray.dot(fwd)));
+      const f = this.clampDist(nd) / d;
+      const t = c.getTarget(new THREE2.Vector3(), true);
+      const p = c.getPosition(new THREE2.Vector3(), true);
+      t.sub(anchor).multiplyScalar(f).add(anchor);
+      p.sub(anchor).multiplyScalar(f).add(anchor);
+      c.setLookAt(p.x, p.y, p.z, t.x, t.y, t.z, smooth);
+    }
     this.userMoved = true;
   }
   setDist(d) {
-    this.dist = this.clampDist(d);
+    this.controls.dollyTo(this.clampDist(d), true);
     this.userMoved = true;
   }
   /** Driving: forward/back along the view, turn left/right, rise/sink. Units per second. */
   drive(forward, turn, rise, dt) {
     if (!forward && !turn && !rise) return;
-    const speed = Math.max(this.dist, 3) * 0.9 * dt;
-    const fwd = this.offset(1, this.yaw, this.pitch).negate();
-    this.target.addScaledVector(fwd, forward * speed);
-    this.target.y += rise * speed;
-    this.yaw -= turn * 1.4 * dt;
+    const speed = Math.max(this.controls.distance, 3) * 0.9 * dt;
+    if (forward) this.controls.forward(forward * speed, false);
+    if (rise) this.controls.elevate(rise * speed, false);
+    if (turn) this.controls.rotate(-turn * 1.4 * dt, 0, false);
     this.userMoved = true;
   }
+  /** Glide to look at a point from the current direction. */
   flyTo(point, dist) {
-    this.target.set(point.x, point.y, point.z);
-    if (dist !== void 0) this.dist = this.clampDist(dist);
+    const c = this.controls;
+    const d = dist !== void 0 ? this.clampDist(dist) : c.distance;
+    const dir = c.getPosition(new THREE2.Vector3(), true).sub(c.getTarget(new THREE2.Vector3(), true)).normalize();
+    c.setLookAt(point.x + dir.x * d, point.y + dir.y * d, point.z + dir.z * d, point.x, point.y, point.z, !this.reducedMotion);
   }
   overview(center, radius, instant = false) {
     this.home.set(center.x, center.y, center.z);
-    this.target.set(center.x, center.y, center.z);
-    this.dist = this.clampDist(radius * 2.35);
-    this.pitch = 0.32;
-    if (instant) this.snap();
+    const d = this.clampDist(radius * 2.35);
+    const yaw = this.controls.azimuthAngle, pitch = 0.32;
+    const off = new THREE2.Vector3(Math.cos(pitch) * Math.sin(yaw), Math.sin(pitch), Math.cos(pitch) * Math.cos(yaw)).multiplyScalar(d);
+    this.controls.setLookAt(center.x + off.x, center.y + off.y, center.z + off.z, center.x, center.y, center.z, !instant && !this.reducedMotion);
   }
   getState() {
-    return { target: [this.target.x, this.target.y, this.target.z], dist: this.dist, yaw: this.yaw, pitch: this.pitch };
+    const t = this.target;
+    return { target: [t.x, t.y, t.z], dist: this.dist, yaw: this.controls.azimuthAngle, pitch: Math.PI / 2 - this.controls.polarAngle };
   }
   setState(v) {
     if (!v || v.target?.length !== 3 || ![v.dist, v.yaw, v.pitch, ...v.target].every(Number.isFinite)) return false;
-    this.target.set(v.target[0], v.target[1], v.target[2]);
-    this.dist = this.clampDist(v.dist);
-    this.yaw = v.yaw;
-    this.pitch = Math.max(-1.45, Math.min(1.45, v.pitch));
+    const d = this.clampDist(v.dist);
+    const pitch = Math.max(-1.45, Math.min(1.45, v.pitch));
+    const [x, y, z] = v.target;
+    if (Math.hypot(x - this.home.x, y - this.home.y, z - this.home.z) > this._max * 2) return false;
+    const off = new THREE2.Vector3(Math.cos(pitch) * Math.sin(v.yaw), Math.sin(pitch), Math.cos(pitch) * Math.cos(v.yaw)).multiplyScalar(d);
+    this.controls.setLookAt(x + off.x, y + off.y, z + off.z, x, y, z, false);
     this.userMoved = true;
-    this.snap();
     return true;
   }
+  /** Jump straight to the desired state. */
   snap() {
-    this.cTarget.copy(this.target);
-    this.cDist = this.dist;
-    this.cYaw = this.yaw;
-    this.cPitch = this.pitch;
+    this.controls.update(10);
   }
 };
 
@@ -723,6 +759,8 @@ var MapScene = class {
     /** Pointer velocity in CSS pixels per second, carried briefly after a pan. */
     this.panMomentum = { x: 0, y: 0 };
     this.directGestureActive = false;
+    /** Last pointer position over the canvas while no button is held, for re-picking hover as the camera moves. */
+    this.hoverAt = null;
     this.lastT = performance.now();
     this.frameN = 0;
     this.width = 1;
@@ -734,8 +772,8 @@ var MapScene = class {
     this.scene = new THREE3.Scene();
     this.scene.fog = new THREE3.FogExp2(BG, 0.01);
     this.camera = new THREE3.PerspectiveCamera(55, 1, 0.05, 5e3);
-    this.rig = new CameraRig(this.camera);
-    this.rig.reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    this.rig = new CameraRig(this.camera, canvas);
+    this.rig.setReducedMotion(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
     this.raycaster.params.Line2 = { threshold: 7 };
     this.raycaster.camera = this.camera;
     this.scene.add(new THREE3.AmbientLight(16777215, 1.15));
@@ -998,8 +1036,8 @@ var MapScene = class {
     const turn = (this.keys.has("d") || this.keys.has("arrowright") ? 1 : 0) - (this.keys.has("a") || this.keys.has("arrowleft") ? 1 : 0);
     const rise = (this.keys.has("e") || this.keys.has("pageup") ? 1 : 0) - (this.keys.has("q") || this.keys.has("pagedown") ? 1 : 0);
     if (fwd || turn || rise) this.rig.drive(fwd, turn, rise, dt);
-    if (this.keys.has("=") || this.keys.has("+")) this.rig.zoomAt(Math.exp(-dt * 1.6));
-    if (this.keys.has("-") || this.keys.has("_")) this.rig.zoomAt(Math.exp(dt * 1.6));
+    if (this.keys.has("=") || this.keys.has("+")) this.rig.zoomAt(Math.exp(-dt * 1.6), 0, 0, false);
+    if (this.keys.has("-") || this.keys.has("_")) this.rig.zoomAt(Math.exp(dt * 1.6), 0, 0, false);
     let momentumMoving = false;
     if (this.rig.reducedMotion) {
       this.panMomentum.x = this.panMomentum.y = 0;
@@ -1023,6 +1061,7 @@ var MapScene = class {
       if (!this.rig.userMoved) this.rig.overview(this.extentC, this.extentR);
     }
     const camMoving = this.rig.update(dt);
+    if (camMoving && this.hoverAt && !this.directGestureActive && this.frameN % 3 === 0) this.pickAt = this.hoverAt;
     if (camMoving || momentumMoving || layoutMoving || this.dirty || this.pickAt) {
       this.dirty = false;
       const fading = this.updateNodes(dt);
@@ -1347,7 +1386,7 @@ var MapScene = class {
     this.canvas.style.cursor = node || edge ? "pointer" : "grab";
     if (node && this.analysis) {
       const nd = this.analysis.nodeById.get(node);
-      this.showTip(x, y, `<b>${escapeHtml(nd.name ?? nd.id)}</b><span>${NODE_STYLE[nd.type].label}${nd.handle ? ` \xB7 @${escapeHtml(nd.handle)}` : ""} \xB7 ${this.analysis.degree.get(node) ?? 0} links</span>`);
+      this.showTip(x, y, `<b>${escapeHtml(nd.name ?? nd.id)}</b><span>${NODE_STYLE[nd.type].label}${nd.handle ? ` \xB7 @${escapeHtml(nd.handle)}` : ""} \xB7 ${linkCount(this.analysis.degree.get(node) ?? 0)}</span>`);
     } else if (edge && this.analysis) {
       const e = this.findEdge(edge);
       const a = this.analysis.nodeById.get(e.source), b = this.analysis.nodeById.get(e.target);
@@ -1363,122 +1402,58 @@ var MapScene = class {
   bindInput() {
     const c = this.canvas;
     const pointers = /* @__PURE__ */ new Map();
-    let gesture = "idle";
-    let pinch = null;
     const local = (e) => {
       const r = c.getBoundingClientRect();
       return { x: e.clientX - r.left, y: e.clientY - r.top };
     };
     const addVelocity = (dx, dy, elapsedMs) => {
       const seconds = Math.max(8e-3, Math.min(0.08, elapsedMs / 1e3));
-      const rawX = dx / seconds, rawY = dy / seconds;
       const sample = 1 - Math.exp(-seconds * 18);
-      this.panMomentum.x += (rawX - this.panMomentum.x) * sample;
-      this.panMomentum.y += (rawY - this.panMomentum.y) * sample;
+      this.panMomentum.x += (dx / seconds - this.panMomentum.x) * sample;
+      this.panMomentum.y += (dy / seconds - this.panMomentum.y) * sample;
       const speed = Math.hypot(this.panMomentum.x, this.panMomentum.y);
       if (speed > 3200) {
         this.panMomentum.x *= 3200 / speed;
         this.panMomentum.y *= 3200 / speed;
       }
     };
-    const beginSingleGesture = (p) => {
-      p.started = false;
-      p.tapCandidate = true;
-      p.startX = p.x;
-      p.startY = p.y;
-      p.downAt = p.lastAt = performance.now();
-      p.mode = "pan";
-      const hit = this.pick(p.x, p.y);
-      if (hit.node || hit.edge) p.mode = "node";
-    };
     c.addEventListener("contextmenu", (e) => e.preventDefault());
     c.addEventListener("pointerdown", (e) => {
-      try {
-        c.setPointerCapture(e.pointerId);
-      } catch {
-      }
       const p = local(e);
       this.panMomentum.x = this.panMomentum.y = 0;
       this.directGestureActive = true;
-      const mode = e.button === 2 || e.button === 0 && e.shiftKey ? "orbit" : "pan";
-      const state = { ...p, startX: p.x, startY: p.y, downAt: performance.now(), lastAt: performance.now(), mode, started: false, tapCandidate: e.button === 0 };
-      if (pointers.size === 0) {
-        const hit = this.pick(p.x, p.y);
-        if (mode === "pan" && (hit.node || hit.edge)) state.mode = "node";
-        gesture = state.mode;
-      }
-      pointers.set(e.pointerId, state);
-      if (pointers.size === 2) {
-        const [a, b] = Array.from(pointers.values());
-        a.tapCandidate = b.tapCandidate = false;
-        gesture = "pinch";
-        pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, at: performance.now() };
-      }
-      c.style.cursor = gesture === "node" ? "pointer" : "grabbing";
+      const pan = e.button === 0 && !e.shiftKey;
+      pointers.set(e.pointerId, { ...p, startX: p.x, startY: p.y, lastAt: performance.now(), moved: false, pan });
+      c.style.cursor = "grabbing";
       this.tooltip.hidden = true;
     });
     c.addEventListener("pointermove", (e) => {
       const p = local(e);
-      const prev = pointers.get(e.pointerId);
-      if (!prev) {
+      const d = pointers.get(e.pointerId);
+      if (!d) {
+        this.hoverAt = p;
         this.pickAt = p;
         this.dirty = true;
         return;
       }
-      const dx = p.x - prev.x, dy = p.y - prev.y;
       const now = performance.now();
-      prev.x = p.x;
-      prev.y = p.y;
-      if (pointers.size === 2 && pinch) {
-        const [a, b] = Array.from(pointers.values());
-        const d = Math.hypot(a.x - b.x, a.y - b.y);
-        const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
-        const n = this.ndc(cx, cy);
-        if (d > 0 && pinch.d > 0) this.rig.zoomAt(pinch.d / d, n.x, n.y);
-        this.rig.pan(cx - pinch.cx, cy - pinch.cy, this.height);
-        addVelocity(cx - pinch.cx, cy - pinch.cy, now - pinch.at);
-        pinch = { d, cx, cy, at: now };
-      } else if (pointers.size === 1) {
-        const travel = Math.hypot(p.x - prev.startX, p.y - prev.startY);
-        if (travel >= 4) prev.tapCandidate = false;
-        if (!prev.started && travel >= 4) {
-          prev.started = true;
-          if (gesture === "pan") {
-            this.rig.pan(p.x - prev.startX, p.y - prev.startY, this.height);
-            addVelocity(p.x - prev.startX, p.y - prev.startY, now - prev.downAt);
-          } else if (gesture === "orbit") {
-            this.rig.orbit(p.x - prev.startX, p.y - prev.startY);
-          }
-        } else if (prev.started && gesture === "pan") {
-          this.rig.pan(dx, dy, this.height);
-          addVelocity(dx, dy, now - prev.lastAt);
-        } else if (prev.started && gesture === "orbit") {
-          this.rig.orbit(dx, dy);
-        }
-      }
-      prev.lastAt = now;
+      if (Math.hypot(p.x - d.startX, p.y - d.startY) >= 4) d.moved = true;
+      if (d.pan && pointers.size === 1 && d.moved) addVelocity(p.x - d.x, p.y - d.y, now - d.lastAt);
+      d.x = p.x;
+      d.y = p.y;
+      d.lastAt = now;
       this.dirty = true;
     });
     const end = (e) => {
       const p = local(e);
-      const state = pointers.get(e.pointerId);
-      const wasSingle = pointers.size === 1;
-      const wasTap = wasSingle && !!state?.tapCandidate && !state.started && e.type === "pointerup";
+      const d = pointers.get(e.pointerId);
+      const single = pointers.size === 1;
       pointers.delete(e.pointerId);
-      if (gesture === "pinch" && pointers.size === 1) {
-        pinch = null;
-        const remaining = Array.from(pointers.values())[0];
-        beginSingleGesture(remaining);
-        remaining.tapCandidate = false;
-        gesture = remaining.mode;
-      } else if (pointers.size === 0) {
-        if (e.type === "pointercancel") this.panMomentum.x = this.panMomentum.y = 0;
-        this.directGestureActive = false;
-        pinch = null;
-        gesture = "idle";
-      }
-      c.style.cursor = pointers.size ? "grabbing" : "grab";
-      if (wasTap) {
+      if (pointers.size) return;
+      this.directGestureActive = false;
+      if (!d || !d.pan || e.type === "pointercancel" || performance.now() - d.lastAt > 80) this.panMomentum.x = this.panMomentum.y = 0;
+      c.style.cursor = "grab";
+      if (single && d && !d.moved && e.type === "pointerup" && e.button === 0) {
         const r = this.pick(p.x, p.y);
         if (r.node) this.cb.onPickNode(r.node);
         else if (r.edge) this.cb.onPickEdge(r.edge);
@@ -1488,6 +1463,7 @@ var MapScene = class {
     c.addEventListener("pointerup", end);
     c.addEventListener("pointercancel", end);
     c.addEventListener("pointerleave", () => {
+      this.hoverAt = null;
       if (!pointers.size) {
         this.tooltip.hidden = true;
         this.hoverNode = null;
@@ -1497,12 +1473,8 @@ var MapScene = class {
     });
     c.addEventListener("wheel", (e) => {
       e.preventDefault();
-      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
-      const delta = Math.max(-300, Math.min(300, e.deltaY * unit));
-      const p = local(e);
-      const n = this.ndc(p.x, p.y);
-      const zoomGain = e.ctrlKey ? 12e-4 : 65e-5;
-      this.rig.zoomAt(Math.exp(delta * zoomGain), n.x, n.y);
+      this.rig.userMoved = true;
+      this.panMomentum.x = this.panMomentum.y = 0;
       this.dirty = true;
     }, { passive: false });
     const drivingKeys = /* @__PURE__ */ new Set(["w", "a", "s", "d", "q", "e", "arrowup", "arrowdown", "arrowleft", "arrowright", "pageup", "pagedown", "=", "+", "-", "_"]);
@@ -1535,6 +1507,7 @@ var MapScene = class {
     this.dirty = true;
   }
 };
+var linkCount = (n) => `${n} ${n === 1 ? "link" : "links"}`;
 function escapeHtml(s) {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
@@ -2339,7 +2312,9 @@ window.agentMap = {
   replaceData: (json) => addData(json, "replace"),
   getData: () => graph,
   report: () => ({ offMap: A.offMap, issues: A.issues }),
-  camera: () => ({ dist: scene.rig.dist, current: scene.rig.currentDist, min: scene.rig.minDist, max: scene.rig.maxDist, depth: scene.depth })
+  camera: () => ({ dist: scene.rig.dist, current: scene.rig.currentDist, min: scene.rig.minDist, max: scene.rig.maxDist, depth: scene.depth }),
+  /** Camera rig, for debugging from the console. */
+  rig: scene.rig
 };
 var VIEW_KEY = "autonomy.view.v1";
 var restoring = true;

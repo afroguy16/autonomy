@@ -120,6 +120,8 @@ export class MapScene {
   /** Pointer velocity in CSS pixels per second, carried briefly after a pan. */
   private panMomentum = { x: 0, y: 0 };
   private directGestureActive = false;
+  /** Last pointer position over the canvas while no button is held, for re-picking hover as the camera moves. */
+  private hoverAt: { x: number; y: number } | null = null;
   private lastT = performance.now();
   private frameN = 0;
   private width = 1;
@@ -139,8 +141,8 @@ export class MapScene {
     this.scene = new THREE.Scene();
     this.scene.fog = new THREE.FogExp2(BG, 0.01);
     this.camera = new THREE.PerspectiveCamera(55, 1, 0.05, 5000);
-    this.rig = new CameraRig(this.camera);
-    this.rig.reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    this.rig = new CameraRig(this.camera, canvas);
+    this.rig.setReducedMotion(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
     this.raycaster.params.Line2 = { threshold: 7 };
     this.raycaster.camera = this.camera;
 
@@ -405,8 +407,8 @@ export class MapScene {
     const turn = (this.keys.has("d") || this.keys.has("arrowright") ? 1 : 0) - (this.keys.has("a") || this.keys.has("arrowleft") ? 1 : 0);
     const rise = (this.keys.has("e") || this.keys.has("pageup") ? 1 : 0) - (this.keys.has("q") || this.keys.has("pagedown") ? 1 : 0);
     if (fwd || turn || rise) this.rig.drive(fwd, turn, rise, dt);
-    if (this.keys.has("=") || this.keys.has("+")) this.rig.zoomAt(Math.exp(-dt * 1.6));
-    if (this.keys.has("-") || this.keys.has("_")) this.rig.zoomAt(Math.exp(dt * 1.6));
+    if (this.keys.has("=") || this.keys.has("+")) this.rig.zoomAt(Math.exp(-dt * 1.6), 0, 0, false);
+    if (this.keys.has("-") || this.keys.has("_")) this.rig.zoomAt(Math.exp(dt * 1.6), 0, 0, false);
 
     // Release momentum follows the last measured gesture velocity and eases to
     // rest. Reduced-motion keeps direct manipulation but skips the glide.
@@ -434,6 +436,8 @@ export class MapScene {
       if (!this.rig.userMoved) this.rig.overview(this.extentC, this.extentR);
     }
     const camMoving = this.rig.update(dt);
+    // Keep the hover card true to what is under the pointer while the map moves under it.
+    if (camMoving && this.hoverAt && !this.directGestureActive && this.frameN % 3 === 0) this.pickAt = this.hoverAt;
     if (camMoving || momentumMoving || layoutMoving || this.dirty || this.pickAt) {
       this.dirty = false;
       const fading = this.updateNodes(dt);
@@ -738,7 +742,7 @@ export class MapScene {
     this.canvas.style.cursor = node || edge ? "pointer" : "grab";
     if (node && this.analysis) {
       const nd = this.analysis.nodeById.get(node)!;
-      this.showTip(x, y, `<b>${escapeHtml(nd.name ?? nd.id)}</b><span>${NODE_STYLE[nd.type].label}${nd.handle ? ` · @${escapeHtml(nd.handle)}` : ""} · ${this.analysis.degree.get(node) ?? 0} links</span>`);
+      this.showTip(x, y, `<b>${escapeHtml(nd.name ?? nd.id)}</b><span>${NODE_STYLE[nd.type].label}${nd.handle ? ` · @${escapeHtml(nd.handle)}` : ""} · ${linkCount(this.analysis.degree.get(node) ?? 0)}</span>`);
     } else if (edge && this.analysis) {
       const e = this.findEdge(edge)!;
       const a = this.analysis.nodeById.get(e.source)!, b = this.analysis.nodeById.get(e.target)!;
@@ -755,114 +759,51 @@ export class MapScene {
 
   private bindInput() {
     const c = this.canvas;
-    type PointerState = {
-      x: number; y: number; startX: number; startY: number;
-      downAt: number; lastAt: number;
-      mode: "pan" | "orbit" | "node"; started: boolean; tapCandidate: boolean;
-    };
-    const pointers = new Map<number, PointerState>();
-    let gesture: "idle" | "pan" | "orbit" | "node" | "pinch" = "idle";
-    let pinch: { d: number; cx: number; cy: number; at: number } | null = null;
-    const local = (e: PointerEvent | WheelEvent) => { const r = c.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    // camera-controls owns drag, wheel and pinch (see camera.ts). This only adds
+    // tap-to-select, hover, release momentum for pans and the keyboard.
+    type Down = { x: number; y: number; startX: number; startY: number; lastAt: number; moved: boolean; pan: boolean };
+    const pointers = new Map<number, Down>();
+    const local = (e: PointerEvent) => { const r = c.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
     const addVelocity = (dx: number, dy: number, elapsedMs: number) => {
       const seconds = Math.max(0.008, Math.min(0.08, elapsedMs / 1000));
-      const rawX = dx / seconds, rawY = dy / seconds;
       const sample = 1 - Math.exp(-seconds * 18);
-      this.panMomentum.x += (rawX - this.panMomentum.x) * sample;
-      this.panMomentum.y += (rawY - this.panMomentum.y) * sample;
+      this.panMomentum.x += (dx / seconds - this.panMomentum.x) * sample;
+      this.panMomentum.y += (dy / seconds - this.panMomentum.y) * sample;
       const speed = Math.hypot(this.panMomentum.x, this.panMomentum.y);
       if (speed > 3200) { this.panMomentum.x *= 3200 / speed; this.panMomentum.y *= 3200 / speed; }
-    };
-    const beginSingleGesture = (p: PointerState) => {
-      p.started = false;
-      p.tapCandidate = true;
-      p.startX = p.x; p.startY = p.y;
-      p.downAt = p.lastAt = performance.now();
-      p.mode = "pan";
-      const hit = this.pick(p.x, p.y);
-      if (hit.node || hit.edge) p.mode = "node";
     };
 
     c.addEventListener("contextmenu", (e) => e.preventDefault());
     c.addEventListener("pointerdown", (e) => {
-      try { c.setPointerCapture(e.pointerId); } catch { /* Pointer may already have been cancelled. */ }
       const p = local(e);
       this.panMomentum.x = this.panMomentum.y = 0;
       this.directGestureActive = true;
-      const mode: PointerState["mode"] = e.button === 2 || (e.button === 0 && e.shiftKey) ? "orbit" : "pan";
-      const state: PointerState = { ...p, startX: p.x, startY: p.y, downAt: performance.now(), lastAt: performance.now(), mode, started: false, tapCandidate: e.button === 0 };
-      if (pointers.size === 0) {
-        const hit = this.pick(p.x, p.y);
-        if (mode === "pan" && (hit.node || hit.edge)) state.mode = "node";
-        gesture = state.mode;
-      }
-      pointers.set(e.pointerId, state);
-      if (pointers.size === 2) {
-        const [a, b] = Array.from(pointers.values());
-        a.tapCandidate = b.tapCandidate = false;
-        gesture = "pinch";
-        pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, at: performance.now() };
-      }
-      c.style.cursor = gesture === "node" ? "pointer" : "grabbing";
+      const pan = e.button === 0 && !e.shiftKey;
+      pointers.set(e.pointerId, { ...p, startX: p.x, startY: p.y, lastAt: performance.now(), moved: false, pan });
+      c.style.cursor = "grabbing";
       this.tooltip.hidden = true;
     });
     c.addEventListener("pointermove", (e) => {
       const p = local(e);
-      const prev = pointers.get(e.pointerId);
-      if (!prev) { this.pickAt = p; this.dirty = true; return; }
-      const dx = p.x - prev.x, dy = p.y - prev.y;
+      const d = pointers.get(e.pointerId);
+      if (!d) { this.hoverAt = p; this.pickAt = p; this.dirty = true; return; }
       const now = performance.now();
-      prev.x = p.x; prev.y = p.y;
-      if (pointers.size === 2 && pinch) {
-        const [a, b] = Array.from(pointers.values());
-        const d = Math.hypot(a.x - b.x, a.y - b.y);
-        const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
-        const n = this.ndc(cx, cy);
-        if (d > 0 && pinch.d > 0) this.rig.zoomAt(pinch.d / d, n.x, n.y);
-        this.rig.pan(cx - pinch.cx, cy - pinch.cy, this.height);
-        addVelocity(cx - pinch.cx, cy - pinch.cy, now - pinch.at);
-        pinch = { d, cx, cy, at: now };
-      } else if (pointers.size === 1) {
-        const travel = Math.hypot(p.x - prev.startX, p.y - prev.startY);
-        if (travel >= 4) prev.tapCandidate = false;
-        if (!prev.started && travel >= 4) {
-          prev.started = true;
-          if (gesture === "pan") {
-            this.rig.pan(p.x - prev.startX, p.y - prev.startY, this.height);
-            addVelocity(p.x - prev.startX, p.y - prev.startY, now - prev.downAt);
-          } else if (gesture === "orbit") {
-            this.rig.orbit(p.x - prev.startX, p.y - prev.startY);
-          }
-        } else if (prev.started && gesture === "pan") {
-          this.rig.pan(dx, dy, this.height);
-          addVelocity(dx, dy, now - prev.lastAt);
-        } else if (prev.started && gesture === "orbit") {
-          this.rig.orbit(dx, dy);
-        }
-      }
-      prev.lastAt = now;
+      if (Math.hypot(p.x - d.startX, p.y - d.startY) >= 4) d.moved = true;
+      if (d.pan && pointers.size === 1 && d.moved) addVelocity(p.x - d.x, p.y - d.y, now - d.lastAt);
+      d.x = p.x; d.y = p.y; d.lastAt = now;
       this.dirty = true;
     });
     const end = (e: PointerEvent) => {
       const p = local(e);
-      const state = pointers.get(e.pointerId);
-      const wasSingle = pointers.size === 1;
-      const wasTap = wasSingle && !!state?.tapCandidate && !state.started && e.type === "pointerup";
+      const d = pointers.get(e.pointerId);
+      const single = pointers.size === 1;
       pointers.delete(e.pointerId);
-      if (gesture === "pinch" && pointers.size === 1) {
-        pinch = null;
-        const remaining = Array.from(pointers.values())[0];
-        beginSingleGesture(remaining);
-        remaining.tapCandidate = false;
-        gesture = remaining.mode;
-      } else if (pointers.size === 0) {
-        if (e.type === "pointercancel") this.panMomentum.x = this.panMomentum.y = 0;
-        this.directGestureActive = false;
-        pinch = null;
-        gesture = "idle";
-      }
-      c.style.cursor = pointers.size ? "grabbing" : "grab";
-      if (wasTap) {
+      if (pointers.size) return;
+      this.directGestureActive = false;
+      // No glide if the pointer was held still before letting go, or the gesture was cancelled.
+      if (!d || !d.pan || e.type === "pointercancel" || performance.now() - d.lastAt > 80) this.panMomentum.x = this.panMomentum.y = 0;
+      c.style.cursor = "grab";
+      if (single && d && !d.moved && e.type === "pointerup" && e.button === 0) {
         const r = this.pick(p.x, p.y);
         if (r.node) this.cb.onPickNode(r.node);
         else if (r.edge) this.cb.onPickEdge(r.edge);
@@ -871,20 +812,8 @@ export class MapScene {
     };
     c.addEventListener("pointerup", end);
     c.addEventListener("pointercancel", end);
-    c.addEventListener("pointerleave", () => { if (!pointers.size) { this.tooltip.hidden = true; this.hoverNode = null; this.hoverEdge = null; this.dirty = true; } });
-    c.addEventListener("wheel", (e) => {
-      e.preventDefault();
-      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
-      const delta = Math.max(-300, Math.min(300, e.deltaY * unit));
-      const p = local(e);
-      const n = this.ndc(p.x, p.y);
-      // Keep a mouse-wheel detent small; rapid wheel events compound quickly
-      // across the map's very broad zoom range. Trackpad pinch gets a little
-      // more gain while remaining much gentler than the browser default.
-      const zoomGain = e.ctrlKey ? 0.0012 : 0.00065;
-      this.rig.zoomAt(Math.exp(delta * zoomGain), n.x, n.y);
-      this.dirty = true;
-    }, { passive: false });
+    c.addEventListener("pointerleave", () => { this.hoverAt = null; if (!pointers.size) { this.tooltip.hidden = true; this.hoverNode = null; this.hoverEdge = null; this.dirty = true; } });
+    c.addEventListener("wheel", (e) => { e.preventDefault(); this.rig.userMoved = true; this.panMomentum.x = this.panMomentum.y = 0; this.dirty = true; }, { passive: false });
 
     const drivingKeys = new Set(["w", "a", "s", "d", "q", "e", "arrowup", "arrowdown", "arrowleft", "arrowright", "pageup", "pagedown", "=", "+", "-", "_"]);
     c.addEventListener("keydown", (e) => {
@@ -913,6 +842,8 @@ export class MapScene {
   }
 }
 
+
+const linkCount = (n: number) => `${n} ${n === 1 ? "link" : "links"}`;
 
 export function escapeHtml(s: string) {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));

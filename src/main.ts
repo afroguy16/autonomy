@@ -688,7 +688,9 @@ $("stage").addEventListener("drop", (e) => { e.preventDefault(); const f = e.dat
   replaceData: (json: unknown) => addData(json, "replace"),
   getData: () => graph,
   report: () => ({ offMap: A.offMap, issues: A.issues }),
-  camera: () => ({ dist: scene.rig.dist, current: scene.rig.currentDist, min: scene.rig.minDist, max: scene.rig.maxDist, depth: scene.depth })
+  camera: () => ({ dist: scene.rig.dist, current: scene.rig.currentDist, min: scene.rig.minDist, max: scene.rig.maxDist, depth: scene.depth }),
+  /** Camera rig, for debugging from the console. */
+  rig: scene.rig
 };
 
 // ---------------- start ----------------

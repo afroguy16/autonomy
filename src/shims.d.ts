@@ -4,3 +4,4 @@ declare module "three";
 declare module "three/addons/lines/LineSegments2.js";
 declare module "three/addons/lines/LineSegmentsGeometry.js";
 declare module "three/addons/lines/LineMaterial.js";
+declare module "camera-controls";
