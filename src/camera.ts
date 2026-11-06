@@ -134,6 +134,21 @@ export class CameraRig {
     if (instant) this.snap();
   }
 
+  getState() {
+    return { target: [this.target.x, this.target.y, this.target.z], dist: this.dist, yaw: this.yaw, pitch: this.pitch };
+  }
+
+  setState(v: { target: number[]; dist: number; yaw: number; pitch: number }) {
+    if (!v || v.target?.length !== 3 || ![v.dist, v.yaw, v.pitch, ...v.target].every(Number.isFinite)) return false;
+    this.target.set(v.target[0], v.target[1], v.target[2]);
+    this.dist = this.clampDist(v.dist);
+    this.yaw = v.yaw;
+    this.pitch = Math.max(-1.45, Math.min(1.45, v.pitch));
+    this.userMoved = true;
+    this.snap();
+    return true;
+  }
+
   snap() {
     this.cTarget.copy(this.target);
     this.cDist = this.dist;

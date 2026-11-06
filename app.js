@@ -696,6 +696,19 @@ var CameraRig = class {
     this.pitch = 0.32;
     if (instant) this.snap();
   }
+  getState() {
+    return { target: [this.target.x, this.target.y, this.target.z], dist: this.dist, yaw: this.yaw, pitch: this.pitch };
+  }
+  setState(v) {
+    if (!v || v.target?.length !== 3 || ![v.dist, v.yaw, v.pitch, ...v.target].every(Number.isFinite)) return false;
+    this.target.set(v.target[0], v.target[1], v.target[2]);
+    this.dist = this.clampDist(v.dist);
+    this.yaw = v.yaw;
+    this.pitch = Math.max(-1.45, Math.min(1.45, v.pitch));
+    this.userMoved = true;
+    this.snap();
+    return true;
+  }
   snap() {
     this.cTarget.copy(this.target);
     this.cDist = this.dist;
@@ -1665,7 +1678,7 @@ var scene = new MapScene($("stage"), $("map"), $("labels"), $("tooltip"), {
   onPickEdge: (id) => selectEdge(id, { fly: false }),
   onPickNothing: () => clearSelection(),
   onEscape: () => clearSelection(),
-  onFrame: (info) => frameUi(info.depth),
+  onFrame: (info) => frameUi(info.depth, info.moving),
   onHint: (t) => {
     $("hint").textContent = t;
   }
@@ -1750,6 +1763,7 @@ function pushView() {
     colorKinds: st.kinds.size < EDGE_KINDS.length
   };
   scene.setView(view);
+  saveView();
 }
 function announce(t) {
   $("live").textContent = t;
@@ -1984,8 +1998,8 @@ function commands() {
   return [
     { group: "View", label: "Go to wide view", keys: "0", run: () => scene.overview() },
     { group: "View", label: power ? "Exit power view" : "Power view: just the map", keys: "P", run: () => setPower(!power) },
-    { group: "View", label: scene.showNames ? "Hide names on the map" : "Show names on the map", run: toggleNames },
-    { group: "View", label: $("minimapWrap").hidden ? "Show minimap" : "Hide minimap", run: toggleMinimap },
+    { group: "View", label: scene.showNames ? "Hide names on the map" : "Show names on the map", run: () => toggleNames() },
+    { group: "View", label: $("minimapWrap").hidden ? "Show minimap" : "Hide minimap", run: () => toggleMinimap() },
     { group: "View", label: "Show legend", keys: "?", run: () => toggleLegend(true) },
     { group: "Filter", label: "Show only people", run: setTypes("person") },
     { group: "Filter", label: "Show only organizations", run: setTypes("organization") },
@@ -2228,10 +2242,7 @@ function setPower(on) {
     $("filters").hidden = true;
     $("list").hidden = true;
   }
-  try {
-    localStorage.setItem("agentMap.power", on ? "1" : "0");
-  } catch {
-  }
+  saveView();
   announce(on ? "Power view: only the map is shown. Press P to show the controls." : "Controls shown.");
   $(on ? "map" : "btnPower").focus();
 }
@@ -2243,31 +2254,29 @@ document.addEventListener("keydown", (e) => {
     setPower(!document.body.classList.contains("power"));
   }
 });
-try {
-  if (localStorage.getItem("agentMap.power") === "1") setPower(true);
-} catch {
-}
-function toggleNames() {
-  const on = !scene.showNames;
+function toggleNames(force) {
+  const on = force ?? !scene.showNames;
   scene.setShowNames(on);
   $("namesBtn").setAttribute("aria-pressed", String(on));
   $("namesBtn").setAttribute("aria-label", on ? "Hide names on the map" : "Show names on the map");
   announce(on ? "Names shown on the map." : "Names hidden; hover or select an account to see its name.");
+  saveView();
 }
 function toggleLegend(force) {
   const open = force ?? $("legend").hidden;
   $("legend").hidden = !open;
   $("legendBtn").setAttribute("aria-expanded", String(open));
 }
-function toggleMinimap() {
-  const show = $("minimapWrap").hidden;
+function toggleMinimap(force) {
+  const show = force ?? $("minimapWrap").hidden;
   $("minimapWrap").hidden = !show;
   $("miniBtn").setAttribute("aria-pressed", String(show));
   $("miniBtn").setAttribute("aria-label", show ? "Hide minimap" : "Show minimap");
   if (show) drawMinimap();
+  saveView();
 }
-$("namesBtn").addEventListener("click", toggleNames);
-$("miniBtn").addEventListener("click", toggleMinimap);
+$("namesBtn").addEventListener("click", () => toggleNames());
+$("miniBtn").addEventListener("click", () => toggleMinimap());
 $("legendBtn").addEventListener("click", () => toggleLegend());
 $("legendClose").addEventListener("click", () => toggleLegend(false));
 function renderCounts() {
@@ -2317,7 +2326,13 @@ $("home").addEventListener("click", () => scene.overview());
 var mini = $("minimap");
 var mctx = mini.getContext("2d");
 var lastMini = 0;
-function frameUi(_d) {
+var lastCamSave = 0;
+function frameUi(_d, moving = false) {
+  const t = performance.now();
+  if (!moving && t - lastCamSave > 400) {
+    lastCamSave = t;
+    saveView();
+  }
   if ($("minimapWrap").hidden) return;
   const now = performance.now();
   if (now - lastMini > 120) {
@@ -2466,5 +2481,65 @@ window.agentMap = {
   report: () => ({ offMap: A.offMap, issues: A.issues }),
   camera: () => ({ dist: scene.rig.dist, current: scene.rig.currentDist, min: scene.rig.minDist, max: scene.rig.maxDist, depth: scene.depth })
 };
+var VIEW_KEY = "autonomy.view.v1";
+var restoring = true;
+var saveTimer = 0;
+function saveView() {
+  if (restoring) return;
+  clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(() => {
+    const v = {
+      power: document.body.classList.contains("power"),
+      names: scene.showNames,
+      minimap: !$("minimapWrap").hidden,
+      camera: scene.rig.getState(),
+      selectedNode: st.selectedNode,
+      selectedEdge: st.selectedEdge,
+      edgeFromNode: st.edgeFromNode,
+      types: [...st.types],
+      kinds: [...st.kinds],
+      topics: [...st.topics],
+      hideLow: st.hideLow,
+      hideFiltered: st.hideFiltered
+    };
+    try {
+      localStorage.setItem(VIEW_KEY, JSON.stringify(v));
+    } catch {
+    }
+  }, 150);
+}
+function readView() {
+  try {
+    const raw = localStorage.getItem(VIEW_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+function restoreView() {
+  const v = readView();
+  setPower(v?.power ?? true);
+  if (v) {
+    if (Array.isArray(v.types)) st.types = new Set(v.types.filter((t) => NODE_TYPES.includes(t)));
+    if (Array.isArray(v.kinds)) st.kinds = new Set(v.kinds.filter((k) => EDGE_KINDS.includes(k)));
+    if (Array.isArray(v.topics)) st.topics = new Set(v.topics.filter((t) => A.topicLabel.has(t)));
+    st.hideLow = !!v.hideLow;
+    st.hideFiltered = !!v.hideFiltered;
+    syncFilterInputs();
+    onFiltersChanged();
+    if (v.names) toggleNames(true);
+    if (v.minimap) toggleMinimap(true);
+    if (v.selectedEdge && A.drawnEdges.some((e) => e.id === v.selectedEdge)) {
+      if (v.edgeFromNode && A.nodeById.has(v.edgeFromNode)) st.selectedNode = v.edgeFromNode;
+      selectEdge(v.selectedEdge, { fly: false });
+    } else if (v.selectedNode && A.nodeById.has(v.selectedNode)) {
+      selectNode(v.selectedNode, { fly: false });
+    }
+    if (v.camera) scene.rig.setState(v.camera);
+  }
+  restoring = false;
+  saveView();
+}
 refresh();
 scene.overview(true);
+restoreView();
