@@ -1,17 +1,16 @@
-// Unified application data shape (merged designer + CPM model).
-// Field comments describe how CPM fields map in; see normalize.ts.
+// Unified application shape. The CPM's richer research model stays intact in
+// its source file; normalize.ts maps its records into this viewer contract.
 
 export type NodeType = "person" | "organization" | "agent";
 
-export type Confidence = "high" | "medium" | "low";
-
 export type EdgeKind =
-  | "engagement" // X reply/quote discovery path; not collaboration by itself
+  | "interaction" // X reply/quote discovery path; not collaboration by itself
   | "affiliation"
   | "built"
   | "collaboration"
   | "shared_topic"
-  | "cluster"; // Retained for existing data; don't create until its meaning is defined
+  | "cluster" // Retained without a visual interpretation until defined
+  | "bridge"; // Retained from the research model; not drawn until defined
 
 export type GraphMap = {
   meta: {
@@ -19,15 +18,8 @@ export type GraphMap = {
     version: number;
     updated: string;
     is_sample?: boolean;
-    confidence_levels?: Partial<Record<Confidence, string>>;
     legend?: Record<NodeType, string>;
-
-    // Research process state from the CPM shape.
-    seeds?: string[];
-    expanded?: string[];
-    frozen?: string[];
   };
-
   topics: Topic[];
   sources: Source[];
   nodes: Node[];
@@ -41,8 +33,8 @@ export type Topic = {
 };
 
 export type Source = {
-  id: string;
-  url: string; // Can be an X post, project page, paper, etc.
+  id: string; // Stable URL identifier; note and edge references must keep resolving
+  url: string;
   title?: string;
   publisher?: string;
   date?: string;
@@ -51,26 +43,24 @@ export type Source = {
 
 export type Node = {
   id: string; // Stable account ID, usually the handle without "@"
-  type: NodeType; // CPM "human" maps to "person"; "org" maps to "organization"
-  handle?: string; // CPM account handle
-  name?: string; // Designer's display name; CPM's "label" maps here
+  type: NodeType;
+  handle?: string;
+  name?: string;
   profiles: {
     x?: string | null;
     linkedin?: string | null;
   };
   avatarUrl?: string;
 
-  summary?: string; // What this account builds or why its work matters
-  notes?: string; // Research notes; kept separate from the public-facing summary
+  summary?: string;
+  notes: string; // Researcher's account-selection note
+  note_source_ids: string[]; // URLs supporting this note, attached to the note
   primary_topic?: string;
   topics: string[];
   projects: Project[];
-
-  inclusion_source_ids: string[]; // Evidence for including this account in the map
-  claims: Claim[]; // Sources for specific statements about the account
-  confidence?: Confidence | null;
-  confidence_note?: string | null;
-  added_at?: string;
+  claims: Claim[];
+  incomplete?: true;
+  missing?: string[];
 };
 
 export type Project = {
@@ -82,15 +72,15 @@ export type Project = {
 };
 
 export type Claim = {
-  field: string; // For example, "summary" or "role"
+  field: string;
   source_ids: string[];
 };
 
 export type Edge = {
-  id: string;
-  source: string; // CPM "from" maps here
-  target: string; // CPM "to" maps here
-  kind: EdgeKind; // CPM "kind" maps here; includes the new "engagement" kind
+  id: string; // Stable identity; parallel edges remain independently addressable
+  source: string;
+  target: string;
+  kind: EdgeKind;
   label?: string;
   detail?: string | null;
   period?: {
@@ -100,10 +90,13 @@ export type Edge = {
   project_id?: string;
   topic_ids?: string[];
 
-  source_ids: string[]; // CPM evidence URLs become source records referenced here
-  confidence?: Confidence | null;
-  note?: string | null;
+  source_ids: string[]; // Sources supporting this specific interaction/relationship
+  incomplete?: true;
+  missing?: string[];
+  pendingDefinition?: true;
 };
 
 export const NODE_TYPES: NodeType[] = ["person", "organization", "agent"];
-export const EDGE_KINDS: EdgeKind[] = ["engagement", "affiliation", "built", "collaboration", "shared_topic", "cluster"];
+// Only defined relationship kinds are filterable/drawable; legacy cluster and
+// research bridge records remain in the data until their visual meaning is set.
+export const EDGE_KINDS: EdgeKind[] = ["interaction", "affiliation", "built", "collaboration", "shared_topic"];

@@ -12,7 +12,10 @@ const TYPE_ALIASES: Record<string, NodeType> = {
 };
 
 export function normalizeGraph(raw: Raw): GraphMap {
-  const sources: Source[] = Array.isArray(raw.sources) ? raw.sources.filter((s: Raw) => s && s.id && s.url) : [];
+  const sources: Source[] = Array.isArray(raw.sources) ? raw.sources.filter((s: Raw) => s && s.id && s.url).map((s: Raw) => ({
+    id: String(s.id), url: String(s.url), title: s.title, publisher: s.publisher,
+    date: s.date, accessed: s.accessed ?? s.retrievedAt
+  })) : [];
   const byUrl = new Map(sources.map((s) => [s.url, s.id]));
   let urlN = 0;
   const sourceIdForUrl = (url: string) => {
@@ -30,8 +33,13 @@ export function normalizeGraph(raw: Raw): GraphMap {
     const handle = n.handle ? String(n.handle).replace(/^@/, "") : undefined;
     const id = String(n.id ?? handle ?? "").replace(/^@/, "");
     const type = TYPE_ALIASES[String(n.type ?? "").toLowerCase()] ?? ("person" as NodeType);
-    const profiles = { x: n.profiles?.x ?? n.x ?? null, linkedin: n.profiles?.linkedin ?? n.linkedin ?? null };
-    const evidence: string[] = Array.isArray(n.evidence) ? n.evidence.map((u: string) => sourceIdForUrl(u)) : [];
+    const profileUrl = typeof n.url === "string" ? n.url : null;
+    const profiles = {
+      x: n.profiles?.x ?? n.x ?? (profileUrl && /(?:^|\/\/)(?:www\.)?(?:x\.com|twitter\.com)\//i.test(profileUrl) ? profileUrl : null),
+      linkedin: n.profiles?.linkedin ?? n.linkedin ?? (profileUrl && /(?:^|\/\/)(?:www\.)?linkedin\.com\//i.test(profileUrl) ? profileUrl : null)
+    };
+    const rawNote = n.note && typeof n.note === "object" ? n.note.text : typeof n.note === "string" ? n.note : undefined;
+    const noteSourceIds: string[] = Array.isArray(n.note?.sourceIds) ? n.note.sourceIds : Array.isArray(n.note_source_ids) ? n.note_source_ids : [];
     return {
       id,
       type,
@@ -40,15 +48,14 @@ export function normalizeGraph(raw: Raw): GraphMap {
       profiles,
       avatarUrl: n.avatarUrl,
       summary: n.summary,
-      notes: n.notes ?? n.note,
+      notes: n.notes ?? rawNote ?? "",
+      note_source_ids: [...new Set(noteSourceIds)],
       primary_topic: n.primary_topic,
       topics: Array.isArray(n.topics) ? n.topics : [],
       projects: Array.isArray(n.projects) ? n.projects.map((p: Raw, i: number) => ({ id: String(p.id ?? `${id}-project-${i}`), name: String(p.name ?? "Untitled project"), description: p.description, url: p.url, source_ids: p.source_ids ?? [] })) : [],
-      inclusion_source_ids: [...(n.inclusion_source_ids ?? []), ...evidence],
       claims: Array.isArray(n.claims) ? n.claims : [],
-      confidence: n.confidence ?? null,
-      confidence_note: n.confidence_note ?? null,
-      added_at: n.added_at
+      incomplete: n.incomplete ? true : undefined,
+      missing: Array.isArray(n.missing) ? n.missing : undefined
     };
   }).filter((n: Node) => n.id);
 
@@ -57,19 +64,22 @@ export function normalizeGraph(raw: Raw): GraphMap {
     const evidenceUrls: string[] = Array.isArray(e.evidence) ? e.evidence : typeof e.evidence === "string" ? [e.evidence] : [];
     const source = String(e.source ?? e.from ?? "").replace(/^@/, "");
     const target = String(e.target ?? e.to ?? "").replace(/^@/, "");
+    const sourceIds = e.source_ids ?? e.sourceIds ?? [];
+    const rawKind = String(e.kind ?? e.type ?? "interaction");
     return {
       id: String(e.id ?? `edge-${++edgeN}-${source}-${target}`),
       source,
       target,
-      kind: (String(e.kind ?? e.type ?? "engagement") as EdgeKind),
+      kind: (rawKind === "engagement" ? "interaction" : rawKind) as EdgeKind,
       label: e.label,
       detail: e.detail ?? null,
       period: e.period ?? null,
       project_id: e.project_id,
       topic_ids: e.topic_ids,
-      source_ids: [...(e.source_ids ?? []), ...evidenceUrls.map(sourceIdForUrl)],
-      confidence: e.confidence ?? null,
-      note: e.note ?? null
+      source_ids: [...new Set([...sourceIds, ...evidenceUrls.map(sourceIdForUrl)])],
+      incomplete: e.incomplete ? true : undefined,
+      missing: Array.isArray(e.missing) ? e.missing : undefined,
+      pendingDefinition: e.pendingDefinition ? true : undefined
     };
   });
 
@@ -78,7 +88,8 @@ export function normalizeGraph(raw: Raw): GraphMap {
       name: raw.meta?.name ?? "Untitled map",
       version: raw.meta?.version ?? 1,
       updated: raw.meta?.updated ?? new Date().toISOString().slice(0, 10),
-      ...raw.meta
+      is_sample: raw.meta?.is_sample ?? false,
+      legend: raw.meta?.legend
     },
     topics: Array.isArray(raw.topics) ? raw.topics : [],
     sources,
@@ -140,18 +151,35 @@ export function analyze(g: GraphMap): Analysis {
 
   const ineligible = new Map<string, string>();
   for (const n of nodeById.values()) {
+    if (n.incomplete) {
+      const missingFields = n.missing?.length ? n.missing.join(", ") : "required research fields";
+      ineligible.set(n.id, `Research record is incomplete: ${missingFields}`);
+      issues.push({ level: "warning", code: "incomplete-node", message: `${n.name ?? n.id} is incomplete (${missingFields}); not drawn.`, ids: [n.id] });
+    }
     const p = profileProblem(n);
     if (p) {
       ineligible.set(n.id, p);
       issues.push({ level: "error", code: "profile", message: `${n.name ?? n.id}: ${p}. Not drawn.`, ids: [n.id] });
     }
-    const missing = [...n.inclusion_source_ids, ...n.claims.flatMap((c) => c.source_ids), ...n.projects.flatMap((p) => p.source_ids)].filter((s) => !sourceById.has(s));
-    if (missing.length) issues.push({ level: "warning", code: "missing-source", message: `${n.name ?? n.id} cites unknown source ${missing.join(", ")}.`, ids: [n.id] });
-    if (!n.inclusion_source_ids.length) issues.push({ level: "warning", code: "no-inclusion", message: `${n.name ?? n.id} has no inclusion evidence.`, ids: [n.id] });
+    const missing = [...n.note_source_ids, ...n.claims.flatMap((c) => c.source_ids), ...n.projects.flatMap((p) => p.source_ids)].filter((s) => !sourceById.has(s));
+    if (missing.length) {
+      issues.push({ level: "warning", code: "missing-source", message: `${n.name ?? n.id} cites unknown source ${missing.join(", ")}.`, ids: [n.id] });
+      if (n.note_source_ids.some((id) => missing.includes(id))) ineligible.set(n.id, "Its researcher note cites a source that is missing from the source catalog");
+    }
+    if (!n.notes.trim()) {
+      issues.push({ level: "warning", code: "no-note", message: `${n.name ?? n.id} has no researcher note.`, ids: [n.id] });
+      ineligible.set(n.id, "No researcher note is recorded");
+    }
+    if (!n.note_source_ids.length) {
+      issues.push({ level: "warning", code: "no-note-source", message: `${n.name ?? n.id} has no source attached to its researcher note.`, ids: [n.id] });
+      ineligible.set(n.id, "No source is attached to its researcher note");
+    }
     n.topics.filter((t) => !topicLabel.has(t)).forEach((t) => issues.push({ level: "info", code: "unknown-topic", message: `${n.name ?? n.id} uses topic "${t}", which is not in the topic list.`, ids: [n.id] }));
   }
 
   const drawnEdges: Edge[] = [];
+  const incompleteEdges: Edge[] = [];
+  const undefinedEdges: Edge[] = [];
   const seenEdgeIds = new Set<string>();
   for (const e of g.edges) {
     if (seenEdgeIds.has(e.id)) issues.push({ level: "warning", code: "dup-edge", message: `Duplicate edge id "${e.id}".`, ids: [e.id] });
@@ -163,11 +191,32 @@ export function analyze(g: GraphMap): Analysis {
     if (ineligible.has(e.source) || ineligible.has(e.target)) continue;
     const badSrc = e.source_ids.filter((s) => !sourceById.has(s));
     if (badSrc.length) issues.push({ level: "warning", code: "missing-source", message: `Edge ${e.id} cites unknown source ${badSrc.join(", ")}.`, ids: [e.id] });
-    if (e.kind !== "shared_topic" && e.kind !== "cluster" && e.source_ids.length === 0) issues.push({ level: "warning", code: "no-evidence", message: `Edge ${e.id} (${e.kind}) has no evidence.`, ids: [e.id] });
+    if (e.pendingDefinition || e.kind === "cluster" || e.kind === "bridge") { undefinedEdges.push(e); continue; }
+    if (e.incomplete || ((e.kind === "interaction" || e.kind === "affiliation") && (!e.source_ids.length || (e.kind === "affiliation" && !e.detail?.trim())))) {
+      incompleteEdges.push(e);
+      continue;
+    }
+    if (e.kind !== "shared_topic" && e.source_ids.length === 0) {
+      issues.push({ level: "warning", code: "no-source", message: `Edge ${e.id} (${e.kind}) has no source and is not drawn.`, ids: [e.id] });
+      continue;
+    }
     drawnEdges.push(e);
   }
-  const clusterCount = drawnEdges.filter((e) => e.kind === "cluster").length;
-  if (clusterCount) issues.push({ level: "info", code: "cluster", message: `${clusterCount} legacy "cluster" edge${clusterCount > 1 ? "s are" : " is"} drawn as-is; their meaning is not defined yet.`, ids: [] });
+  const byKindAndMissing = new Map<string, Edge[]>();
+  for (const e of incompleteEdges) {
+    const key = `${e.kind}:${(e.missing ?? []).join(",") || "incomplete"}`;
+    if (!byKindAndMissing.has(key)) byKindAndMissing.set(key, []);
+    byKindAndMissing.get(key)!.push(e);
+  }
+  for (const [key, records] of byKindAndMissing) {
+    const [kind, missing] = key.split(":");
+    issues.push({ level: "warning", code: "incomplete-edge", message: `${records.length} ${kind} record${records.length === 1 ? " is" : "s are"} incomplete (${missing}); kept in data, not drawn.`, ids: records.map((e) => e.id) });
+  }
+  if (undefinedEdges.length) {
+    const byKind = new Map<string, Edge[]>();
+    for (const e of undefinedEdges) { if (!byKind.has(e.kind)) byKind.set(e.kind, []); byKind.get(e.kind)!.push(e); }
+    for (const [kind, records] of byKind) issues.push({ level: "info", code: `undefined-${kind}`, message: `${records.length} ${kind} record${records.length === 1 ? " is" : "s are"} preserved but not drawn until its meaning is defined.`, ids: records.map((e) => e.id) });
+  }
 
   const degree = new Map<string, number>();
   const edgesByNode = new Map<string, Edge[]>();
@@ -180,9 +229,13 @@ export function analyze(g: GraphMap): Analysis {
   }
   const mapNodeIds = Array.from(nodeById.keys()).filter((id) => (degree.get(id) ?? 0) > 0);
   const offMap: { id: string; reason: string }[] = [];
+  const drawnIds = new Set(drawnEdges.map((e) => e.id));
   for (const n of nodeById.values()) {
     if (degree.get(n.id)) continue;
-    offMap.push({ id: n.id, reason: ineligible.get(n.id) ?? "No connections to other accounts on the map" });
+    const held = g.edges.filter((e) => (e.source === n.id || e.target === n.id) && !drawnIds.has(e.id));
+    const heldKinds = [...new Set(held.map((e) => e.incomplete ? "incomplete connection" : "undefined connection"))];
+    const heldReason = held.length ? `${held.length} ${heldKinds.join(" / ")} record${held.length === 1 ? " is" : "s are"} kept in the data but not drawn` : "No connections to other accounts on the map";
+    offMap.push({ id: n.id, reason: ineligible.get(n.id) ?? heldReason });
   }
   const isolatedOnly = offMap.filter((o) => !ineligible.has(o.id));
   if (isolatedOnly.length) issues.push({ level: "info", code: "isolated", message: `${isolatedOnly.length} account${isolatedOnly.length > 1 ? "s have" : " has"} no connections. Kept in the data, not drawn on the map.`, ids: isolatedOnly.map((o) => o.id) });

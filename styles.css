@@ -143,17 +143,13 @@ legend { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-sp
 .d-body { padding: 14px 18px 24px; display: flex; flex-direction: column; gap: 18px; }
 .d-sec h3 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
 .d-sec p { margin: 0; font-size: 15px; line-height: 1.55; }
-.notes { background: var(--surface-2); border: 1px dashed var(--line-2); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; line-height: 1.5; }
+.notes { min-width: 0; max-width: 100%; overflow-wrap: anywhere; background: var(--surface-2); border: 1px dashed var(--line-2); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; line-height: 1.5; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chips button { min-height: 32px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; font-size: 12.5px; }
 .chips button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
 .src-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; }
 .src-list .m { display: block; color: var(--muted); font-size: 12px; }
 .src-list .missing { color: var(--warn); }
-.conf { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
-.conf .bars { display: inline-flex; gap: 2px; align-items: flex-end; }
-.conf .bars i { display: block; width: 3px; background: var(--line-2); }
-.conf .bars i.on { background: var(--ink-2); }
 .conn-group { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
 .conn-group .gh { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
 .conn { display: flex; align-items: center; gap: 8px; }
@@ -356,6 +352,9 @@ body.power .legend-btn, body.power .nav-pill { display: none !important; }
 .warn-text { color: #8a5300; }
 .d-sec h3 { font-size: 11.5px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--muted); margin-bottom: 8px; }
 .notes { border-style: solid; border-color: var(--line); background: var(--surface-2); font-size: 13px; }
+.note-citations { display: flex; flex-direction: column; gap: 7px; min-width: 0; margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--line); }
+.note-citation { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 12px; }
+.note-citation a { display: inline-block; min-width: 0; max-width: 100%; color: var(--ink); overflow-wrap: anywhere; word-break: break-word; }
 .chips button { min-height: 24px; padding: 0 8px; border-radius: 6px; border-color: var(--line); font-size: 12px; }
 .chips button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: #d5d9f6; }
 .plain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
@@ -369,22 +368,20 @@ body.power .legend-btn, body.power .nav-pill { display: none !important; }
 .conn .main:hover, .conn .main:focus-visible { background: var(--surface-2); }
 .conn .main b { font-size: 13px; font-weight: 500; }
 .conn .main .s { font-size: 12px; }
-.conf { font-size: 12px; color: var(--muted); }
-.kbd-tip { margin: 8px 0 0; font-size: 11.5px; color: var(--muted); display: flex; gap: 4px; align-items: center; }
 .callout { border-radius: 8px; border-color: var(--line); background: var(--surface-2); font-size: 13px; padding: 10px 12px; }
-.callout.engage { border-color: #d5d9f6; background: var(--accent-soft); }
+.callout.interaction { border-color: #d5d9f6; background: var(--accent-soft); }
 .link-btn { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0; color: var(--ink); font: 500 13px var(--body); cursor: pointer; }
 .crumb .link-btn { color: var(--muted); font-size: 12px; }
 .link-btn:hover { color: var(--accent); }
 .timeline { list-style: none; margin: 0; padding: 0; position: relative; }
-.timeline li { position: relative; padding: 0 0 14px 18px; font-size: 13px; display: flex; flex-direction: column; gap: 2px; }
+.timeline li { position: relative; min-width: 0; max-width: 100%; padding: 0 0 14px 18px; font-size: 13px; display: flex; flex-direction: column; gap: 2px; }
 .timeline li::before { content: ""; position: absolute; left: 3px; top: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--surface); border: 1.5px solid var(--line-2); }
 .timeline li::after { content: ""; position: absolute; left: 6.5px; top: 16px; bottom: 0; width: 1px; background: var(--line); }
 .timeline li:last-child::after { display: none; }
-.timeline a { color: var(--ink); text-decoration: none; font-weight: 500; }
+.timeline a { display: inline-block; min-width: 0; max-width: 100%; color: var(--ink); text-decoration: none; font-weight: 500; overflow-wrap: anywhere; word-break: break-word; }
 .timeline a:hover { color: var(--accent); }
 .t-date { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.t-meta { font-size: 12px; color: var(--muted); }
+.t-meta { min-width: 0; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
 .timeline .missing { color: #8a5300; }
 
 /* First paint while the data and WebGL scene are being prepared. */

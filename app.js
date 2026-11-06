@@ -1,6 +1,6 @@
 // src/types.ts
 var NODE_TYPES = ["person", "organization", "agent"];
-var EDGE_KINDS = ["engagement", "affiliation", "built", "collaboration", "shared_topic", "cluster"];
+var EDGE_KINDS = ["interaction", "affiliation", "built", "collaboration", "shared_topic"];
 
 // src/normalize.ts
 var TYPE_ALIASES = {
@@ -15,7 +15,14 @@ var TYPE_ALIASES = {
   bot: "agent"
 };
 function normalizeGraph(raw) {
-  const sources = Array.isArray(raw.sources) ? raw.sources.filter((s) => s && s.id && s.url) : [];
+  const sources = Array.isArray(raw.sources) ? raw.sources.filter((s) => s && s.id && s.url).map((s) => ({
+    id: String(s.id),
+    url: String(s.url),
+    title: s.title,
+    publisher: s.publisher,
+    date: s.date,
+    accessed: s.accessed ?? s.retrievedAt
+  })) : [];
   const byUrl = new Map(sources.map((s) => [s.url, s.id]));
   let urlN = 0;
   const sourceIdForUrl = (url) => {
@@ -32,8 +39,13 @@ function normalizeGraph(raw) {
     const handle = n.handle ? String(n.handle).replace(/^@/, "") : void 0;
     const id = String(n.id ?? handle ?? "").replace(/^@/, "");
     const type = TYPE_ALIASES[String(n.type ?? "").toLowerCase()] ?? "person";
-    const profiles = { x: n.profiles?.x ?? n.x ?? null, linkedin: n.profiles?.linkedin ?? n.linkedin ?? null };
-    const evidence = Array.isArray(n.evidence) ? n.evidence.map((u) => sourceIdForUrl(u)) : [];
+    const profileUrl = typeof n.url === "string" ? n.url : null;
+    const profiles = {
+      x: n.profiles?.x ?? n.x ?? (profileUrl && /(?:^|\/\/)(?:www\.)?(?:x\.com|twitter\.com)\//i.test(profileUrl) ? profileUrl : null),
+      linkedin: n.profiles?.linkedin ?? n.linkedin ?? (profileUrl && /(?:^|\/\/)(?:www\.)?linkedin\.com\//i.test(profileUrl) ? profileUrl : null)
+    };
+    const rawNote = n.note && typeof n.note === "object" ? n.note.text : typeof n.note === "string" ? n.note : void 0;
+    const noteSourceIds = Array.isArray(n.note?.sourceIds) ? n.note.sourceIds : Array.isArray(n.note_source_ids) ? n.note_source_ids : [];
     return {
       id,
       type,
@@ -42,15 +54,14 @@ function normalizeGraph(raw) {
       profiles,
       avatarUrl: n.avatarUrl,
       summary: n.summary,
-      notes: n.notes ?? n.note,
+      notes: n.notes ?? rawNote ?? "",
+      note_source_ids: [...new Set(noteSourceIds)],
       primary_topic: n.primary_topic,
       topics: Array.isArray(n.topics) ? n.topics : [],
       projects: Array.isArray(n.projects) ? n.projects.map((p, i) => ({ id: String(p.id ?? `${id}-project-${i}`), name: String(p.name ?? "Untitled project"), description: p.description, url: p.url, source_ids: p.source_ids ?? [] })) : [],
-      inclusion_source_ids: [...n.inclusion_source_ids ?? [], ...evidence],
       claims: Array.isArray(n.claims) ? n.claims : [],
-      confidence: n.confidence ?? null,
-      confidence_note: n.confidence_note ?? null,
-      added_at: n.added_at
+      incomplete: n.incomplete ? true : void 0,
+      missing: Array.isArray(n.missing) ? n.missing : void 0
     };
   }).filter((n) => n.id);
   let edgeN = 0;
@@ -58,19 +69,22 @@ function normalizeGraph(raw) {
     const evidenceUrls = Array.isArray(e.evidence) ? e.evidence : typeof e.evidence === "string" ? [e.evidence] : [];
     const source = String(e.source ?? e.from ?? "").replace(/^@/, "");
     const target = String(e.target ?? e.to ?? "").replace(/^@/, "");
+    const sourceIds = e.source_ids ?? e.sourceIds ?? [];
+    const rawKind = String(e.kind ?? e.type ?? "interaction");
     return {
       id: String(e.id ?? `edge-${++edgeN}-${source}-${target}`),
       source,
       target,
-      kind: String(e.kind ?? e.type ?? "engagement"),
+      kind: rawKind === "engagement" ? "interaction" : rawKind,
       label: e.label,
       detail: e.detail ?? null,
       period: e.period ?? null,
       project_id: e.project_id,
       topic_ids: e.topic_ids,
-      source_ids: [...e.source_ids ?? [], ...evidenceUrls.map(sourceIdForUrl)],
-      confidence: e.confidence ?? null,
-      note: e.note ?? null
+      source_ids: [.../* @__PURE__ */ new Set([...sourceIds, ...evidenceUrls.map(sourceIdForUrl)])],
+      incomplete: e.incomplete ? true : void 0,
+      missing: Array.isArray(e.missing) ? e.missing : void 0,
+      pendingDefinition: e.pendingDefinition ? true : void 0
     };
   });
   return {
@@ -78,7 +92,8 @@ function normalizeGraph(raw) {
       name: raw.meta?.name ?? "Untitled map",
       version: raw.meta?.version ?? 1,
       updated: raw.meta?.updated ?? (/* @__PURE__ */ new Date()).toISOString().slice(0, 10),
-      ...raw.meta
+      is_sample: raw.meta?.is_sample ?? false,
+      legend: raw.meta?.legend
     },
     topics: Array.isArray(raw.topics) ? raw.topics : [],
     sources,
@@ -117,17 +132,34 @@ function analyze(g) {
   const topicLabel = new Map(g.topics.map((t) => [t.id, t.label]));
   const ineligible = /* @__PURE__ */ new Map();
   for (const n of nodeById.values()) {
+    if (n.incomplete) {
+      const missingFields = n.missing?.length ? n.missing.join(", ") : "required research fields";
+      ineligible.set(n.id, `Research record is incomplete: ${missingFields}`);
+      issues.push({ level: "warning", code: "incomplete-node", message: `${n.name ?? n.id} is incomplete (${missingFields}); not drawn.`, ids: [n.id] });
+    }
     const p = profileProblem(n);
     if (p) {
       ineligible.set(n.id, p);
       issues.push({ level: "error", code: "profile", message: `${n.name ?? n.id}: ${p}. Not drawn.`, ids: [n.id] });
     }
-    const missing = [...n.inclusion_source_ids, ...n.claims.flatMap((c) => c.source_ids), ...n.projects.flatMap((p2) => p2.source_ids)].filter((s) => !sourceById.has(s));
-    if (missing.length) issues.push({ level: "warning", code: "missing-source", message: `${n.name ?? n.id} cites unknown source ${missing.join(", ")}.`, ids: [n.id] });
-    if (!n.inclusion_source_ids.length) issues.push({ level: "warning", code: "no-inclusion", message: `${n.name ?? n.id} has no inclusion evidence.`, ids: [n.id] });
+    const missing = [...n.note_source_ids, ...n.claims.flatMap((c) => c.source_ids), ...n.projects.flatMap((p2) => p2.source_ids)].filter((s) => !sourceById.has(s));
+    if (missing.length) {
+      issues.push({ level: "warning", code: "missing-source", message: `${n.name ?? n.id} cites unknown source ${missing.join(", ")}.`, ids: [n.id] });
+      if (n.note_source_ids.some((id) => missing.includes(id))) ineligible.set(n.id, "Its researcher note cites a source that is missing from the source catalog");
+    }
+    if (!n.notes.trim()) {
+      issues.push({ level: "warning", code: "no-note", message: `${n.name ?? n.id} has no researcher note.`, ids: [n.id] });
+      ineligible.set(n.id, "No researcher note is recorded");
+    }
+    if (!n.note_source_ids.length) {
+      issues.push({ level: "warning", code: "no-note-source", message: `${n.name ?? n.id} has no source attached to its researcher note.`, ids: [n.id] });
+      ineligible.set(n.id, "No source is attached to its researcher note");
+    }
     n.topics.filter((t) => !topicLabel.has(t)).forEach((t) => issues.push({ level: "info", code: "unknown-topic", message: `${n.name ?? n.id} uses topic "${t}", which is not in the topic list.`, ids: [n.id] }));
   }
   const drawnEdges = [];
+  const incompleteEdges = [];
+  const undefinedEdges = [];
   const seenEdgeIds = /* @__PURE__ */ new Set();
   for (const e of g.edges) {
     if (seenEdgeIds.has(e.id)) issues.push({ level: "warning", code: "dup-edge", message: `Duplicate edge id "${e.id}".`, ids: [e.id] });
@@ -148,11 +180,38 @@ function analyze(g) {
     if (ineligible.has(e.source) || ineligible.has(e.target)) continue;
     const badSrc = e.source_ids.filter((s) => !sourceById.has(s));
     if (badSrc.length) issues.push({ level: "warning", code: "missing-source", message: `Edge ${e.id} cites unknown source ${badSrc.join(", ")}.`, ids: [e.id] });
-    if (e.kind !== "shared_topic" && e.kind !== "cluster" && e.source_ids.length === 0) issues.push({ level: "warning", code: "no-evidence", message: `Edge ${e.id} (${e.kind}) has no evidence.`, ids: [e.id] });
+    if (e.pendingDefinition || e.kind === "cluster" || e.kind === "bridge") {
+      undefinedEdges.push(e);
+      continue;
+    }
+    if (e.incomplete || (e.kind === "interaction" || e.kind === "affiliation") && (!e.source_ids.length || e.kind === "affiliation" && !e.detail?.trim())) {
+      incompleteEdges.push(e);
+      continue;
+    }
+    if (e.kind !== "shared_topic" && e.source_ids.length === 0) {
+      issues.push({ level: "warning", code: "no-source", message: `Edge ${e.id} (${e.kind}) has no source and is not drawn.`, ids: [e.id] });
+      continue;
+    }
     drawnEdges.push(e);
   }
-  const clusterCount = drawnEdges.filter((e) => e.kind === "cluster").length;
-  if (clusterCount) issues.push({ level: "info", code: "cluster", message: `${clusterCount} legacy "cluster" edge${clusterCount > 1 ? "s are" : " is"} drawn as-is; their meaning is not defined yet.`, ids: [] });
+  const byKindAndMissing = /* @__PURE__ */ new Map();
+  for (const e of incompleteEdges) {
+    const key = `${e.kind}:${(e.missing ?? []).join(",") || "incomplete"}`;
+    if (!byKindAndMissing.has(key)) byKindAndMissing.set(key, []);
+    byKindAndMissing.get(key).push(e);
+  }
+  for (const [key, records] of byKindAndMissing) {
+    const [kind, missing] = key.split(":");
+    issues.push({ level: "warning", code: "incomplete-edge", message: `${records.length} ${kind} record${records.length === 1 ? " is" : "s are"} incomplete (${missing}); kept in data, not drawn.`, ids: records.map((e) => e.id) });
+  }
+  if (undefinedEdges.length) {
+    const byKind = /* @__PURE__ */ new Map();
+    for (const e of undefinedEdges) {
+      if (!byKind.has(e.kind)) byKind.set(e.kind, []);
+      byKind.get(e.kind).push(e);
+    }
+    for (const [kind, records] of byKind) issues.push({ level: "info", code: `undefined-${kind}`, message: `${records.length} ${kind} record${records.length === 1 ? " is" : "s are"} preserved but not drawn until its meaning is defined.`, ids: records.map((e) => e.id) });
+  }
   const degree = /* @__PURE__ */ new Map();
   const edgesByNode = /* @__PURE__ */ new Map();
   for (const e of drawnEdges) {
@@ -164,9 +223,13 @@ function analyze(g) {
   }
   const mapNodeIds = Array.from(nodeById.keys()).filter((id) => (degree.get(id) ?? 0) > 0);
   const offMap = [];
+  const drawnIds = new Set(drawnEdges.map((e) => e.id));
   for (const n of nodeById.values()) {
     if (degree.get(n.id)) continue;
-    offMap.push({ id: n.id, reason: ineligible.get(n.id) ?? "No connections to other accounts on the map" });
+    const held = g.edges.filter((e) => (e.source === n.id || e.target === n.id) && !drawnIds.has(e.id));
+    const heldKinds = [...new Set(held.map((e) => e.incomplete ? "incomplete connection" : "undefined connection"))];
+    const heldReason = held.length ? `${held.length} ${heldKinds.join(" / ")} record${held.length === 1 ? " is" : "s are"} kept in the data but not drawn` : "No connections to other accounts on the map";
+    offMap.push({ id: n.id, reason: ineligible.get(n.id) ?? heldReason });
   }
   const isolatedOnly = offMap.filter((o) => !ineligible.has(o.id));
   if (isolatedOnly.length) issues.push({ level: "info", code: "isolated", message: `${isolatedOnly.length} account${isolatedOnly.length > 1 ? "s have" : " has"} no connections. Kept in the data, not drawn on the map.`, ids: isolatedOnly.map((o) => o.id) });
@@ -190,12 +253,13 @@ var NODE_STYLE = {
   agent: { color: 16347926, css: "#F97316", label: "Agent", shape: "Diamond" }
 };
 var EDGE_STYLE = {
-  affiliation: { color: 4937059, css: "#4B5563", width: 1, dashed: false, dash: 0, gap: 0, label: "Affiliation", means: "Works at, founded or advises \u2014 sourced." },
+  affiliation: { color: 4937059, css: "#4B5563", width: 1, dashed: false, dash: 0, gap: 0, label: "Affiliation", means: "A sourced relationship such as working at the same company or on the same project." },
   built: { color: 11817737, css: "#B45309", width: 1, dashed: false, dash: 0, gap: 0, label: "Built / operates", means: "Made or runs this agent or project \u2014 sourced." },
   collaboration: { color: 1409085, css: "#15803D", width: 1, dashed: false, dash: 0, gap: 0, label: "Collaboration", means: "Sourced joint work, such as a co-built project or paper." },
-  engagement: { color: 947344, css: "#0E7490", width: 1, dashed: true, dash: 1.2, gap: 0.8, label: "Engagement", means: "A reply or quote on X that led the research to this account. It records a discovery path, not collaboration." },
+  interaction: { color: 947344, css: "#0E7490", width: 1, dashed: true, dash: 1.2, gap: 0.8, label: "Interaction", means: "A reply or quote on X that led the research to this account. It records a discovery path, not collaboration." },
   shared_topic: { color: 12458077, css: "#BE185D", width: 1, dashed: true, dash: 0.35, gap: 0.8, label: "Shared topic", means: "Both work in the same area. No direct relationship is claimed." },
-  cluster: { color: 10265519, css: "#9CA3AF", width: 1, dashed: false, dash: 0, gap: 0, label: "Cluster (legacy)", means: "Kept from older data. What it means is not defined yet." }
+  cluster: { color: 10265519, css: "#9CA3AF", width: 1, dashed: false, dash: 0, gap: 0, label: "Cluster (undefined)", means: "Kept in the data. Its meaning has not been defined, so it is not drawn." },
+  bridge: { color: 10265519, css: "#9CA3AF", width: 1, dashed: true, dash: 1, gap: 1, label: "Bridge (undefined)", means: "Kept in the research data. Its meaning for this map has not been defined, so it is not drawn." }
 };
 var SELECT_COLOR = 6187730;
 var NEUTRAL_EDGE = 10725552;
@@ -1100,7 +1164,7 @@ var MapScene = class {
       let o = 0;
       grp.edges.forEach((e, ei) => {
         const ia = this.index.get(e.source), ib = this.index.get(e.target);
-        const base = kind === "engagement" ? 0.42 : kind === "cluster" ? 0.35 : 0.8;
+        const base = kind === "interaction" ? 0.42 : kind === "cluster" ? 0.35 : 0.8;
         let s = Math.min(this.visCur[ia], this.visCur[ib]) * base;
         if (v.filtersActive && !v.edgeMatch(e)) s *= v.hideFiltered ? 0 : 0.06;
         let colored = !!v.colorKinds && (!v.filtersActive || v.edgeMatch(e));
@@ -1418,7 +1482,6 @@ var st = {
   types: /* @__PURE__ */ new Set(),
   kinds: new Set(EDGE_KINDS),
   topics: /* @__PURE__ */ new Set(),
-  hideLow: false,
   hideFiltered: false,
   sort: "links",
   resultIdx: 0
@@ -1440,7 +1503,7 @@ var nodeName = (id) => {
   const n = A.nodeById.get(id);
   return n?.name ?? n?.handle ?? id;
 };
-var filtersActive = () => st.types.size > 0 || st.topics.size > 0 || st.kinds.size < EDGE_KINDS.length || st.hideLow;
+var filtersActive = () => st.types.size > 0 || st.topics.size > 0 || st.kinds.size < EDGE_KINDS.length;
 function nodeMatch(id) {
   const n = A.nodeById.get(id);
   if (!n) return false;
@@ -1450,7 +1513,6 @@ function nodeMatch(id) {
 }
 function edgeMatch(e) {
   if (!st.kinds.has(e.kind)) return false;
-  if (st.hideLow && e.confidence === "low") return false;
   return nodeMatch(e.source) && nodeMatch(e.target);
 }
 function focusSet() {
@@ -1556,13 +1618,8 @@ function clearSelection() {
 var shape = (t) => `<span class="shape ${t}" aria-hidden="true"></span>`;
 function edgeSwatch(kind, w = 30) {
   const s = EDGE_STYLE[kind];
-  const dash = kind === "engagement" ? 'stroke-dasharray="5 3"' : kind === "shared_topic" ? 'stroke-dasharray="1.5 3.5" stroke-linecap="round"' : "";
+  const dash = kind === "interaction" ? 'stroke-dasharray="5 3"' : kind === "shared_topic" || kind === "bridge" ? 'stroke-dasharray="1.5 3.5" stroke-linecap="round"' : "";
   return `<svg class="edge-swatch" width="${w}" height="8" viewBox="0 0 ${w} 8" aria-hidden="true"><line x1="1" y1="4" x2="${w - 1}" y2="4" stroke="${s.css}" stroke-width="${Math.max(1.2, s.width)}" ${dash}/></svg>`;
-}
-function conf(c) {
-  const lvl = c === "high" ? 3 : c === "medium" ? 2 : c === "low" ? 1 : 0;
-  const bars = [6, 9, 12].map((h, i) => `<i style="height:${h}px" class="${i < lvl ? "on" : ""}"></i>`).join("");
-  return `<span class="conf"><span class="bars" aria-hidden="true">${bars}</span>${c ? c[0].toUpperCase() + c.slice(1) : "Not assessed"}</span>`;
 }
 function renderDetails() {
   const panel = $("details");
@@ -1600,7 +1657,7 @@ function timeline(ids) {
   const rows = Array.from(seen.entries()).map(([id, why]) => ({ id, why, src: A.sourceById.get(id) }));
   rows.sort((a, b) => (b.src?.date ?? "").localeCompare(a.src?.date ?? ""));
   if (!rows.length) return `<p class="muted small">No sources on record.</p>`;
-  return `<ol class="timeline">${rows.map((r) => r.src ? `<li><span class="t-date">${escapeHtml(r.src.date ?? "Undated")}</span><a href="${escapeHtml(r.src.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(r.src.title ?? r.src.url)}</a><span class="t-meta">${escapeHtml([r.src.publisher, `supports ${r.why.join(", ")}`].filter(Boolean).join(" \xB7 "))}</span></li>` : `<li class="missing"><span class="t-date">\u2014</span>Missing source record \u201C${escapeHtml(r.id)}\u201D<span class="t-meta">supports ${escapeHtml(r.why.join(", "))}</span></li>`).join("")}</ol>`;
+  return `<ol class="timeline">${rows.map((r) => r.src ? `<li>${r.src.date ? `<span class="t-date">${escapeHtml(r.src.date)}</span>` : ""}<a href="${escapeHtml(r.src.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(r.src.title ?? r.src.url)}</a><span class="t-meta">${escapeHtml([r.src.publisher, `supports ${r.why.join(", ")}`].filter(Boolean).join(" \xB7 "))}</span></li>` : `<li class="missing"><span class="t-date">\u2014</span>Missing source record \u201C${escapeHtml(r.id)}\u201D<span class="t-meta">supports ${escapeHtml(r.why.join(", "))}</span></li>`).join("")}</ol>`;
 }
 function nodeHtml(n) {
   const style = NODE_STYLE[n.type];
@@ -1608,6 +1665,7 @@ function nodeHtml(n) {
   const x = n.profiles.x, li = n.profiles.linkedin;
   const handle = n.handle ?? n.id;
   const edges = A.edgesByNode.get(n.id) ?? [];
+  const heldEdges = graph.edges.filter((e) => (e.source === n.id || e.target === n.id) && !A.drawnEdges.some((drawn) => drawn.id === e.id));
   const groups = EDGE_KINDS.map((k) => ({ k, list: edges.filter((e) => e.kind === k) })).filter((g) => g.list.length);
   const conns = groups.map((g) => `
     <div class="conn-group">
@@ -1618,16 +1676,12 @@ function nodeHtml(n) {
     const phrase = e.source === n.id ? `${escapeHtml(e.label ?? g.k)} ${escapeHtml(nodeName(other))}` : `${escapeHtml(nodeName(other))} ${escapeHtml(e.label ?? g.k)} this account`;
     const dim = filtersActive() && !edgeMatch(e) ? " dim" : "";
     return `<div class="conn${dim}">
-          <button type="button" class="main" data-act="edge" data-id="${escapeHtml(e.id)}" aria-label="Inspect relationship: ${phrase}">${shape(o.type)}<span class="t"><b>${escapeHtml(nodeName(other))}</b><span class="s">${phrase}</span></span>${conf(e.confidence)}</button>
+          <button type="button" class="main" data-act="edge" data-id="${escapeHtml(e.id)}" aria-label="Inspect relationship: ${phrase}">${shape(o.type)}<span class="t"><b>${escapeHtml(nodeName(other))}</b><span class="s">${phrase}</span></span></button>
           <button type="button" class="icon-btn sm" data-act="go" data-id="${escapeHtml(other)}" aria-label="Go to ${escapeHtml(nodeName(other))}" title="Go to ${escapeHtml(nodeName(other))}">\u2192</button>
         </div>`;
   }).join("")}
     </div>`).join("");
-  const evidence = [
-    ...n.inclusion_source_ids.map((id) => ({ id, why: "inclusion" })),
-    ...n.claims.flatMap((c) => c.source_ids.map((id) => ({ id, why: c.field }))),
-    ...n.projects.flatMap((p) => p.source_ids.map((id) => ({ id, why: p.name })))
-  ];
+  const noteSources = n.note_source_ids.map((id) => ({ id, why: "research note" }));
   const profiles = [
     x ? `<a href="${escapeHtml(x)}" target="_blank" rel="noopener noreferrer">X ${ICON.ext}</a>` : "",
     li ? `<a href="${escapeHtml(li)}" target="_blank" rel="noopener noreferrer">LinkedIn ${ICON.ext}</a>` : ""
@@ -1649,14 +1703,15 @@ function nodeHtml(n) {
       ${prop("Profile", profiles || `<span class="warn-text">No public profile on record</span>`)}
       ${prop("Type", `${shape(n.type)}${style.label}`)}
       ${prop("Topics", topics)}
-      ${prop("Confidence", `${conf(n.confidence)}${n.confidence_note ? `<span class="p-note">${escapeHtml(n.confidence_note)}</span>` : ""}`)}
-      ${prop("Connections", String(edges.length))}
-      ${prop("Added", n.added_at ? escapeHtml(n.added_at) : "")}
+      ${prop("Connections on map", String(edges.length))}
+      ${heldEdges.length ? prop("Connections held back", String(heldEdges.length)) : ""}
     </dl>
-    ${n.notes ? `<section class="d-sec"><h3>Research notes</h3><div class="notes">${escapeHtml(n.notes)}</div></section>` : ""}
+    ${n.notes ? `<section class="d-sec"><h3>Research note</h3><div class="notes">${escapeHtml(n.notes)}${noteSources.length ? `<div class="note-citations">${noteSources.map(({ id }) => {
+    const src = A.sourceById.get(id);
+    return src ? `<div class="note-citation"><span class="small muted">Supporting source</span><a href="${escapeHtml(src.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(src.title ?? src.url)} ${ICON.ext}</a></div>` : `<div class="note-citation missing">Missing source record \u201C${escapeHtml(id)}\u201D</div>`;
+  }).join("")}</div>` : `<div class="note-citations muted small">No source is attached to this note.</div>`}</div></section>` : ""}
     ${n.projects.length ? `<section class="d-sec"><h3>Projects</h3><ul class="plain">${n.projects.map((p) => `<li>${p.url ? `<a href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.name)} ${ICON.ext}</a>` : `<b>${escapeHtml(p.name)}</b>`}<span class="m">${escapeHtml(p.description ?? "")}</span></li>`).join("")}</ul></section>` : ""}
-    <section class="d-sec"><h3>Connections</h3>${conns || `<p class="muted small">No connections on record.</p>`}<p class="kbd-tip"><kbd>J</kbd><kbd>K</kbd> move between connections</p></section>
-    <section class="d-sec"><h3>Evidence</h3>${timeline(evidence)}</section>
+    <section class="d-sec"><h3>Connections</h3>${conns || `<p class="muted small">No complete, defined connections to show.</p>`}${heldEdges.length ? `<p class="muted small">${heldEdges.length} other connection record${heldEdges.length === 1 ? " is" : "s are"} kept in the data but not drawn because a source, relationship detail, or definition is missing.</p>` : ""}</section>
   </div>`;
 }
 function edgeHtml(e) {
@@ -1664,7 +1719,7 @@ function edgeHtml(e) {
   const a = A.nodeById.get(e.source), b = A.nodeById.get(e.target);
   const pairOthers = A.drawnEdges.filter((x) => x.id !== e.id && (x.source === e.source && x.target === e.target || x.source === e.target && x.target === e.source));
   const project = e.project_id ? [a, b].flatMap((n) => n.projects).find((p) => p.id === e.project_id) : void 0;
-  const explain = e.kind === "engagement" ? `<div class="callout engage"><b>Discovery path, not collaboration.</b> A reply or quote on X led the research from one account to the other. On its own it does not mean they work together.</div>` : e.kind === "shared_topic" ? `<div class="callout"><b>Same area of work.</b> Both are linked to the same topic. No direct relationship between them is claimed.</div>` : e.kind === "cluster" ? `<div class="callout"><b>Legacy link.</b> Kept from older data. What a cluster link means has not been defined, so read nothing into it yet.</div>` : "";
+  const explain = e.kind === "interaction" ? `<div class="callout interaction"><b>Discovery path, not collaboration.</b> A reply or quote on X led the research from one account to the other. On its own it does not mean they work together.</div>` : e.kind === "shared_topic" ? `<div class="callout"><b>Same area of work.</b> Both are linked to the same topic. No direct relationship between them is claimed.</div>` : e.kind === "cluster" ? `<div class="callout"><b>Legacy link.</b> Kept from older data. What a cluster link means has not been defined, so read nothing into it yet.</div>` : "";
   const period = e.period && (e.period.start || e.period.end) ? `${e.period.start ?? "?"} \u2013 ${e.period.end ?? "present"}` : "";
   const who = (n) => `<button type="button" class="link-btn" data-act="select" data-id="${escapeHtml(n.id)}">${shape(n.type)}${escapeHtml(nodeName(n.id))}</button>`;
   return `
@@ -1685,21 +1740,11 @@ function edgeHtml(e) {
       ${prop("Period", escapeHtml(period))}
       ${prop("Project", project ? escapeHtml(project.name) : "")}
       ${prop("Topic", e.topic_ids?.length ? `<span class="chips">${e.topic_ids.map((t) => `<button type="button" data-act="topic" data-id="${escapeHtml(t)}">${escapeHtml(A.topicLabel.get(t) ?? t)}</button>`).join("")}</span>` : "")}
-      ${prop("Confidence", `${conf(e.confidence)}${e.note ? `<span class="p-note">${escapeHtml(e.note)}</span>` : ""}`)}
     </dl>
-    <section class="d-sec"><h3>Evidence</h3>${e.source_ids.length ? timeline(e.source_ids.map((id) => ({ id, why: "this connection" }))) : `<p class="muted small">No direct evidence links these two${e.kind === "shared_topic" ? "; the topic comes from each account\u2019s own sources" : ""}.</p>`}</section>
-    ${pairOthers.length ? `<section class="d-sec"><h3>Also between these two</h3>${pairOthers.map((x) => `<div class="conn"><button type="button" class="main" data-act="edge" data-id="${escapeHtml(x.id)}">${edgeSwatch(x.kind, 18)}<span class="t"><b>${EDGE_STYLE[x.kind].label}</b><span class="s">${escapeHtml(nodeName(x.source))} ${escapeHtml(x.label ?? x.kind)} ${escapeHtml(nodeName(x.target))}</span></span>${conf(x.confidence)}</button></div>`).join("")}<p class="small muted">Each is a separate record with its own evidence and its own line on the map.</p></section>` : ""}
+    <section class="d-sec"><h3>${e.kind === "interaction" ? "Source post" : e.kind === "affiliation" ? "Affiliation source" : "Source"}</h3>${e.source_ids.length ? timeline(e.source_ids.map((id) => ({ id, why: e.kind === "interaction" ? "reply or quote discovery path" : e.kind === "affiliation" ? `affiliation: ${e.detail ?? ""}` : "this connection" }))) : `<p class="muted small">No source link is recorded for this connection.</p>`}</section>
+    ${pairOthers.length ? `<section class="d-sec"><h3>Also between these two</h3>${pairOthers.map((x) => `<div class="conn"><button type="button" class="main" data-act="edge" data-id="${escapeHtml(x.id)}">${edgeSwatch(x.kind, 18)}<span class="t"><b>${EDGE_STYLE[x.kind].label}</b><span class="s">${escapeHtml(nodeName(x.source))} ${escapeHtml(x.label ?? x.kind)} ${escapeHtml(nodeName(x.target))}</span></span></button></div>`).join("")}<p class="small muted">Each is a separate record with its own source and its own line on the map.</p></section>` : ""}
   </div>`;
 }
-$("details").addEventListener("keydown", (ev) => {
-  const k = ev.key.toLowerCase();
-  if (k !== "j" && k !== "k") return;
-  const rows = Array.from($("details").querySelectorAll(".conn .main"));
-  if (!rows.length) return;
-  const at = rows.indexOf(document.activeElement);
-  rows[Math.max(0, Math.min(rows.length - 1, at + (k === "j" ? 1 : -1)))].focus();
-  ev.preventDefault();
-});
 $("details").addEventListener("click", (ev) => {
   const btn = ev.target.closest("[data-act]");
   if (!btn) return;
@@ -1757,13 +1802,8 @@ function commands() {
     { group: "Filter", label: "Show only people", run: setTypes("person") },
     { group: "Filter", label: "Show only organizations", run: setTypes("organization") },
     { group: "Filter", label: "Show only agents", run: setTypes("agent") },
-    { group: "Filter", label: "Hide engagement lines (discovery paths)", run: () => {
-      st.kinds.delete("engagement");
-      syncFilterInputs();
-      onFiltersChanged();
-    } },
-    { group: "Filter", label: "Hide low-confidence connections", run: () => {
-      st.hideLow = true;
+    { group: "Filter", label: "Hide interaction lines (discovery paths)", run: () => {
+      st.kinds.delete("interaction");
       syncFilterInputs();
       onFiltersChanged();
     } },
@@ -1903,7 +1943,6 @@ function syncFilterInputs() {
     const v = i.value;
     i.checked = i.dataset.f === "type" ? st.types.has(v) : i.dataset.f === "kind" ? st.kinds.has(v) : st.topics.has(v);
   });
-  $("fLow").checked = st.hideLow;
   $("fHide").checked = st.hideFiltered;
 }
 $("filters").addEventListener("change", (e) => {
@@ -1911,7 +1950,6 @@ $("filters").addEventListener("change", (e) => {
   if (i.dataset.f === "type") toggleSet(st.types, i.value);
   else if (i.dataset.f === "kind") toggleSet(st.kinds, i.value);
   else if (i.dataset.f === "topic") toggleSet(st.topics, i.value);
-  else if (i.id === "fLow") st.hideLow = i.checked;
   else if (i.id === "fHide") st.hideFiltered = i.checked;
   onFiltersChanged();
 });
@@ -1919,7 +1957,6 @@ function clearFilters() {
   st.types.clear();
   st.topics.clear();
   st.kinds = new Set(EDGE_KINDS);
-  st.hideLow = false;
   st.hideFiltered = false;
   syncFilterInputs();
   onFiltersChanged();
@@ -1927,7 +1964,7 @@ function clearFilters() {
 $("clearFilters").addEventListener("click", clearFilters);
 function onFiltersChanged() {
   const active = filtersActive();
-  const n = st.types.size + st.topics.size + (EDGE_KINDS.length - st.kinds.size) + (st.hideLow ? 1 : 0);
+  const n = st.types.size + st.topics.size + (EDGE_KINDS.length - st.kinds.size);
   $("filterBadge").hidden = !active;
   $("filterBadge").textContent = String(n);
   const bar = $("filterBar");
@@ -1983,7 +2020,7 @@ $("closeList").addEventListener("click", () => toggleDrawer("list"));
 function renderLegend() {
   $("legendNodes").innerHTML = NODE_TYPES.map((t) => `<li>${shape(t)}${NODE_STYLE[t].label} <span class="small muted">(${NODE_STYLE[t].shape.toLowerCase()})</span></li>`).join("");
   const present = new Set(A.drawnEdges.map((e) => e.kind));
-  $("legendEdges").innerHTML = EDGE_KINDS.filter((k) => present.has(k)).map((k) => `<li title="${escapeHtml(EDGE_STYLE[k].means)}">${edgeSwatch(k)}<span>${EDGE_STYLE[k].label}${k === "engagement" ? ' <span class="muted">\u2014 reply/quote path, not collaboration</span>' : k === "shared_topic" ? ' <span class="muted">\u2014 no direct link</span>' : ""}</span></li>`).join("");
+  $("legendEdges").innerHTML = EDGE_KINDS.filter((k) => present.has(k)).map((k) => `<li title="${escapeHtml(EDGE_STYLE[k].means)}">${edgeSwatch(k)}<span>${EDGE_STYLE[k].label}${k === "interaction" ? ' <span class="muted">\u2014 reply/quote path, not collaboration</span>' : k === "shared_topic" ? ' <span class="muted">\u2014 no direct link</span>' : ""}</span></li>`).join("");
 }
 function setPower(on) {
   document.body.classList.toggle("power", on);
@@ -2040,7 +2077,12 @@ function renderCounts() {
 }
 function renderReport() {
   const lvls = [["error", "Errors"], ["warning", "Warnings"], ["info", "Notes"]];
-  const m = graph.meta;
+  const interactionsNeedingSources = graph.edges.filter((e) => e.kind === "interaction" && e.incomplete).length;
+  const affiliationsNeedingDetails = graph.edges.filter((e) => e.kind === "affiliation" && e.incomplete && e.missing?.includes("detail")).length;
+  const affiliationsNeedingSources = graph.edges.filter((e) => e.kind === "affiliation" && e.incomplete && e.missing?.includes("source")).length;
+  const clusters = graph.edges.filter((e) => e.kind === "cluster").length;
+  const bridges = graph.edges.filter((e) => e.kind === "bridge").length;
+  const rationaleNotes = graph.nodes.filter((n) => n.notes.includes("[selection rationale needed]")).length;
   $("reportBody").innerHTML = `
     <div class="stats">
       <div><b>${graph.nodes.length}</b><span class="small muted">records in the data</span></div>
@@ -2051,14 +2093,19 @@ function renderReport() {
     <h3>Not drawn on the map</h3>
     <p class="small muted">Every account on the map links to at least one other. These records stay in the data; no edges were invented for them.</p>
     <ul>${A.offMap.map((o) => `<li><button type="button" class="link" data-open="${escapeHtml(o.id)}">${escapeHtml(nodeName(o.id))}</button> \u2014 ${escapeHtml(o.reason)}</li>`).join("") || "<li>None</li>"}</ul>
+    <h3>Research gaps and retained links</h3>
+    <ul>
+      <li>${rationaleNotes} researcher notes are tagged <code>[selection rationale needed]</code>.</li>
+      <li>${interactionsNeedingSources} interactions need a reply or quote source.</li>
+      <li>${affiliationsNeedingDetails} affiliations need a specific relationship detail; ${affiliationsNeedingSources} need a source.</li>
+      <li>${clusters} cluster and ${bridges} bridge records are preserved in the data and not drawn until their meaning is defined.</li>
+    </ul>
     ${lvls.map(([l, label]) => {
     const list = A.issues.filter((i) => i.level === l);
     return list.length ? `<h3>${label}</h3><ul>${list.map((i) => `<li><span class="lvl-${l}">${l}</span> ${escapeHtml(i.message)}</li>`).join("")}</ul>` : "";
   }).join("")}
-    <h3>Research process</h3>
-    <p class="small">Seeds: ${m.seeds?.length ?? 0} \xB7 Expanded: ${m.expanded?.length ?? 0} \xB7 Frozen: ${m.frozen?.length ?? 0} \xB7 Data version ${escapeHtml(String(m.version))}, updated ${escapeHtml(m.updated)}</p>
     <h3>Data shape</h3>
-    <p class="small">Uses the merged GraphMap shape unchanged. Positions are not stored: they are worked out from the edges each time, so adding records re-settles the map instead of needing hand placement.</p>`;
+    <p class="small">Data version ${escapeHtml(String(graph.meta.version))}, updated ${escapeHtml(graph.meta.updated)}. Positions are worked out from the connections each time, so adding records re-settles the map instead of needing hand placement.</p>`;
 }
 $("btnReport").addEventListener("click", () => {
   renderReport();
@@ -2241,7 +2288,6 @@ function saveView() {
       types: [...st.types],
       kinds: [...st.kinds],
       topics: [...st.topics],
-      hideLow: st.hideLow,
       hideFiltered: st.hideFiltered
     };
     try {
@@ -2265,7 +2311,6 @@ function restoreView() {
     if (Array.isArray(v.types)) st.types = new Set(v.types.filter((t) => NODE_TYPES.includes(t)));
     if (Array.isArray(v.kinds)) st.kinds = new Set(v.kinds.filter((k) => EDGE_KINDS.includes(k)));
     if (Array.isArray(v.topics)) st.topics = new Set(v.topics.filter((t) => A.topicLabel.has(t)));
-    st.hideLow = !!v.hideLow;
     st.hideFiltered = !!v.hideFiltered;
     syncFilterInputs();
     onFiltersChanged();

@@ -13,12 +13,13 @@ export const NODE_STYLE: Record<NodeType, { color: number; css: string; label: s
 export type EdgeStyle = { color: number; css: string; width: number; dashed: boolean; dash: number; gap: number; label: string; means: string };
 
 export const EDGE_STYLE: Record<EdgeKind, EdgeStyle> = {
-  affiliation: { color: 0x4b5563, css: "#4B5563", width: 1, dashed: false, dash: 0, gap: 0, label: "Affiliation", means: "Works at, founded or advises — sourced." },
+  affiliation: { color: 0x4b5563, css: "#4B5563", width: 1, dashed: false, dash: 0, gap: 0, label: "Affiliation", means: "A sourced relationship such as working at the same company or on the same project." },
   built: { color: 0xb45309, css: "#B45309", width: 1, dashed: false, dash: 0, gap: 0, label: "Built / operates", means: "Made or runs this agent or project — sourced." },
   collaboration: { color: 0x15803d, css: "#15803D", width: 1, dashed: false, dash: 0, gap: 0, label: "Collaboration", means: "Sourced joint work, such as a co-built project or paper." },
-  engagement: { color: 0x0e7490, css: "#0E7490", width: 1, dashed: true, dash: 1.2, gap: 0.8, label: "Engagement", means: "A reply or quote on X that led the research to this account. It records a discovery path, not collaboration." },
+  interaction: { color: 0x0e7490, css: "#0E7490", width: 1, dashed: true, dash: 1.2, gap: 0.8, label: "Interaction", means: "A reply or quote on X that led the research to this account. It records a discovery path, not collaboration." },
   shared_topic: { color: 0xbe185d, css: "#BE185D", width: 1, dashed: true, dash: 0.35, gap: 0.8, label: "Shared topic", means: "Both work in the same area. No direct relationship is claimed." },
-  cluster: { color: 0x9ca3af, css: "#9CA3AF", width: 1, dashed: false, dash: 0, gap: 0, label: "Cluster (legacy)", means: "Kept from older data. What it means is not defined yet." }
+  cluster: { color: 0x9ca3af, css: "#9CA3AF", width: 1, dashed: false, dash: 0, gap: 0, label: "Cluster (undefined)", means: "Kept in the data. Its meaning has not been defined, so it is not drawn." },
+  bridge: { color: 0x9ca3af, css: "#9CA3AF", width: 1, dashed: true, dash: 1, gap: 1, label: "Bridge (undefined)", means: "Kept in the research data. Its meaning for this map has not been defined, so it is not drawn." }
 };
 
 // Linear-style restraint: lines are neutral hairlines; indigo is the one accent (selection).

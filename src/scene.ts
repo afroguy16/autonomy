@@ -553,8 +553,8 @@ export class MapScene {
       let o = 0;
       grp.edges.forEach((e, ei) => {
         const ia = this.index.get(e.source)!, ib = this.index.get(e.target)!;
-        // Structural links read strongest; the many engagement paths stay lighter until selected.
-        const base = kind === "engagement" ? 0.42 : kind === "cluster" ? 0.35 : 0.8;
+        // Structural links read strongest; the many interaction paths stay lighter until selected.
+        const base = kind === "interaction" ? 0.42 : kind === "cluster" ? 0.35 : 0.8;
         let s = Math.min(this.visCur[ia], this.visCur[ib]) * base;
         if (v.filtersActive && !v.edgeMatch(e)) s *= v.hideFiltered ? 0 : 0.06;
         // Lines are neutral grey; they take their kind colour only when you are looking at them.
