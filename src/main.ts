@@ -5,9 +5,8 @@ import { EDGE_KINDS, NODE_TYPES, type Confidence, type Edge, type EdgeKind, type
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
-const initialResponse = await fetch("./data/graph-map.json");
-if (!initialResponse.ok) throw new Error(`Could not load research data: ${initialResponse.status} ${initialResponse.statusText}`);
-let graph: GraphMap = normalizeGraph(await initialResponse.json() as Record<string, any>);
+const initialGraph = await (window as any).__AUTONOMY_GRAPH_LOAD__;
+let graph: GraphMap = normalizeGraph(initialGraph as Record<string, any>);
 let A: Analysis = analyze(graph);
 let onMap = new Set(A.mapNodeIds);
 
@@ -30,7 +29,11 @@ const scene = new MapScene($("stage"), $<HTMLCanvasElement>("map"), $("labels"),
   onPickEdge: (id) => selectEdge(id, { fly: false }),
   onPickNothing: () => clearSelection(),
   onEscape: () => clearSelection(),
-  onFrame: (info) => frameUi(info.depth, info.moving),
+  onFrame: (info) => {
+    frameUi(info.depth, info.moving);
+    // Reveal the app only after the scene has rendered its first real frame.
+    if (info.ready) (window as any).finishMapBoot?.();
+  },
   onHint: (t) => { $("hint").textContent = t; }
 });
 

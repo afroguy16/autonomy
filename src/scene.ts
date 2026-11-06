@@ -29,7 +29,7 @@ export type SceneCallbacks = {
   onPickEdge: (id: string) => void;
   onPickNothing: () => void;
   onEscape: () => void;
-  onFrame: (info: { depth: number; moving: boolean }) => void;
+  onFrame: (info: { depth: number; moving: boolean; ready: boolean }) => void;
   onHint: (text: string) => void;
 };
 
@@ -121,6 +121,7 @@ export class MapScene {
   private frameN = 0;
   private width = 1;
   private height = 1;
+  private initialLayoutPending = false;
 
   constructor(
     _container: HTMLElement,
@@ -215,10 +216,9 @@ export class MapScene {
     const firstLoad = this.layout.bodies.size === 0;
     this.layout.setGraph(ids, Array.from(pairs.values()));
     if (firstLoad) {
-      // Settle before the first frame so the map arrives in place and stays put.
-      for (let i = 0; i < 1500 && !this.layout.settled; i++) this.layout.tick(1);
       this.updateExtent();
       this.rig.overview(this.extentC, this.extentR, true);
+      this.settleInitialLayout(ids, Array.from(pairs.values()));
     }
 
     // One badge per account; rebuilt only when its name, type or avatar changes.
@@ -276,6 +276,42 @@ export class MapScene {
       this.edgeGroups.set(kind, { line, edges, segs, total, pos: geom.attributes.instanceStart.data.array, col: geom.attributes.instanceColorStart.data.array, segToEdge });
     }
     this.dirty = true;
+  }
+
+  private settleInitialLayout(ids: string[], pairs: [string, string][]) {
+    this.initialLayoutPending = true;
+    try {
+      const worker = new Worker(new URL("./layout-worker.js", import.meta.url), { type: "module" });
+      worker.onmessage = (event: MessageEvent<{ positions?: [number, number, number][]; done?: boolean; error?: string }>) => {
+        const positions = event.data?.positions;
+        if (positions?.length === ids.length) {
+          ids.forEach((id, i) => {
+            const body = this.layout.bodies.get(id);
+            const position = positions[i];
+            if (!body || !position?.every(Number.isFinite)) return;
+            [body.x, body.y, body.z] = position;
+            if (event.data.done) { body.vx = 0; body.vy = 0; body.vz = 0; }
+          });
+          this.updateExtent();
+          if (!this.rig.userMoved) this.rig.overview(this.extentC, this.extentR);
+        }
+        if (event.data.done || event.data.error) {
+          worker.terminate();
+          this.initialLayoutPending = false;
+          if (event.data.done && positions?.length === ids.length) this.layout.alpha = 0;
+        }
+        this.dirty = true;
+      };
+      worker.onerror = () => {
+        worker.terminate();
+        this.initialLayoutPending = false;
+        this.dirty = true;
+      };
+      worker.postMessage({ ids, pairs });
+    } catch {
+      // Browsers that block workers still get the progressive frame-loop fallback.
+      this.initialLayoutPending = false;
+    }
   }
 
   setView(v: ViewState) {
@@ -372,7 +408,7 @@ export class MapScene {
     if (this.keys.has("-") || this.keys.has("_")) this.rig.zoomAt(Math.exp(dt * 1.6));
 
     let layoutMoving = false;
-    if (!this.layout.settled && this.ids.length) {
+    if (!this.layout.settled && this.ids.length && !this.initialLayoutPending) {
       this.layout.tick(2);
       layoutMoving = true;
       if (this.frameN % 10 === 0 || this.layout.settled) this.updateExtent();
@@ -392,7 +428,7 @@ export class MapScene {
       this.snow.material.uniforms.uCam.value.copy(this.camera.position);
       this.snow.material.uniforms.uAlpha.value = Math.min(1, Math.max(0, (this.extentR * 0.9 - this.rig.currentDist) / (this.extentR * 0.5)));
       this.renderer.render(this.scene, this.camera);
-      if (this.frameN % 4 === 0 || !camMoving) this.cb.onFrame({ depth: this.depth, moving: camMoving });
+      if (this.frameN % 4 === 0 || !camMoving) this.cb.onFrame({ depth: this.depth, moving: camMoving, ready: !this.initialLayoutPending });
     }
   }
 

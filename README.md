@@ -18,7 +18,7 @@ To change the code:
 ```bash
 npm install              # esbuild + typescript
 npm run typecheck        # tsc, strict
-npm run build            # bundles src/ -> app.js (three stays external)
+npm run build            # builds app.js and the initial-layout worker (Three.js stays external)
 python3 build-artifact.py  # optional: one self-contained page -> dist/agent-map.html
 ```
 
@@ -53,6 +53,7 @@ Positions are never stored. Each load re-runs the layout from the edges, keeping
 - `data/graph-map.json` — canonical research dataset loaded by the viewer
 - `src/normalize.ts` — CPM mapping, merging, validation, and the on-map / off-map decision
 - `src/layout.ts` — 3D force layout driven only by edges
+- `src/layout-worker.ts` — computes the initial force layout off the main thread
 - `src/camera.ts` — orbit / dive / drive camera with eased, log-scale zoom
 - `src/scene.ts` — Three.js scene: nodes, edges, labels, depth reveal, picking, input
 - `src/main.ts` — search, filters, details, list, legend, minimap, data report

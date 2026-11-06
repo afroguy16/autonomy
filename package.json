@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "esbuild src/main.ts --bundle --format=esm --target=es2020 --external:three --external:three/addons/* --outfile=app.js",
+    "build": "esbuild src/main.ts --bundle --format=esm --target=es2022 --external:three --external:three/addons/* --outfile=app.js && esbuild src/layout-worker.ts --bundle --format=esm --target=es2022 --outfile=layout-worker.js",
     "typecheck": "tsc -p .",
     "serve": "python3 -m http.server 5173"
   },

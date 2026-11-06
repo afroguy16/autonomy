@@ -5,7 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Autonomy | Builders of agent infrastructure</title>
 <meta name="description" content="Autonomy is a 3D map of the people, organizations and agents building agent infrastructure, and how they connect.">
+<script>
+  window.__AUTONOMY_GRAPH_LOAD__ = fetch("./data/graph-map.json").then(async (response) => {
+    if (!response.ok) throw new Error(`Could not load research data: ${response.status} ${response.statusText}`);
+    return response.json();
+  });
+  window.__AUTONOMY_GRAPH_LOAD__.catch(() => {});
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <script type="importmap">
@@ -16,7 +24,7 @@
 </script>
 </head>
 <body>
-<div id="app">
+<div id="app" inert aria-busy="true">
   <header class="topbar">
     <div class="brand">
       <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="7" cy="8" r="4" fill="#3B82F6"/><rect x="15" y="4" width="7" height="7" rx="1" fill="#8B5CF6"/><rect x="10" y="15" width="6" height="6" fill="#F97316" transform="rotate(45 13 18)"/><path d="M7 8 L18 7.5 M7 8 L13 18" stroke="#9CA3AF" stroke-width="1.2"/></svg>
@@ -121,7 +129,46 @@
   </div>
   <div id="live" class="sr" aria-live="polite"></div>
 </div>
-<noscript>This prototype needs JavaScript and WebGL.</noscript>
+<section id="boot" class="boot" role="status" aria-live="polite" aria-label="Preparing the map">
+  <div class="boot-card">
+    <div class="boot-mark" aria-hidden="true"><span class="boot-orbit"></span><span class="boot-core"></span></div>
+    <h1 data-boot-title>Wiring up the network…</h1>
+    <div class="boot-progress" aria-hidden="true"><span></span></div>
+    <button type="button" id="bootRetry" class="btn" hidden>Try again</button>
+  </div>
+</section>
+<script>
+  (() => {
+    const boot = document.getElementById("boot");
+    const app = document.getElementById("app");
+    const showError = () => {
+      if (!boot || boot.dataset.state === "error" || document.documentElement.classList.contains("app-ready")) return;
+      boot.dataset.state = "error";
+      boot.setAttribute("role", "alert");
+      boot.setAttribute("aria-label", "The map could not be loaded");
+      boot.querySelector("[data-boot-title]").textContent = "Couldn’t load the map";
+      document.getElementById("bootRetry").hidden = false;
+    };
+    window.addEventListener("error", showError);
+    window.addEventListener("unhandledrejection", (event) => {
+      if (!document.documentElement.classList.contains("app-ready")) {
+        event.preventDefault();
+        showError();
+      }
+    });
+    document.getElementById("bootRetry").addEventListener("click", () => window.location.reload());
+    window.finishMapBoot = () => {
+      if (!boot || document.documentElement.classList.contains("app-ready")) return;
+      document.documentElement.classList.add("app-ready");
+      app.inert = false;
+      app.setAttribute("aria-busy", "false");
+      boot.setAttribute("aria-hidden", "true");
+      boot.classList.add("is-ready");
+      window.setTimeout(() => { boot.hidden = true; }, 500);
+    };
+  })();
+</script>
+<noscript><div class="noscript">This map needs JavaScript and WebGL. Enable them, then reload the page.</div></noscript>
 <script type="module" src="app.js"></script>
 </body>
 </html>

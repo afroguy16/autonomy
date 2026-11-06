@@ -664,6 +664,7 @@ var MapScene = class {
     this.frameN = 0;
     this.width = 1;
     this.height = 1;
+    this.initialLayoutPending = false;
     this.renderer = new THREE3.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setClearColor(BG, 1);
@@ -737,9 +738,9 @@ var MapScene = class {
     const firstLoad = this.layout.bodies.size === 0;
     this.layout.setGraph(ids, Array.from(pairs.values()));
     if (firstLoad) {
-      for (let i = 0; i < 1500 && !this.layout.settled; i++) this.layout.tick(1);
       this.updateExtent();
       this.rig.overview(this.extentC, this.extentR, true);
+      this.settleInitialLayout(ids, Array.from(pairs.values()));
     }
     const keep = new Set(ids);
     this.sprites.forEach((sp, id) => {
@@ -797,6 +798,44 @@ var MapScene = class {
       this.edgeGroups.set(kind, { line, edges, segs, total, pos: geom.attributes.instanceStart.data.array, col: geom.attributes.instanceColorStart.data.array, segToEdge });
     }
     this.dirty = true;
+  }
+  settleInitialLayout(ids, pairs) {
+    this.initialLayoutPending = true;
+    try {
+      const worker = new Worker(new URL("./layout-worker.js", import.meta.url), { type: "module" });
+      worker.onmessage = (event) => {
+        const positions = event.data?.positions;
+        if (positions?.length === ids.length) {
+          ids.forEach((id, i) => {
+            const body = this.layout.bodies.get(id);
+            const position = positions[i];
+            if (!body || !position?.every(Number.isFinite)) return;
+            [body.x, body.y, body.z] = position;
+            if (event.data.done) {
+              body.vx = 0;
+              body.vy = 0;
+              body.vz = 0;
+            }
+          });
+          this.updateExtent();
+          if (!this.rig.userMoved) this.rig.overview(this.extentC, this.extentR);
+        }
+        if (event.data.done || event.data.error) {
+          worker.terminate();
+          this.initialLayoutPending = false;
+          if (event.data.done && positions?.length === ids.length) this.layout.alpha = 0;
+        }
+        this.dirty = true;
+      };
+      worker.onerror = () => {
+        worker.terminate();
+        this.initialLayoutPending = false;
+        this.dirty = true;
+      };
+      worker.postMessage({ ids, pairs });
+    } catch {
+      this.initialLayoutPending = false;
+    }
   }
   setView(v) {
     this.view = v;
@@ -903,7 +942,7 @@ var MapScene = class {
     if (this.keys.has("=") || this.keys.has("+")) this.rig.zoomAt(Math.exp(-dt * 1.6));
     if (this.keys.has("-") || this.keys.has("_")) this.rig.zoomAt(Math.exp(dt * 1.6));
     let layoutMoving = false;
-    if (!this.layout.settled && this.ids.length) {
+    if (!this.layout.settled && this.ids.length && !this.initialLayoutPending) {
       this.layout.tick(2);
       layoutMoving = true;
       if (this.frameN % 10 === 0 || this.layout.settled) this.updateExtent();
@@ -926,7 +965,7 @@ var MapScene = class {
       this.snow.material.uniforms.uCam.value.copy(this.camera.position);
       this.snow.material.uniforms.uAlpha.value = Math.min(1, Math.max(0, (this.extentR * 0.9 - this.rig.currentDist) / (this.extentR * 0.5)));
       this.renderer.render(this.scene, this.camera);
-      if (this.frameN % 4 === 0 || !camMoving) this.cb.onFrame({ depth: this.depth, moving: camMoving });
+      if (this.frameN % 4 === 0 || !camMoving) this.cb.onFrame({ depth: this.depth, moving: camMoving, ready: !this.initialLayoutPending });
     }
   }
   updateExtent() {
@@ -1366,9 +1405,8 @@ function escapeHtml(s) {
 
 // src/main.ts
 var $ = (id) => document.getElementById(id);
-var initialResponse = await fetch("./data/graph-map.json");
-if (!initialResponse.ok) throw new Error(`Could not load research data: ${initialResponse.status} ${initialResponse.statusText}`);
-var graph = normalizeGraph(await initialResponse.json());
+var initialGraph = await window.__AUTONOMY_GRAPH_LOAD__;
+var graph = normalizeGraph(initialGraph);
 var A = analyze(graph);
 var onMap = new Set(A.mapNodeIds);
 var st = {
@@ -1389,7 +1427,10 @@ var scene = new MapScene($("stage"), $("map"), $("labels"), $("tooltip"), {
   onPickEdge: (id) => selectEdge(id, { fly: false }),
   onPickNothing: () => clearSelection(),
   onEscape: () => clearSelection(),
-  onFrame: (info) => frameUi(info.depth, info.moving),
+  onFrame: (info) => {
+    frameUi(info.depth, info.moving);
+    if (info.ready) window.finishMapBoot?.();
+  },
   onHint: (t) => {
     $("hint").textContent = t;
   }

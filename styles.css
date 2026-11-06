@@ -387,6 +387,46 @@ body.power .legend-btn, body.power .nav-pill { display: none !important; }
 .t-meta { font-size: 12px; color: var(--muted); }
 .timeline .missing { color: #8a5300; }
 
+/* First paint while the data and WebGL scene are being prepared. */
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: start center;
+  padding: clamp(76px, 13vh, 126px) 16px 24px;
+  background: rgba(252, 252, 253, .16);
+  backdrop-filter: blur(1px);
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 420ms ease, visibility 0s linear 420ms;
+}
+.boot.is-ready { opacity: 0; visibility: hidden; pointer-events: none; }
+.boot-card { width: max-content; max-width: 100%; min-height: 48px; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 11px; padding: 8px 13px; border: 1px solid rgba(220, 220, 224, .88); border-radius: 999px; background: rgba(255, 255, 255, .96); box-shadow: 0 4px 20px rgba(22, 24, 29, .08); text-align: left; }
+.boot-mark { width: 28px; height: 28px; position: relative; flex: 0 0 28px; display: grid; place-items: center; }
+.boot-mark::before, .boot-mark::after { content: ""; position: absolute; inset: 5px; border: 1px solid #dfe2f2; border-radius: 50%; transform: rotateX(67deg); }
+.boot-mark::after { inset: 13px; border-color: #e7e8ef; transform: rotateX(67deg) rotateZ(48deg); }
+.boot-orbit { position: absolute; inset: 1px; border: 1.5px solid transparent; border-top-color: var(--accent); border-right-color: rgba(94, 106, 210, .3); border-radius: 50%; animation: boot-orbit 1.8s cubic-bezier(.55,.05,.45,.95) infinite; }
+.boot-core { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 5px rgba(94, 106, 210, .1), 0 0 20px rgba(94, 106, 210, .35); animation: boot-breathe 2s ease-in-out infinite; }
+.boot-card h1 { margin: 0; color: var(--ink); font: 500 13px/1.4 var(--body); letter-spacing: -.01em; white-space: nowrap; }
+.boot-progress { width: 54px; height: 2px; flex: 0 0 54px; overflow: hidden; border-radius: 99px; background: #e8e9ef; }
+.boot-progress span { display: block; width: 34%; height: 100%; border-radius: inherit; background: var(--accent); animation: boot-progress 1.5s cubic-bezier(.45,0,.55,1) infinite; }
+.boot[data-state="error"] .boot-mark { opacity: .55; }
+.boot[data-state="error"] .boot-orbit, .boot[data-state="error"] .boot-core { animation: none; }
+.boot[data-state="error"] .boot-progress { display: none; }
+.boot #bootRetry { margin: 0 0 0 4px; flex: 0 0 auto; }
+.boot[data-state="error"] .boot-card { border-radius: 12px; }
+.noscript { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 24px; background: var(--map); text-align: center; font: 500 15px/1.5 var(--body); }
+@keyframes boot-orbit { to { transform: rotate(360deg); } }
+@keyframes boot-breathe { 50% { transform: scale(.78); opacity: .72; } }
+@keyframes boot-progress { from { transform: translateX(-120%); } to { transform: translateX(410%); } }
+@media (prefers-reduced-motion: reduce) {
+  .boot { transition: none; }
+  .boot-orbit, .boot-core, .boot-progress span { animation: none; }
+  .boot-orbit { border-color: rgba(94, 106, 210, .45); }
+  .boot-progress span { width: 34%; transform: translateX(100%); }
+}
+
 /* Drawers & lists */
 .drawer { box-shadow: 0 0 0 1px var(--line), 0 8px 30px rgba(0, 0, 0, .06); }
 .row { font-size: 13px; min-height: 32px; }
