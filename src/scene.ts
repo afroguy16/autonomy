@@ -477,8 +477,9 @@ export class MapScene {
   private edgeEnds(e: Edge, out: number[], kSeg: number, segs: number, perp: any) {
     const a = this.layout.get(e.source)!, b = this.layout.get(e.target)!;
     const len = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) || 1e-6;
-    // Stop the line at each badge's edge instead of running through it.
-    const ra = this.dispR[this.index.get(e.source)!] ?? 0, rb = this.dispR[this.index.get(e.target)!] ?? 0;
+    // Badges draw on top of lines, so lines only need to stop inside the badge, never short of it.
+    // Half the radius stays within the badge on screen from any viewing angle, so no gap appears.
+    const ra = (this.dispR[this.index.get(e.source)!] ?? 0) * 0.5, rb = (this.dispR[this.index.get(e.target)!] ?? 0) * 0.5;
     let ta = ra / len, tb = 1 - rb / len;
     if (ta >= tb) { ta = tb = 0.5; }
     if (segs === 1) {

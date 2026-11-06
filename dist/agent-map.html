@@ -1831,7 +1831,7 @@ var MapScene = class {
   edgeEnds(e, out, kSeg, segs, perp) {
     const a = this.layout.get(e.source), b = this.layout.get(e.target);
     const len = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) || 1e-6;
-    const ra = this.dispR[this.index.get(e.source)] ?? 0, rb = this.dispR[this.index.get(e.target)] ?? 0;
+    const ra = (this.dispR[this.index.get(e.source)] ?? 0) * 0.5, rb = (this.dispR[this.index.get(e.target)] ?? 0) * 0.5;
     let ta = ra / len, tb = 1 - rb / len;
     if (ta >= tb) {
       ta = tb = 0.5;
