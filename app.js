@@ -755,6 +755,13 @@ var MapScene = class {
     /** Badge textures are drawn, photos are in and everything is on the GPU. */
     this.introAssetsReady = false;
     this.introAssetsPending = false;
+    // ---------- ambient drift ----------
+    /** The viewer's choice (pause button). */
+    this.driftOn = true;
+    /** 0 still … 1 full drift; eases in, drops to 0 on any input. */
+    this.driftLevel = 0;
+    /** Drift may (re)start after this time (ms, performance.now()). */
+    this.driftResumeAt = 0;
     /** Per account: seconds into the entrance when its badge pops in. */
     this.introAt = new Float32Array(0);
     /** Per account: 0 hidden … 1 full size (overshoots a little while popping). */
@@ -1067,7 +1074,36 @@ var MapScene = class {
     if (all && k >= 1) {
       this.introState = "off";
       this.introS.fill(1);
+      this.driftResumeAt = 0;
     }
+    this.dirty = true;
+  }
+  /**
+   * After the entrance the camera keeps turning slowly around the map, about one
+   * turn every 3.5 minutes. Any input stops it at once; it eases back in after 15s
+   * of quiet. It stays still while an account or line is selected or hovered,
+   * while the tab is hidden, with reduced motion, or when paused.
+   */
+  stepDrift(dt, now) {
+    const v = this.view;
+    const allowed = this.driftOn && !this.rig.reducedMotion && this.introState === "off" && !this.initialLayoutPending && !v.selectedNode && !v.selectedEdge && !this.hoverNode && !this.hoverEdge && !document.hidden && now >= this.driftResumeAt && this.keys.size === 0;
+    const goal = allowed ? 1 : 0;
+    const tau = goal > this.driftLevel ? 2.2 : 0.35;
+    this.driftLevel += (goal - this.driftLevel) * (1 - Math.exp(-dt / tau));
+    if (!goal && this.driftLevel < 1e-3) {
+      this.driftLevel = 0;
+      return;
+    }
+    this.rig.yaw += dt * (Math.PI * 2 / 210) * this.driftLevel;
+  }
+  /** Called on any direct input: stop drifting now, resume after a quiet spell. */
+  noteInput() {
+    this.driftLevel = 0;
+    this.driftResumeAt = performance.now() + 15e3;
+  }
+  setDrift(on) {
+    this.driftOn = on;
+    if (on) this.driftResumeAt = 0;
     this.dirty = true;
   }
   /** How far an edge has inked in: 0…1, growing from the endpoint that appeared first. */
@@ -1182,6 +1218,7 @@ var MapScene = class {
       if (!this.rig.userMoved && this.introState === "off") this.rig.overview(this.extentC, this.extentR);
     }
     this.stepIntro(dt, now);
+    this.stepDrift(dt, now);
     const camMoving = this.rig.update(dt);
     if (camMoving || layoutMoving || this.dirty || this.pickAt) {
       this.dirty = false;
@@ -1545,7 +1582,10 @@ var MapScene = class {
       return { x: e.clientX - r.left, y: e.clientY - r.top };
     };
     c.addEventListener("contextmenu", (e) => e.preventDefault());
-    for (const ev of ["pointerdown", "wheel", "keydown"]) c.addEventListener(ev, () => this.endIntro(), { capture: true, passive: true });
+    for (const ev of ["pointerdown", "wheel", "keydown"]) c.addEventListener(ev, () => {
+      this.endIntro();
+      this.noteInput();
+    }, { capture: true, passive: true });
     c.addEventListener("pointerdown", (e) => {
       c.setPointerCapture(e.pointerId);
       const p = local(e);
@@ -1979,6 +2019,7 @@ function commands() {
   };
   return [
     { group: "View", label: "Go to wide view", keys: "0", run: () => scene.overview() },
+    { group: "View", label: scene.driftOn ? "Pause motion" : "Resume motion", run: () => setDrift(!scene.driftOn) },
     { group: "View", label: "Reset view (wide view, clear selection and filters)", run: () => resetView() },
     { group: "View", label: power ? "Exit power view" : "Power view: just the map", keys: "P", run: () => setPower(!power) },
     { group: "View", label: scene.showNames ? "Hide names on the map" : "Show names on the map", run: () => toggleNames() },
@@ -2211,6 +2252,7 @@ function setPower(on) {
   document.body.classList.toggle("power", on);
   $("exitPower").hidden = !on;
   $("resetPower").hidden = !on;
+  $("driftPower").hidden = !on;
   $("btnPower").setAttribute("aria-pressed", String(on));
   if (on) {
     closePalette();
@@ -2243,6 +2285,21 @@ function resetView() {
   announce("View reset: wide view, nothing selected, no filters.");
 }
 $("btnReset").addEventListener("click", resetView);
+var PAUSE_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5v14M15.5 5v14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`;
+var PLAY_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>`;
+function setDrift(on) {
+  scene.setDrift(on);
+  document.querySelectorAll(".drift-btn").forEach((b) => {
+    const label = on ? "Pause motion" : "Resume motion";
+    b.innerHTML = on ? PAUSE_ICON : PLAY_ICON;
+    b.setAttribute("aria-label", label);
+    b.title = label;
+    b.setAttribute("aria-pressed", String(!on));
+  });
+  saveView();
+}
+$("driftPower").addEventListener("click", () => setDrift(!scene.driftOn));
+$("driftBtn").addEventListener("click", () => setDrift(!scene.driftOn));
 $("resetPower").addEventListener("click", resetView);
 $("btnPower").addEventListener("click", () => setPower(true));
 $("exitPower").addEventListener("click", () => setPower(false));
@@ -2477,7 +2534,7 @@ window.agentMap = {
   replaceData: (json) => addData(json, "replace"),
   getData: () => graph,
   report: () => ({ offMap: A.offMap, issues: A.issues }),
-  camera: () => ({ dist: scene.rig.dist, current: scene.rig.currentDist, min: scene.rig.minDist, max: scene.rig.maxDist, depth: scene.depth })
+  camera: () => ({ dist: scene.rig.dist, current: scene.rig.currentDist, min: scene.rig.minDist, max: scene.rig.maxDist, depth: scene.depth, yaw: scene.rig.currentYaw })
 };
 var VIEW_KEY = "autonomy.view.v1";
 var restoring = true;
@@ -2489,6 +2546,7 @@ function saveView() {
     const v = {
       power: document.body.classList.contains("power"),
       names: scene.showNames,
+      drift: scene.driftOn,
       minimap: !$("minimapWrap").hidden,
       camera: scene.rig.getState(),
       selectedNode: st.selectedNode,
@@ -2516,6 +2574,7 @@ function readView() {
 function restoreView() {
   const v = readView();
   setPower(v?.power ?? true);
+  setDrift(v?.drift !== false);
   if (v) {
     if (Array.isArray(v.types)) st.types = new Set(v.types.filter((t) => NODE_TYPES.includes(t)));
     if (Array.isArray(v.kinds)) st.kinds = new Set(v.kinds.filter((k) => EDGE_KINDS.includes(k)));

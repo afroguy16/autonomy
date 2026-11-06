@@ -93,6 +93,7 @@
       <span class="pill-sep" aria-hidden="true"></span>
       <button type="button" id="namesBtn" class="pill-btn" aria-pressed="false" aria-label="Show names on the map" title="Names"><span style="font-weight:600;font-size:13px">Aa</span></button>
       <button type="button" id="miniBtn" class="pill-btn" aria-pressed="false" aria-label="Show minimap" title="Minimap"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="14" cy="11" r="2" fill="currentColor"/></svg></button>
+      <button type="button" id="driftBtn" class="pill-btn drift-btn" aria-pressed="false"></button>
     </nav>
 
     <figure class="minimap card" id="minimapWrap" hidden>
@@ -104,6 +105,7 @@
     <div id="hint" class="hint">Drag to look · scroll to dive · W/S drive · A/D turn · <kbd>⌘K</kbd> search</div>
     <div id="toast" class="toast" role="status" hidden></div>
     <div class="corner-actions">
+    <button type="button" id="driftPower" class="power-exit icon-only drift-btn" hidden aria-pressed="false"></button>
     <button type="button" id="resetPower" class="power-exit" hidden title="Start fresh: wide view, nothing selected, no filters"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Reset</button>
     <button type="button" id="exitPower" class="power-exit" hidden title="Show the controls again (P)"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Exit power view</button>
     </div>

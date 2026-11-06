@@ -132,6 +132,14 @@ export class MapScene {
   /** Badge textures are drawn, photos are in and everything is on the GPU. */
   private introAssetsReady = false;
   private introAssetsPending = false;
+
+  // ---------- ambient drift ----------
+  /** The viewer's choice (pause button). */
+  driftOn = true;
+  /** 0 still … 1 full drift; eases in, drops to 0 on any input. */
+  private driftLevel = 0;
+  /** Drift may (re)start after this time (ms, performance.now()). */
+  private driftResumeAt = 0;
   /** Per account: seconds into the entrance when its badge pops in. */
   private introAt = new Float32Array(0);
   /** Per account: 0 hidden … 1 full size (overshoots a little while popping). */
@@ -463,7 +471,38 @@ export class MapScene {
     // The curve above is the only easing: the camera follows it exactly, with no
     // second soft-follow layered on top.
     this.rig.snap();
-    if (all && k >= 1) { this.introState = "off"; this.introS.fill(1); }
+    if (all && k >= 1) { this.introState = "off"; this.introS.fill(1); this.driftResumeAt = 0; }
+    this.dirty = true;
+  }
+
+  /**
+   * After the entrance the camera keeps turning slowly around the map, about one
+   * turn every 3.5 minutes. Any input stops it at once; it eases back in after 15s
+   * of quiet. It stays still while an account or line is selected or hovered,
+   * while the tab is hidden, with reduced motion, or when paused.
+   */
+  private stepDrift(dt: number, now: number) {
+    const v = this.view;
+    const allowed = this.driftOn && !this.rig.reducedMotion && this.introState === "off" && !this.initialLayoutPending
+      && !v.selectedNode && !v.selectedEdge && !this.hoverNode && !this.hoverEdge && !document.hidden
+      && now >= this.driftResumeAt && this.keys.size === 0;
+    const goal = allowed ? 1 : 0;
+    // Ease in over a few seconds; ease out quickly (input already zeroes it).
+    const tau = goal > this.driftLevel ? 2.2 : 0.35;
+    this.driftLevel += (goal - this.driftLevel) * (1 - Math.exp(-dt / tau));
+    if (!goal && this.driftLevel < 0.001) { this.driftLevel = 0; return; }
+    this.rig.yaw += dt * ((Math.PI * 2) / 210) * this.driftLevel;
+  }
+
+  /** Called on any direct input: stop drifting now, resume after a quiet spell. */
+  private noteInput() {
+    this.driftLevel = 0;
+    this.driftResumeAt = performance.now() + 15000;
+  }
+
+  setDrift(on: boolean) {
+    this.driftOn = on;
+    if (on) this.driftResumeAt = 0;
     this.dirty = true;
   }
 
@@ -568,6 +607,7 @@ export class MapScene {
       if (!this.rig.userMoved && this.introState === "off") this.rig.overview(this.extentC, this.extentR);
     }
     this.stepIntro(dt, now);
+    this.stepDrift(dt, now);
     const camMoving = this.rig.update(dt);
     if (camMoving || layoutMoving || this.dirty || this.pickAt) {
       this.dirty = false;
@@ -915,7 +955,7 @@ export class MapScene {
 
     c.addEventListener("contextmenu", (e) => e.preventDefault());
     // Any input ends the entrance at once and hands the camera to the user.
-    for (const ev of ["pointerdown", "wheel", "keydown"]) c.addEventListener(ev, () => this.endIntro(), { capture: true, passive: true });
+    for (const ev of ["pointerdown", "wheel", "keydown"]) c.addEventListener(ev, () => { this.endIntro(); this.noteInput(); }, { capture: true, passive: true });
     c.addEventListener("pointerdown", (e) => {
       c.setPointerCapture(e.pointerId);
       const p = local(e);

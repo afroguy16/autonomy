@@ -451,3 +451,6 @@ html.scene-up .boot { background-color: transparent; }
   .nav-pill { right: 8px; bottom: 8px; top: auto; transform: none; }
   .palette-backdrop { padding-top: 8vh; }
 }
+
+/* Pause / resume the ambient drift: icon-only in the power-view corner. */
+.power-exit.icon-only { width: 40px; padding: 0; justify-content: center; }

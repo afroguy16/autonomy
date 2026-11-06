@@ -312,6 +312,7 @@ function commands(): Cmd[] {
   const setTypes = (t: NodeType) => () => { st.types = new Set([t]); syncFilterInputs(); onFiltersChanged(); };
   return [
     { group: "View", label: "Go to wide view", keys: "0", run: () => scene.overview() },
+    { group: "View", label: scene.driftOn ? "Pause motion" : "Resume motion", run: () => setDrift(!scene.driftOn) },
     { group: "View", label: "Reset view (wide view, clear selection and filters)", run: () => resetView() },
     { group: "View", label: power ? "Exit power view" : "Power view: just the map", keys: "P", run: () => setPower(!power) },
     { group: "View", label: scene.showNames ? "Hide names on the map" : "Show names on the map", run: () => toggleNames() },
@@ -498,6 +499,7 @@ function setPower(on: boolean) {
   document.body.classList.toggle("power", on);
   $("exitPower").hidden = !on;
   $("resetPower").hidden = !on;
+  $("driftPower").hidden = !on;
   $("btnPower").setAttribute("aria-pressed", String(on));
   if (on) { closePalette(); $("filters").hidden = true; $("list").hidden = true; }
   saveView();
@@ -524,6 +526,23 @@ function resetView() {
   announce("View reset: wide view, nothing selected, no filters.");
 }
 $("btnReset").addEventListener("click", resetView);
+
+// Ambient drift: the map turns slowly on its own until you touch it.
+const PAUSE_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5v14M15.5 5v14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`;
+const PLAY_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>`;
+function setDrift(on: boolean) {
+  scene.setDrift(on);
+  document.querySelectorAll<HTMLButtonElement>(".drift-btn").forEach((b) => {
+    const label = on ? "Pause motion" : "Resume motion";
+    b.innerHTML = on ? PAUSE_ICON : PLAY_ICON;
+    b.setAttribute("aria-label", label);
+    b.title = label;
+    b.setAttribute("aria-pressed", String(!on));
+  });
+  saveView();
+}
+$("driftPower").addEventListener("click", () => setDrift(!scene.driftOn));
+$("driftBtn").addEventListener("click", () => setDrift(!scene.driftOn));
 $("resetPower").addEventListener("click", resetView);
 $("btnPower").addEventListener("click", () => setPower(true));
 $("exitPower").addEventListener("click", () => setPower(false));
@@ -711,7 +730,7 @@ $("stage").addEventListener("drop", (e) => { e.preventDefault(); const f = e.dat
   replaceData: (json: unknown) => addData(json, "replace"),
   getData: () => graph,
   report: () => ({ offMap: A.offMap, issues: A.issues }),
-  camera: () => ({ dist: scene.rig.dist, current: scene.rig.currentDist, min: scene.rig.minDist, max: scene.rig.maxDist, depth: scene.depth })
+  camera: () => ({ dist: scene.rig.dist, current: scene.rig.currentDist, min: scene.rig.minDist, max: scene.rig.maxDist, depth: scene.depth, yaw: scene.rig.currentYaw })
 };
 
 // ---------------- start ----------------
@@ -721,7 +740,7 @@ $("stage").addEventListener("drop", (e) => { e.preventDefault(); const f = e.dat
 const VIEW_KEY = "autonomy.view.v1";
 let restoring = true; // don't overwrite the saved view while it is being restored
 type SavedView = {
-  power: boolean; names: boolean; minimap: boolean;
+  power: boolean; names: boolean; minimap: boolean; drift?: boolean;
   camera?: ReturnType<typeof scene.rig.getState>;
   selectedNode: string | null; selectedEdge: string | null; edgeFromNode: string | null;
   types: string[]; kinds: string[]; topics: string[]; hideFiltered: boolean;
@@ -734,6 +753,7 @@ function saveView() {
     const v: SavedView = {
       power: document.body.classList.contains("power"),
       names: scene.showNames,
+      drift: scene.driftOn,
       minimap: !$("minimapWrap").hidden,
       camera: scene.rig.getState(),
       selectedNode: st.selectedNode, selectedEdge: st.selectedEdge, edgeFromNode: st.edgeFromNode,
@@ -749,6 +769,7 @@ function restoreView() {
   const v = readView();
   // Power view is the default for a first visit; after that the last choice wins.
   setPower(v?.power ?? true);
+  setDrift(v?.drift !== false);
   if (v) {
     if (Array.isArray(v.types)) st.types = new Set(v.types.filter((t): t is NodeType => (NODE_TYPES as string[]).includes(t)));
     if (Array.isArray(v.kinds)) st.kinds = new Set(v.kinds.filter((k): k is EdgeKind => (EDGE_KINDS as string[]).includes(k)));
