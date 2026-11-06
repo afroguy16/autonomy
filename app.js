@@ -734,6 +734,17 @@ var MapScene = class {
     this.width = 1;
     this.height = 1;
     this.initialLayoutPending = false;
+    // ---------- entrance ----------
+    /** "waiting": data is in but positions are still being worked out; "playing": the network grows in. */
+    this.introState = "off";
+    this.introT = 0;
+    /** Per account: seconds into the entrance when its badge pops in. */
+    this.introAt = new Float32Array(0);
+    /** Per account: 0 hidden … 1 full size (overshoots a little while popping). */
+    this.introS = new Float32Array(0);
+    this.introDur = 2.6;
+    this.introFrom = { dist: 1, yaw: 0, pitch: 0.32, x: 0, y: 0, z: 0 };
+    this.introTo = { dist: 1, yaw: 0, pitch: 0.32, x: 0, y: 0, z: 0 };
     this.renderer = new THREE3.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setClearColor(BG, 1);
@@ -794,6 +805,7 @@ var MapScene = class {
     prevIds?.forEach((id, i) => oldVis.set(id, prev[i] ?? 0));
     this.visCur = new Float32Array(ids.map((id) => oldVis.get(id) ?? 0));
     this.dispR = new Float32Array(ids.length);
+    this.introS = new Float32Array(ids.length).fill(this.introState === "off" ? 1 : 0);
     this._prevIds = ids;
     const pairs = /* @__PURE__ */ new Map();
     const groups = /* @__PURE__ */ new Map();
@@ -888,7 +900,7 @@ var MapScene = class {
           });
           this.layout.alpha = 0;
           this.updateExtent();
-          if (!this.rig.userMoved) this.rig.overview(this.extentC, this.extentR, true);
+          if (!this.rig.userMoved && this.introState === "off") this.rig.overview(this.extentC, this.extentR, true);
         }
         this.dirty = true;
       };
@@ -909,6 +921,119 @@ var MapScene = class {
   // ---------- camera helpers ----------
   extent() {
     return { center: this.extentC, radius: this.extentR };
+  }
+  /**
+   * The entrance. While positions are being worked out the camera drifts slowly
+   * through the empty space; once they are ready the network grows outward from its
+   * most-connected accounts along their links, badges popping in ring by ring,
+   * while the camera eases back to the wide view. Any input ends it at once.
+   */
+  playIntro() {
+    if (this.rig.reducedMotion || !this.ids.length) {
+      this.endIntro();
+      return;
+    }
+    this.introState = "waiting";
+    this.introS.fill(0);
+    this.rig.target.set(this.extentC.x, this.extentC.y, this.extentC.z);
+    this.rig.dist = this.extentR * 0.5;
+    this.rig.snap();
+    this.dirty = true;
+    if (!this.initialLayoutPending) this.startIntro();
+  }
+  /** Show everything at once (used for reduced motion, a restored view, or any input). */
+  endIntro() {
+    if (this.introState === "off") return;
+    this.introState = "off";
+    this.introS.fill(1);
+    this.dirty = true;
+  }
+  get introPlaying() {
+    return this.introState !== "off";
+  }
+  startIntro() {
+    const n = this.ids.length;
+    const adj = Array.from({ length: n }, () => []);
+    for (const e of this.analysis.drawnEdges) {
+      const a = this.index.get(e.source), b = this.index.get(e.target);
+      if (a === void 0 || b === void 0 || a === b) continue;
+      adj[a].push(b);
+      adj[b].push(a);
+    }
+    const depth = new Int32Array(n).fill(-1);
+    const byDeg = Array.from({ length: n }, (_, i) => i).sort((a, b) => this.deg[b] - this.deg[a]);
+    let maxD = 1;
+    for (const seed2 of byDeg) {
+      if (depth[seed2] >= 0) continue;
+      depth[seed2] = 0;
+      const q = [seed2];
+      for (let h = 0; h < q.length; h++) {
+        const u = q[h];
+        for (const w of adj[u]) if (depth[w] < 0) {
+          depth[w] = depth[u] + 1;
+          maxD = Math.max(maxD, depth[w]);
+          q.push(w);
+        }
+      }
+    }
+    const spread = 1.55;
+    this.introAt = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const jitter = (Math.sin(i * 12.9898) * 43758.5453 % 1 + 1) % 1;
+      this.introAt[i] = 0.12 + spread * Math.pow(depth[i] / maxD, 0.85) + jitter * 0.18;
+    }
+    const yaw = this.rig.yaw;
+    const seed = this.layout.get(this.ids[byDeg[0]]);
+    const c = this.extentC;
+    this.introFrom = { dist: this.extentR * 0.45, yaw: yaw - 0.55, pitch: 0.18, x: seed.x, y: seed.y, z: seed.z };
+    this.introTo = { dist: Math.min(this.rig.maxDist, this.extentR * 2.35), yaw, pitch: 0.32, x: c.x, y: c.y, z: c.z };
+    this.rig.home.set(c.x, c.y, c.z);
+    this.rig.target.set(seed.x, seed.y, seed.z);
+    this.rig.dist = this.introFrom.dist;
+    this.rig.yaw = this.introFrom.yaw;
+    this.rig.pitch = this.introFrom.pitch;
+    this.rig.snap();
+    this.introT = 0;
+    this.introState = "playing";
+    this.dirty = true;
+  }
+  stepIntro(dt) {
+    if (this.introState === "waiting") {
+      this.rig.yaw += dt * 0.06;
+      if (!this.initialLayoutPending) this.startIntro();
+      return;
+    }
+    if (this.introState !== "playing") return;
+    this.introT += dt;
+    const T = this.introT;
+    const pop = 0.42;
+    let all = true;
+    for (let i = 0; i < this.ids.length; i++) {
+      const u = Math.min(1, Math.max(0, (T - this.introAt[i]) / pop));
+      if (u < 1) all = false;
+      const c1 = 1.9, c3 = c1 + 1;
+      this.introS[i] = u <= 0 ? 0 : 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2);
+    }
+    const k = Math.min(1, T / this.introDur);
+    const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+    const f = this.introFrom, t = this.introTo;
+    this.rig.dist = Math.exp(Math.log(f.dist) + (Math.log(t.dist) - Math.log(f.dist)) * e);
+    this.rig.yaw = f.yaw + (t.yaw - f.yaw) * e;
+    this.rig.pitch = f.pitch + (t.pitch - f.pitch) * e;
+    this.rig.target.set(f.x + (t.x - f.x) * e, f.y + (t.y - f.y) * e, f.z + (t.z - f.z) * e);
+    if (all && k >= 1) {
+      this.introState = "off";
+      this.introS.fill(1);
+    }
+    this.dirty = true;
+  }
+  /** How far an edge has inked in: 0…1, growing from the endpoint that appeared first. */
+  edgeInk(ia, ib) {
+    if (this.introState === "off") return 1;
+    if (this.introState === "waiting") return 0;
+    const ta = this.introAt[ia], tb = this.introAt[ib];
+    const t0 = Math.min(ta, tb) + 0.18, span = Math.max(0.3, Math.abs(ta - tb) + 0.12);
+    return Math.min(1, Math.max(0, (this.introT - t0) / span));
   }
   overview(instant = false) {
     this.rig.overview(this.extentC, this.extentR, instant || this.rig.reducedMotion);
@@ -1011,8 +1136,9 @@ var MapScene = class {
       this.layout.tick(2);
       layoutMoving = true;
       if (this.frameN % 10 === 0 || this.layout.settled) this.updateExtent();
-      if (!this.rig.userMoved) this.rig.overview(this.extentC, this.extentR);
+      if (!this.rig.userMoved && this.introState === "off") this.rig.overview(this.extentC, this.extentR);
     }
+    this.stepIntro(dt);
     const camMoving = this.rig.update(dt);
     if (camMoving || layoutMoving || this.dirty || this.pickAt) {
       this.dirty = false;
@@ -1063,7 +1189,7 @@ var MapScene = class {
       const dimSel = selActive && !v.focus.has(id);
       const dimFilter = v.filtersActive && !match;
       const minWorld = d * pxToWorld * (dimFilter ? 2.6 : 3.6);
-      const size = Math.max(this.nodeSize(i) * (dimFilter ? 0.6 : 1), minWorld) * cur * (id === v.selectedNode ? 1.3 : 1);
+      const size = Math.max(this.nodeSize(i) * (dimFilter ? 0.6 : 1), minWorld) * cur * (id === v.selectedNode ? 1.3 : 1) * this.introS[i] * (this.introState === "playing" ? Math.min(1, Math.max(0, (d - this.extentR * 0.1) / (this.extentR * 0.12))) : 1);
       const sp = this.sprites.get(id);
       sp.position.set(p.x, p.y, p.z);
       sp.scale.setScalar(Math.max(size, 1e-4) * 2.3);
@@ -1165,7 +1291,8 @@ var MapScene = class {
       grp.edges.forEach((e, ei) => {
         const ia = this.index.get(e.source), ib = this.index.get(e.target);
         const base = kind === "interaction" ? 0.42 : kind === "cluster" ? 0.35 : 0.8;
-        let s = Math.min(this.visCur[ia], this.visCur[ib]) * base;
+        const ink = this.edgeInk(ia, ib);
+        let s = Math.min(this.visCur[ia], this.visCur[ib]) * base * Math.min(1, ink * 1.6);
         if (v.filtersActive && !v.edgeMatch(e)) s *= v.hideFiltered ? 0 : 0.06;
         let colored = !!v.colorKinds && (!v.filtersActive || v.edgeMatch(e));
         if (selActive) {
@@ -1187,6 +1314,11 @@ var MapScene = class {
         const n = grp.segs[ei];
         for (let j = 0; j < n; j++, o++) {
           this.edgeEnds(e, ends, j, n, perp);
+          if (ink < 1 && n === 1) {
+            const fromA = this.introAt[ia] <= this.introAt[ib];
+            const o0 = fromA ? 0 : 3, o1 = fromA ? 3 : 0;
+            for (let c = 0; c < 3; c++) ends[o1 + c] = ends[o0 + c] + (ends[o1 + c] - ends[o0 + c]) * ink;
+          }
           let maxF = 0;
           for (let end = 0; end < 2; end++) {
             const px = ends[end * 3] - cam.x, py = ends[end * 3 + 1] - cam.y, pz = ends[end * 3 + 2] - cam.z;
@@ -1248,6 +1380,7 @@ var MapScene = class {
       const vis = this.visCur[i];
       const forced = v.focus.has(id) || v.matches.has(id) || id === this.hoverNode;
       if (!forced && vis < 0.55) continue;
+      if (this.introS[i] < 0.9) continue;
       if (v.filtersActive && !forced && !v.nodeMatch(id)) continue;
       const p = this.layout.get(id);
       const d = Math.hypot(p.x - cam.x, p.y - cam.y, p.z - cam.z);
@@ -1362,6 +1495,7 @@ var MapScene = class {
       return { x: e.clientX - r.left, y: e.clientY - r.top };
     };
     c.addEventListener("contextmenu", (e) => e.preventDefault());
+    for (const ev of ["pointerdown", "wheel", "keydown"]) c.addEventListener(ev, () => this.endIntro(), { capture: true, passive: true });
     c.addEventListener("pointerdown", (e) => {
       c.setPointerCapture(e.pointerId);
       const p = local(e);
@@ -2049,6 +2183,7 @@ function resetView() {
   $("btnFilters").setAttribute("aria-expanded", "false");
   $("btnList").setAttribute("aria-expanded", "false");
   scene.overview();
+  scene.playIntro();
   try {
     localStorage.removeItem(VIEW_KEY);
   } catch {
@@ -2353,4 +2488,7 @@ function restoreView() {
 }
 refresh();
 scene.overview(true);
+var firstVisit = !readView();
 restoreView();
+window.setBootCounts?.(A.mapNodeIds.length, A.drawnEdges.length);
+if (firstVisit) scene.playIntro();

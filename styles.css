@@ -413,6 +413,15 @@ body.power .legend-btn, body.power .nav-pill { display: none !important; }
 .boot[data-state="error"] .boot-progress { display: none; }
 .boot #bootRetry { margin-top: 8px; }
 .noscript { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 24px; background: var(--map); text-align: center; font: 500 15px/1.5 var(--body); }
+/* Loading is the map's own space: a breathing point and a line of text, no spinner.
+   Once the data is in, the overlay turns see-through and the counts tick up. */
+.boot { background: var(--map); transition: opacity 520ms ease, visibility 0s linear 520ms, background-color 600ms ease; }
+html.scene-up .boot { background-color: transparent; }
+.boot-mark { width: 24px; height: 24px; margin-bottom: 18px; }
+.boot-mark::before, .boot-mark::after, .boot-orbit { display: none; }
+.boot-progress { display: none; }
+.boot-card h1 { margin-bottom: 6px; color: var(--ink-2); font-weight: 450; }
+.boot-count { margin: 0; min-height: 1.4em; color: var(--muted, #8a8f98); font: 400 12.5px/1.4 var(--body); font-variant-numeric: tabular-nums; letter-spacing: 0; }
 @keyframes boot-orbit { to { transform: rotate(360deg); } }
 @keyframes boot-breathe { 50% { transform: scale(.78); opacity: .72; } }
 @keyframes boot-progress { from { transform: translateX(-120%); } to { transform: translateX(410%); } }

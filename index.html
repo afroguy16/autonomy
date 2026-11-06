@@ -137,6 +137,7 @@
     <div class="boot-mark" aria-hidden="true"><span class="boot-orbit"></span><span class="boot-core"></span></div>
     <h1 data-boot-title>Wiring up the network…</h1>
     <div class="boot-progress" aria-hidden="true"><span></span></div>
+    <p class="boot-count" data-boot-count aria-hidden="true"></p>
     <button type="button" id="bootRetry" class="btn" hidden>Try again</button>
   </div>
 </section>
@@ -160,6 +161,23 @@
       }
     });
     document.getElementById("bootRetry").addEventListener("click", () => window.location.reload());
+    // Once the data is in, the overlay turns see-through so the map's own space shows
+    // behind the text, and the real counts tick up.
+    window.setBootCounts = (accounts, connections) => {
+      if (!boot || document.documentElement.classList.contains("app-ready")) return;
+      document.documentElement.classList.add("scene-up");
+      const el = boot.querySelector("[data-boot-count]");
+      const fmt = (v) => Math.round(v).toLocaleString();
+      const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      const t0 = performance.now(), dur = reduce ? 0 : 900;
+      const tick = (now) => {
+        const k = dur ? Math.min(1, (now - t0) / dur) : 1;
+        const e = 1 - Math.pow(1 - k, 3);
+        el.textContent = `${fmt(accounts * e)} accounts · ${fmt(connections * e)} connections`;
+        if (k < 1) setTimeout(() => tick(performance.now()), 33);
+      };
+      tick(t0);
+    };
     window.finishMapBoot = () => {
       if (!boot || document.documentElement.classList.contains("app-ready")) return;
       document.documentElement.classList.add("app-ready");

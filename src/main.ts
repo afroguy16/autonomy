@@ -517,6 +517,7 @@ function resetView() {
   $("btnFilters").setAttribute("aria-expanded", "false");
   $("btnList").setAttribute("aria-expanded", "false");
   scene.overview();
+  scene.playIntro();
   try { localStorage.removeItem(VIEW_KEY); } catch { /* storage unavailable */ }
   saveView();
   toast("View reset");
@@ -773,4 +774,9 @@ function restoreView() {
 
 refresh();
 scene.overview(true);
+// The full entrance plays on a first visit (and after Reset); a returning visit
+// goes straight back to the remembered view.
+const firstVisit = !readView();
 restoreView();
+(window as any).setBootCounts?.(A.mapNodeIds.length, A.drawnEdges.length);
+if (firstVisit) scene.playIntro();
