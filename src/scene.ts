@@ -142,6 +142,11 @@ export class MapScene {
   private driftResumeAt = 0;
   /** Drift's own clock: advances only while drifting, so motion picks up where it left off. */
   private driftT = 0;
+  /** A deep dive in progress: glide into one cluster, circle it close up, glide back out. */
+  private dive: { start: number; fx: number; fy: number; fz: number; fdist: number; x: number; y: number; z: number; close: number } | null = null;
+  /** Drift-clock time of the next dive: the first comes ~35s in, then roughly every 2 minutes. */
+  private nextDiveAt = 35;
+  private lastDiveId: string | null = null;
   /** Per account: seconds into the entrance when its badge pops in. */
   private introAt = new Float32Array(0);
   /** Per account: 0 hidden … 1 full size (overshoots a little while popping). */
@@ -509,6 +514,22 @@ export class MapScene {
     // Rise and sink: about ±16° over ~83s.
     const wp = w(83);
     this.rig.pitch = Math.max(-1.2, Math.min(1.2, this.rig.pitch + 0.28 * wp * Math.cos(wp * t + 1.3) * dτ));
+
+    // Every so often, a deep dive into one cluster.
+    if (!this.dive && this.driftT >= this.nextDiveAt && this.driftLevel > 0.95) this.startDive();
+    if (this.dive) {
+      const d = this.dive;
+      const s = this.driftT - d.start;
+      // In over 9s, circle close for 7s, back out over 10s.
+      const ease = (u: number) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
+      const e = s < 9 ? ease(s / 9) : s < 16 ? 1 : s < 26 ? 1 - ease((s - 16) / 10) : 0;
+      this.rig.target.set(d.fx + (d.x - d.fx) * e, d.fy + (d.y - d.fy) * e, d.fz + (d.z - d.fz) * e);
+      this.rig.dist = Math.exp(Math.log(d.fdist) + (Math.log(d.close) - Math.log(d.fdist)) * e);
+      // A little extra turn while close, so near badges sweep past far ones.
+      this.rig.yaw += dτ * w(210) * 2.5 * e;
+      if (s >= 26) { this.dive = null; this.nextDiveAt = this.driftT + 110 + 30 * Math.random(); }
+      return;
+    }
     // Orbit centre wanders up to ~18% of the map's size.
     const a = this.extentR * 0.18;
     const wx = w(97), wy = w(131), wz = w(113);
@@ -517,8 +538,30 @@ export class MapScene {
     this.rig.target.z += a * wz * Math.cos(wz * t + 4.0) * dτ;
   }
 
+  /** Pick a well-connected cluster in front of the camera (not the last one) and head for it. */
+  private startDive() {
+    const cam = this.camera.position;
+    const fwd = this.rig.forward();
+    const ranked = this.ids.map((id, i) => ({ id, i })).sort((a, b) => this.deg[b.i] - this.deg[a.i]).slice(0, 30);
+    const cands = ranked.filter(({ id }) => {
+      if (id === this.lastDiveId) return false;
+      const p = this.layout.get(id)!;
+      return (p.x - cam.x) * fwd.x + (p.y - cam.y) * fwd.y + (p.z - cam.z) * fwd.z > 0;
+    });
+    const pickFrom = cands.length ? cands : ranked;
+    const pick = pickFrom[Math.floor(Math.random() * Math.min(pickFrom.length, 12))];
+    if (!pick) { this.nextDiveAt = this.driftT + 60; return; }
+    const p = this.layout.get(pick.id)!;
+    const t = this.rig.target;
+    this.lastDiveId = pick.id;
+    // Close enough to pass between badges in the cluster.
+    this.dive = { start: this.driftT, fx: t.x, fy: t.y, fz: t.z, fdist: this.rig.dist, x: p.x, y: p.y, z: p.z, close: Math.max(this.rig.minDist * 4, this.extentR * 0.09) };
+  }
+
   /** Called on any direct input: stop drifting now, resume after a quiet spell. */
   private noteInput() {
+    // Abandon a dive where it is; the user now has the camera.
+    if (this.dive) { this.dive = null; this.nextDiveAt = this.driftT + 60; }
     this.driftLevel = 0;
     this.driftResumeAt = performance.now() + 15000;
   }
@@ -691,7 +734,9 @@ export class MapScene {
       const minWorld = d * pxToWorld * (dimFilter ? 2.6 : 3.6); // badge never smaller than a few pixels
       const size = Math.max(this.nodeSize(i) * (dimFilter ? 0.6 : 1), minWorld) * cur * (id === v.selectedNode ? 1.3 : 1) * this.introS[i]
         // During the entrance, badges right in front of the camera stay out of the shot.
-        * (this.introState === "playing" ? Math.min(1, Math.max(0, (d - this.extentR * 0.1) / (this.extentR * 0.12))) : 1);
+        * (this.introState === "playing" ? Math.min(1, Math.max(0, (d - this.extentR * 0.1) / (this.extentR * 0.12)))
+          // While diving, only badges almost touching the lens fade, so you pass between the rest.
+          : this.dive ? Math.min(1, Math.max(0, (d - this.extentR * 0.015) / (this.extentR * 0.03))) : 1);
       const sp = this.sprites.get(id)!;
       sp.position.set(p.x, p.y, p.z);
       sp.scale.setScalar(Math.max(size, 0.0001) * 2.3);
