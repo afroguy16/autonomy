@@ -1656,7 +1656,9 @@ function escapeHtml(s) {
 
 // src/main.ts
 var $ = (id) => document.getElementById(id);
-var graph = buildSeed();
+var initialResponse = await fetch("./data/graph-map.json");
+if (!initialResponse.ok) throw new Error(`Could not load research data: ${initialResponse.status} ${initialResponse.statusText}`);
+var graph = normalizeGraph(await initialResponse.json());
 var A = analyze(graph);
 var batchNo = 0;
 var onMap = new Set(A.mapNodeIds);

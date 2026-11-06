@@ -6,7 +6,9 @@ import { EDGE_KINDS, NODE_TYPES, type Confidence, type Edge, type EdgeKind, type
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
-let graph: GraphMap = buildSeed();
+const initialResponse = await fetch("./data/graph-map.json");
+if (!initialResponse.ok) throw new Error(`Could not load research data: ${initialResponse.status} ${initialResponse.statusText}`);
+let graph: GraphMap = normalizeGraph(await initialResponse.json() as Record<string, any>);
 let A: Analysis = analyze(graph);
 let batchNo = 0;
 let onMap = new Set(A.mapNodeIds);
