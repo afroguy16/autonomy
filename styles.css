@@ -220,9 +220,10 @@ body.power .hint,
 body.power .filter-bar,
 body.power #filters,
 body.power #list { display: none !important; }
-.power-exit { position: absolute; top: max(12px, env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); z-index: 12; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-2); background: rgba(255, 255, 255, .94); color: var(--ink); font: 600 13px var(--body); cursor: pointer; box-shadow: 0 4px 16px rgba(22, 24, 29, .1); opacity: .75; }
+.corner-actions { position: absolute; top: max(12px, env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); z-index: 12; display: flex; gap: 8px; }
+.power-exit { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-2); background: rgba(255, 255, 255, .94); color: var(--ink); font: 600 13px var(--body); cursor: pointer; box-shadow: 0 4px 16px rgba(22, 24, 29, .1); opacity: .75; }
 .power-exit:hover, .power-exit:focus-visible { opacity: 1; }
-body.power #stage:has(#details:not([hidden])) .power-exit { right: 434px; }
+body.power #stage:has(#details:not([hidden])) .corner-actions { right: 434px; }
 
 /* ===================== Linear pass =====================
    Restraint: neutral surfaces, one indigo accent, Inter, hairlines, minimal chrome. */

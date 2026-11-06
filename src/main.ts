@@ -312,6 +312,7 @@ function commands(): Cmd[] {
   const setTypes = (t: NodeType) => () => { st.types = new Set([t]); syncFilterInputs(); onFiltersChanged(); };
   return [
     { group: "View", label: "Go to wide view", keys: "0", run: () => scene.overview() },
+    { group: "View", label: "Reset view (wide view, clear selection and filters)", run: () => resetView() },
     { group: "View", label: power ? "Exit power view" : "Power view: just the map", keys: "P", run: () => setPower(!power) },
     { group: "View", label: scene.showNames ? "Hide names on the map" : "Show names on the map", run: () => toggleNames() },
     { group: "View", label: $("minimapWrap").hidden ? "Show minimap" : "Hide minimap", run: () => toggleMinimap() },
@@ -496,12 +497,33 @@ function renderLegend() {
 function setPower(on: boolean) {
   document.body.classList.toggle("power", on);
   $("exitPower").hidden = !on;
+  $("resetPower").hidden = !on;
   $("btnPower").setAttribute("aria-pressed", String(on));
   if (on) { closePalette(); $("filters").hidden = true; $("list").hidden = true; }
   saveView();
   announce(on ? "Power view: only the map is shown. Press P to show the controls." : "Controls shown.");
   ($(on ? "map" : "btnPower") as HTMLElement).focus();
 }
+/** Start fresh: wide view, nothing selected, no filters, names and minimap off.
+ *  Keeps whether the controls are shown, and forgets the remembered view. */
+function resetView() {
+  closePalette();
+  clearSelection();
+  clearFilters();
+  toggleNames(false);
+  toggleMinimap(false);
+  toggleLegend(false);
+  $("filters").hidden = true; $("list").hidden = true;
+  $("btnFilters").setAttribute("aria-expanded", "false");
+  $("btnList").setAttribute("aria-expanded", "false");
+  scene.overview();
+  try { localStorage.removeItem(VIEW_KEY); } catch { /* storage unavailable */ }
+  saveView();
+  toast("View reset");
+  announce("View reset: wide view, nothing selected, no filters.");
+}
+$("btnReset").addEventListener("click", resetView);
+$("resetPower").addEventListener("click", resetView);
 $("btnPower").addEventListener("click", () => setPower(true));
 $("exitPower").addEventListener("click", () => setPower(false));
 document.addEventListener("keydown", (e) => {

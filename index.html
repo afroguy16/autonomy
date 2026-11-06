@@ -42,6 +42,7 @@
       <button type="button" id="btnFilters" class="btn" aria-expanded="false" aria-controls="filters">Filters <span class="badge" id="filterBadge" hidden></span></button>
       <button type="button" id="btnList" class="btn" aria-expanded="false" aria-controls="list">List</button>
       <button type="button" id="btnPower" class="btn" title="Hide everything but the map (P)">Power view</button>
+      <button type="button" id="btnReset" class="btn" title="Start fresh: wide view, nothing selected, no filters">Reset</button>
       <button type="button" id="btnReport" class="btn">Data <span class="badge warn" id="issueBadge" hidden></span></button>
       <label class="btn ghost file" hidden>Load JSON<input type="file" id="fileIn" accept="application/json,.json"></label>
     </div>
@@ -102,7 +103,10 @@
     <div id="filterBar" class="filter-bar" hidden></div>
     <div id="hint" class="hint">Drag to look · scroll to dive · W/S drive · A/D turn · <kbd>⌘K</kbd> search</div>
     <div id="toast" class="toast" role="status" hidden></div>
+    <div class="corner-actions">
+    <button type="button" id="resetPower" class="power-exit" hidden title="Start fresh: wide view, nothing selected, no filters"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Reset</button>
     <button type="button" id="exitPower" class="power-exit" hidden title="Show the controls again (P)"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Exit power view</button>
+    </div>
   </main>
 
   <dialog id="report" aria-labelledby="reportTitle">
