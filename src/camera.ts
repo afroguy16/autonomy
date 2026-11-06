@@ -1,9 +1,10 @@
 import * as THREE from "three";
 
 /**
- * Camera that orbits a focus point, with continuous zoom toward the cursor and
- * "driving" controls (move the focus point forward / turn / rise).
- * Every input changes a desired state; the camera eases toward it each frame.
+ * Camera that pans directly with the pointer, with continuous zoom toward the
+ * cursor and separate orbit / "driving" controls.
+ * Camera transitions ease each frame; direct pan keeps the camera attached to
+ * the hand while a gesture is active.
  */
 export class CameraRig {
   readonly camera: any;
@@ -60,32 +61,25 @@ export class CameraRig {
   orbit(dx: number, dy: number) {
     this.yaw -= dx * 0.005;
     this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch + dy * 0.005));
+    this.cYaw = this.yaw;
+    this.cPitch = this.pitch;
     this.userMoved = true;
   }
 
   pan(dx: number, dy: number, viewportH: number) {
-    const scale = (this.dist * 2 * Math.tan((this.camera.fov * Math.PI) / 360)) / viewportH;
-    const fwd = this.offset(1, this.yaw, this.pitch).negate();
+    const scale = (this.cDist * 2 * Math.tan((this.camera.fov * Math.PI) / 360)) / viewportH;
+    const fwd = this.offset(1, this.cYaw, this.cPitch).negate();
     const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
     const up = new THREE.Vector3().crossVectors(right, fwd).normalize();
-    this.target.addScaledVector(right, -dx * scale).addScaledVector(up, dy * scale);
+    // Move the camera with the hand so the graph itself follows the drag.
+    const delta = right.multiplyScalar(-dx * scale).addScaledVector(up, dy * scale);
+    this.target.add(delta);
+    this.cTarget.add(delta);
     this.userMoved = true;
   }
 
   /** factor < 1 zooms in. ndc is the cursor position in normalized device coords. */
   zoomAt(factor: number, ndcX = 0, ndcY = 0) {
-    if (factor < 1 && this.dist * factor < this.minDist) {
-      // As close as orbiting allows: keep diving by moving forward toward the pointer.
-      const cam = this.camera.clone();
-      cam.position.copy(this.desiredPosition());
-      cam.lookAt(this.target);
-      cam.updateMatrixWorld();
-      const dir = new THREE.Vector3(ndcX, ndcY, 0.5).unproject(cam).sub(cam.position).normalize();
-      this.target.addScaledVector(dir, Math.max(0.6, this.minDist * 6) * (1 - factor) * 4);
-      this.dist = this.minDist;
-      this.userMoved = true;
-      return;
-    }
     const newDist = this.clampDist(this.dist * factor);
     const f = newDist / this.dist;
     if (Math.abs(1 - f) < 1e-6) return;
@@ -94,16 +88,12 @@ export class CameraRig {
     cam.lookAt(this.target);
     cam.updateMatrixWorld();
     const dir = new THREE.Vector3(ndcX, ndcY, 0.5).unproject(cam).sub(cam.position).normalize();
-    if (f < 1) {
-      // Zoom in toward the pointer.
-      const p = cam.position.clone().addScaledVector(dir, this.dist);
-      this.target.add(p.sub(this.target).multiplyScalar(1 - f));
-    } else {
-      // Zoom out drifts back toward the map centre, reaching it at the widest view.
-      const span = this.maxDist - this.dist;
-      const k = span > 1e-6 ? Math.min(1, (newDist - this.dist) / span) : 1;
-      this.target.lerp(this.home, k);
-    }
+    const viewDirection = this.target.clone().sub(cam.position).normalize();
+    const rayDepth = this.dist / Math.max(0.01, dir.dot(viewDirection));
+    const anchor = cam.position.clone().addScaledVector(dir, rayDepth);
+    const shift = anchor.sub(this.target).multiplyScalar(1 - f);
+    this.target.add(shift);
+    this.cTarget.add(shift);
     this.dist = newDist;
     this.userMoved = true;
   }

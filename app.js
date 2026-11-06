@@ -403,29 +403,22 @@ var CameraRig = class {
   orbit(dx, dy) {
     this.yaw -= dx * 5e-3;
     this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch + dy * 5e-3));
+    this.cYaw = this.yaw;
+    this.cPitch = this.pitch;
     this.userMoved = true;
   }
   pan(dx, dy, viewportH) {
-    const scale = this.dist * 2 * Math.tan(this.camera.fov * Math.PI / 360) / viewportH;
-    const fwd = this.offset(1, this.yaw, this.pitch).negate();
+    const scale = this.cDist * 2 * Math.tan(this.camera.fov * Math.PI / 360) / viewportH;
+    const fwd = this.offset(1, this.cYaw, this.cPitch).negate();
     const right = new THREE2.Vector3().crossVectors(fwd, new THREE2.Vector3(0, 1, 0)).normalize();
     const up = new THREE2.Vector3().crossVectors(right, fwd).normalize();
-    this.target.addScaledVector(right, -dx * scale).addScaledVector(up, dy * scale);
+    const delta = right.multiplyScalar(-dx * scale).addScaledVector(up, dy * scale);
+    this.target.add(delta);
+    this.cTarget.add(delta);
     this.userMoved = true;
   }
   /** factor < 1 zooms in. ndc is the cursor position in normalized device coords. */
   zoomAt(factor, ndcX = 0, ndcY = 0) {
-    if (factor < 1 && this.dist * factor < this.minDist) {
-      const cam2 = this.camera.clone();
-      cam2.position.copy(this.desiredPosition());
-      cam2.lookAt(this.target);
-      cam2.updateMatrixWorld();
-      const dir2 = new THREE2.Vector3(ndcX, ndcY, 0.5).unproject(cam2).sub(cam2.position).normalize();
-      this.target.addScaledVector(dir2, Math.max(0.6, this.minDist * 6) * (1 - factor) * 4);
-      this.dist = this.minDist;
-      this.userMoved = true;
-      return;
-    }
     const newDist = this.clampDist(this.dist * factor);
     const f = newDist / this.dist;
     if (Math.abs(1 - f) < 1e-6) return;
@@ -434,14 +427,12 @@ var CameraRig = class {
     cam.lookAt(this.target);
     cam.updateMatrixWorld();
     const dir = new THREE2.Vector3(ndcX, ndcY, 0.5).unproject(cam).sub(cam.position).normalize();
-    if (f < 1) {
-      const p = cam.position.clone().addScaledVector(dir, this.dist);
-      this.target.add(p.sub(this.target).multiplyScalar(1 - f));
-    } else {
-      const span = this.maxDist - this.dist;
-      const k = span > 1e-6 ? Math.min(1, (newDist - this.dist) / span) : 1;
-      this.target.lerp(this.home, k);
-    }
+    const viewDirection = this.target.clone().sub(cam.position).normalize();
+    const rayDepth = this.dist / Math.max(0.01, dir.dot(viewDirection));
+    const anchor = cam.position.clone().addScaledVector(dir, rayDepth);
+    const shift = anchor.sub(this.target).multiplyScalar(1 - f);
+    this.target.add(shift);
+    this.cTarget.add(shift);
     this.dist = newDist;
     this.userMoved = true;
   }
@@ -729,6 +720,9 @@ var MapScene = class {
     this.dirty = true;
     this.pickAt = null;
     this.keys = /* @__PURE__ */ new Set();
+    /** Pointer velocity in CSS pixels per second, carried briefly after a pan. */
+    this.panMomentum = { x: 0, y: 0 };
+    this.directGestureActive = false;
     this.lastT = performance.now();
     this.frameN = 0;
     this.width = 1;
@@ -1006,6 +1000,21 @@ var MapScene = class {
     if (fwd || turn || rise) this.rig.drive(fwd, turn, rise, dt);
     if (this.keys.has("=") || this.keys.has("+")) this.rig.zoomAt(Math.exp(-dt * 1.6));
     if (this.keys.has("-") || this.keys.has("_")) this.rig.zoomAt(Math.exp(dt * 1.6));
+    let momentumMoving = false;
+    if (this.rig.reducedMotion) {
+      this.panMomentum.x = this.panMomentum.y = 0;
+    } else if (!this.directGestureActive) {
+      const speed = Math.hypot(this.panMomentum.x, this.panMomentum.y);
+      if (speed > 12 && dt > 0) {
+        this.rig.pan(this.panMomentum.x * dt, this.panMomentum.y * dt, this.height);
+        const damping = Math.exp(-dt / 0.28);
+        this.panMomentum.x *= damping;
+        this.panMomentum.y *= damping;
+        momentumMoving = true;
+      } else if (speed > 0) {
+        this.panMomentum.x = this.panMomentum.y = 0;
+      }
+    }
     let layoutMoving = false;
     if (!this.layout.settled && this.ids.length && !this.initialLayoutPending) {
       this.layout.tick(2);
@@ -1014,7 +1023,7 @@ var MapScene = class {
       if (!this.rig.userMoved) this.rig.overview(this.extentC, this.extentR);
     }
     const camMoving = this.rig.update(dt);
-    if (camMoving || layoutMoving || this.dirty || this.pickAt) {
+    if (camMoving || momentumMoving || layoutMoving || this.dirty || this.pickAt) {
       this.dirty = false;
       const fading = this.updateNodes(dt);
       this.updateEdges();
@@ -1030,7 +1039,7 @@ var MapScene = class {
       this.snow.material.uniforms.uCam.value.copy(this.camera.position);
       this.snow.material.uniforms.uAlpha.value = Math.min(1, Math.max(0, (this.extentR * 0.9 - this.rig.currentDist) / (this.extentR * 0.5)));
       this.renderer.render(this.scene, this.camera);
-      if (this.frameN % 4 === 0 || !camMoving) this.cb.onFrame({ depth: this.depth, moving: camMoving, ready: !this.initialLayoutPending });
+      if (this.frameN % 4 === 0 || !camMoving && !momentumMoving) this.cb.onFrame({ depth: this.depth, moving: camMoving || momentumMoving, ready: !this.initialLayoutPending });
     }
   }
   updateExtent() {
@@ -1354,25 +1363,58 @@ var MapScene = class {
   bindInput() {
     const c = this.canvas;
     const pointers = /* @__PURE__ */ new Map();
-    let downAt = null;
-    let moved = 0;
+    let gesture = "idle";
     let pinch = null;
     const local = (e) => {
       const r = c.getBoundingClientRect();
       return { x: e.clientX - r.left, y: e.clientY - r.top };
     };
+    const addVelocity = (dx, dy, elapsedMs) => {
+      const seconds = Math.max(8e-3, Math.min(0.08, elapsedMs / 1e3));
+      const rawX = dx / seconds, rawY = dy / seconds;
+      const sample = 1 - Math.exp(-seconds * 18);
+      this.panMomentum.x += (rawX - this.panMomentum.x) * sample;
+      this.panMomentum.y += (rawY - this.panMomentum.y) * sample;
+      const speed = Math.hypot(this.panMomentum.x, this.panMomentum.y);
+      if (speed > 3200) {
+        this.panMomentum.x *= 3200 / speed;
+        this.panMomentum.y *= 3200 / speed;
+      }
+    };
+    const beginSingleGesture = (p) => {
+      p.started = false;
+      p.tapCandidate = true;
+      p.startX = p.x;
+      p.startY = p.y;
+      p.downAt = p.lastAt = performance.now();
+      p.mode = "pan";
+      const hit = this.pick(p.x, p.y);
+      if (hit.node || hit.edge) p.mode = "node";
+    };
     c.addEventListener("contextmenu", (e) => e.preventDefault());
     c.addEventListener("pointerdown", (e) => {
-      c.setPointerCapture(e.pointerId);
+      try {
+        c.setPointerCapture(e.pointerId);
+      } catch {
+      }
       const p = local(e);
-      pointers.set(e.pointerId, { ...p, button: e.button });
-      downAt = p;
-      moved = 0;
+      this.panMomentum.x = this.panMomentum.y = 0;
+      this.directGestureActive = true;
+      const mode = e.button === 2 || e.button === 0 && e.shiftKey ? "orbit" : "pan";
+      const state = { ...p, startX: p.x, startY: p.y, downAt: performance.now(), lastAt: performance.now(), mode, started: false, tapCandidate: e.button === 0 };
+      if (pointers.size === 0) {
+        const hit = this.pick(p.x, p.y);
+        if (mode === "pan" && (hit.node || hit.edge)) state.mode = "node";
+        gesture = state.mode;
+      }
+      pointers.set(e.pointerId, state);
       if (pointers.size === 2) {
         const [a, b] = Array.from(pointers.values());
-        pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
+        a.tapCandidate = b.tapCandidate = false;
+        gesture = "pinch";
+        pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, at: performance.now() };
       }
-      c.style.cursor = "grabbing";
+      c.style.cursor = gesture === "node" ? "pointer" : "grabbing";
       this.tooltip.hidden = true;
     });
     c.addEventListener("pointermove", (e) => {
@@ -1384,8 +1426,9 @@ var MapScene = class {
         return;
       }
       const dx = p.x - prev.x, dy = p.y - prev.y;
-      moved += Math.abs(dx) + Math.abs(dy);
-      pointers.set(e.pointerId, { ...p, button: prev.button });
+      const now = performance.now();
+      prev.x = p.x;
+      prev.y = p.y;
       if (pointers.size === 2 && pinch) {
         const [a, b] = Array.from(pointers.values());
         const d = Math.hypot(a.x - b.x, a.y - b.y);
@@ -1393,27 +1436,54 @@ var MapScene = class {
         const n = this.ndc(cx, cy);
         if (d > 0 && pinch.d > 0) this.rig.zoomAt(pinch.d / d, n.x, n.y);
         this.rig.pan(cx - pinch.cx, cy - pinch.cy, this.height);
-        pinch = { d, cx, cy };
-      } else if (prev.button === 2 || e.shiftKey || prev.button === 1) {
-        this.rig.pan(dx, dy, this.height);
-      } else {
-        this.rig.orbit(dx, dy);
+        addVelocity(cx - pinch.cx, cy - pinch.cy, now - pinch.at);
+        pinch = { d, cx, cy, at: now };
+      } else if (pointers.size === 1) {
+        const travel = Math.hypot(p.x - prev.startX, p.y - prev.startY);
+        if (travel >= 4) prev.tapCandidate = false;
+        if (!prev.started && travel >= 4) {
+          prev.started = true;
+          if (gesture === "pan") {
+            this.rig.pan(p.x - prev.startX, p.y - prev.startY, this.height);
+            addVelocity(p.x - prev.startX, p.y - prev.startY, now - prev.downAt);
+          } else if (gesture === "orbit") {
+            this.rig.orbit(p.x - prev.startX, p.y - prev.startY);
+          }
+        } else if (prev.started && gesture === "pan") {
+          this.rig.pan(dx, dy, this.height);
+          addVelocity(dx, dy, now - prev.lastAt);
+        } else if (prev.started && gesture === "orbit") {
+          this.rig.orbit(dx, dy);
+        }
       }
+      prev.lastAt = now;
       this.dirty = true;
     });
     const end = (e) => {
       const p = local(e);
+      const state = pointers.get(e.pointerId);
       const wasSingle = pointers.size === 1;
+      const wasTap = wasSingle && !!state?.tapCandidate && !state.started && e.type === "pointerup";
       pointers.delete(e.pointerId);
-      if (pointers.size < 2) pinch = null;
-      c.style.cursor = "grab";
-      if (wasSingle && downAt && moved < 6 && e.type === "pointerup") {
+      if (gesture === "pinch" && pointers.size === 1) {
+        pinch = null;
+        const remaining = Array.from(pointers.values())[0];
+        beginSingleGesture(remaining);
+        remaining.tapCandidate = false;
+        gesture = remaining.mode;
+      } else if (pointers.size === 0) {
+        if (e.type === "pointercancel") this.panMomentum.x = this.panMomentum.y = 0;
+        this.directGestureActive = false;
+        pinch = null;
+        gesture = "idle";
+      }
+      c.style.cursor = pointers.size ? "grabbing" : "grab";
+      if (wasTap) {
         const r = this.pick(p.x, p.y);
         if (r.node) this.cb.onPickNode(r.node);
         else if (r.edge) this.cb.onPickEdge(r.edge);
         else this.cb.onPickNothing();
       }
-      downAt = null;
     };
     c.addEventListener("pointerup", end);
     c.addEventListener("pointercancel", end);
@@ -1448,7 +1518,7 @@ var MapScene = class {
     });
     c.addEventListener("keyup", (e) => this.keys.delete(e.key.toLowerCase()));
     c.addEventListener("blur", () => this.keys.clear());
-    c.addEventListener("focus", () => this.cb.onHint("Keyboard: W/S or \u2191/\u2193 drive \xB7 A/D or \u2190/\u2192 turn \xB7 Q/E sink/rise \xB7 +/\u2212 zoom \xB7 0 overview \xB7 Esc clear"));
+    c.addEventListener("focus", () => this.cb.onHint("Drag to pan \xB7 right-drag or Shift-drag to orbit \xB7 scroll/pinch to zoom \xB7 W/S drive \xB7 A/D turn \xB7 0 wide view"));
   }
   resize() {
     const r = this.canvas.getBoundingClientRect();

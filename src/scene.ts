@@ -117,6 +117,9 @@ export class MapScene {
   private dirty = true;
   private pickAt: { x: number; y: number } | null = null;
   private keys = new Set<string>();
+  /** Pointer velocity in CSS pixels per second, carried briefly after a pan. */
+  private panMomentum = { x: 0, y: 0 };
+  private directGestureActive = false;
   private lastT = performance.now();
   private frameN = 0;
   private width = 1;
@@ -405,6 +408,24 @@ export class MapScene {
     if (this.keys.has("=") || this.keys.has("+")) this.rig.zoomAt(Math.exp(-dt * 1.6));
     if (this.keys.has("-") || this.keys.has("_")) this.rig.zoomAt(Math.exp(dt * 1.6));
 
+    // Release momentum follows the last measured gesture velocity and eases to
+    // rest. Reduced-motion keeps direct manipulation but skips the glide.
+    let momentumMoving = false;
+    if (this.rig.reducedMotion) {
+      this.panMomentum.x = this.panMomentum.y = 0;
+    } else if (!this.directGestureActive) {
+      const speed = Math.hypot(this.panMomentum.x, this.panMomentum.y);
+      if (speed > 12 && dt > 0) {
+        this.rig.pan(this.panMomentum.x * dt, this.panMomentum.y * dt, this.height);
+        const damping = Math.exp(-dt / 0.28);
+        this.panMomentum.x *= damping;
+        this.panMomentum.y *= damping;
+        momentumMoving = true;
+      } else if (speed > 0) {
+        this.panMomentum.x = this.panMomentum.y = 0;
+      }
+    }
+
     let layoutMoving = false;
     if (!this.layout.settled && this.ids.length && !this.initialLayoutPending) {
       this.layout.tick(2);
@@ -413,7 +434,7 @@ export class MapScene {
       if (!this.rig.userMoved) this.rig.overview(this.extentC, this.extentR);
     }
     const camMoving = this.rig.update(dt);
-    if (camMoving || layoutMoving || this.dirty || this.pickAt) {
+    if (camMoving || momentumMoving || layoutMoving || this.dirty || this.pickAt) {
       this.dirty = false;
       const fading = this.updateNodes(dt);
       this.updateEdges();
@@ -426,7 +447,7 @@ export class MapScene {
       this.snow.material.uniforms.uCam.value.copy(this.camera.position);
       this.snow.material.uniforms.uAlpha.value = Math.min(1, Math.max(0, (this.extentR * 0.9 - this.rig.currentDist) / (this.extentR * 0.5)));
       this.renderer.render(this.scene, this.camera);
-      if (this.frameN % 4 === 0 || !camMoving) this.cb.onFrame({ depth: this.depth, moving: camMoving, ready: !this.initialLayoutPending });
+      if (this.frameN % 4 === 0 || (!camMoving && !momentumMoving)) this.cb.onFrame({ depth: this.depth, moving: camMoving || momentumMoving, ready: !this.initialLayoutPending });
     }
   }
 
@@ -734,24 +755,55 @@ export class MapScene {
 
   private bindInput() {
     const c = this.canvas;
-    const pointers = new Map<number, { x: number; y: number; button: number }>();
-    let downAt: { x: number; y: number } | null = null;
-    let moved = 0;
-    let pinch: { d: number; cx: number; cy: number } | null = null;
+    type PointerState = {
+      x: number; y: number; startX: number; startY: number;
+      downAt: number; lastAt: number;
+      mode: "pan" | "orbit" | "node"; started: boolean; tapCandidate: boolean;
+    };
+    const pointers = new Map<number, PointerState>();
+    let gesture: "idle" | "pan" | "orbit" | "node" | "pinch" = "idle";
+    let pinch: { d: number; cx: number; cy: number; at: number } | null = null;
     const local = (e: PointerEvent | WheelEvent) => { const r = c.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    const addVelocity = (dx: number, dy: number, elapsedMs: number) => {
+      const seconds = Math.max(0.008, Math.min(0.08, elapsedMs / 1000));
+      const rawX = dx / seconds, rawY = dy / seconds;
+      const sample = 1 - Math.exp(-seconds * 18);
+      this.panMomentum.x += (rawX - this.panMomentum.x) * sample;
+      this.panMomentum.y += (rawY - this.panMomentum.y) * sample;
+      const speed = Math.hypot(this.panMomentum.x, this.panMomentum.y);
+      if (speed > 3200) { this.panMomentum.x *= 3200 / speed; this.panMomentum.y *= 3200 / speed; }
+    };
+    const beginSingleGesture = (p: PointerState) => {
+      p.started = false;
+      p.tapCandidate = true;
+      p.startX = p.x; p.startY = p.y;
+      p.downAt = p.lastAt = performance.now();
+      p.mode = "pan";
+      const hit = this.pick(p.x, p.y);
+      if (hit.node || hit.edge) p.mode = "node";
+    };
 
     c.addEventListener("contextmenu", (e) => e.preventDefault());
     c.addEventListener("pointerdown", (e) => {
-      c.setPointerCapture(e.pointerId);
+      try { c.setPointerCapture(e.pointerId); } catch { /* Pointer may already have been cancelled. */ }
       const p = local(e);
-      pointers.set(e.pointerId, { ...p, button: e.button });
-      downAt = p;
-      moved = 0;
+      this.panMomentum.x = this.panMomentum.y = 0;
+      this.directGestureActive = true;
+      const mode: PointerState["mode"] = e.button === 2 || (e.button === 0 && e.shiftKey) ? "orbit" : "pan";
+      const state: PointerState = { ...p, startX: p.x, startY: p.y, downAt: performance.now(), lastAt: performance.now(), mode, started: false, tapCandidate: e.button === 0 };
+      if (pointers.size === 0) {
+        const hit = this.pick(p.x, p.y);
+        if (mode === "pan" && (hit.node || hit.edge)) state.mode = "node";
+        gesture = state.mode;
+      }
+      pointers.set(e.pointerId, state);
       if (pointers.size === 2) {
         const [a, b] = Array.from(pointers.values());
-        pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
+        a.tapCandidate = b.tapCandidate = false;
+        gesture = "pinch";
+        pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, at: performance.now() };
       }
-      c.style.cursor = "grabbing";
+      c.style.cursor = gesture === "node" ? "pointer" : "grabbing";
       this.tooltip.hidden = true;
     });
     c.addEventListener("pointermove", (e) => {
@@ -759,8 +811,8 @@ export class MapScene {
       const prev = pointers.get(e.pointerId);
       if (!prev) { this.pickAt = p; this.dirty = true; return; }
       const dx = p.x - prev.x, dy = p.y - prev.y;
-      moved += Math.abs(dx) + Math.abs(dy);
-      pointers.set(e.pointerId, { ...p, button: prev.button });
+      const now = performance.now();
+      prev.x = p.x; prev.y = p.y;
       if (pointers.size === 2 && pinch) {
         const [a, b] = Array.from(pointers.values());
         const d = Math.hypot(a.x - b.x, a.y - b.y);
@@ -768,27 +820,54 @@ export class MapScene {
         const n = this.ndc(cx, cy);
         if (d > 0 && pinch.d > 0) this.rig.zoomAt(pinch.d / d, n.x, n.y);
         this.rig.pan(cx - pinch.cx, cy - pinch.cy, this.height);
-        pinch = { d, cx, cy };
-      } else if (prev.button === 2 || e.shiftKey || prev.button === 1) {
-        this.rig.pan(dx, dy, this.height);
-      } else {
-        this.rig.orbit(dx, dy);
+        addVelocity(cx - pinch.cx, cy - pinch.cy, now - pinch.at);
+        pinch = { d, cx, cy, at: now };
+      } else if (pointers.size === 1) {
+        const travel = Math.hypot(p.x - prev.startX, p.y - prev.startY);
+        if (travel >= 4) prev.tapCandidate = false;
+        if (!prev.started && travel >= 4) {
+          prev.started = true;
+          if (gesture === "pan") {
+            this.rig.pan(p.x - prev.startX, p.y - prev.startY, this.height);
+            addVelocity(p.x - prev.startX, p.y - prev.startY, now - prev.downAt);
+          } else if (gesture === "orbit") {
+            this.rig.orbit(p.x - prev.startX, p.y - prev.startY);
+          }
+        } else if (prev.started && gesture === "pan") {
+          this.rig.pan(dx, dy, this.height);
+          addVelocity(dx, dy, now - prev.lastAt);
+        } else if (prev.started && gesture === "orbit") {
+          this.rig.orbit(dx, dy);
+        }
       }
+      prev.lastAt = now;
       this.dirty = true;
     });
     const end = (e: PointerEvent) => {
       const p = local(e);
+      const state = pointers.get(e.pointerId);
       const wasSingle = pointers.size === 1;
+      const wasTap = wasSingle && !!state?.tapCandidate && !state.started && e.type === "pointerup";
       pointers.delete(e.pointerId);
-      if (pointers.size < 2) pinch = null;
-      c.style.cursor = "grab";
-      if (wasSingle && downAt && moved < 6 && e.type === "pointerup") {
+      if (gesture === "pinch" && pointers.size === 1) {
+        pinch = null;
+        const remaining = Array.from(pointers.values())[0];
+        beginSingleGesture(remaining);
+        remaining.tapCandidate = false;
+        gesture = remaining.mode;
+      } else if (pointers.size === 0) {
+        if (e.type === "pointercancel") this.panMomentum.x = this.panMomentum.y = 0;
+        this.directGestureActive = false;
+        pinch = null;
+        gesture = "idle";
+      }
+      c.style.cursor = pointers.size ? "grabbing" : "grab";
+      if (wasTap) {
         const r = this.pick(p.x, p.y);
         if (r.node) this.cb.onPickNode(r.node);
         else if (r.edge) this.cb.onPickEdge(r.edge);
         else this.cb.onPickNothing();
       }
-      downAt = null;
     };
     c.addEventListener("pointerup", end);
     c.addEventListener("pointercancel", end);
@@ -812,7 +891,7 @@ export class MapScene {
     });
     c.addEventListener("keyup", (e) => this.keys.delete(e.key.toLowerCase()));
     c.addEventListener("blur", () => this.keys.clear());
-    c.addEventListener("focus", () => this.cb.onHint("Keyboard: W/S or ↑/↓ drive · A/D or ←/→ turn · Q/E sink/rise · +/− zoom · 0 overview · Esc clear"));
+    c.addEventListener("focus", () => this.cb.onHint("Drag to pan · right-drag or Shift-drag to orbit · scroll/pinch to zoom · W/S drive · A/D turn · 0 wide view"));
   }
 
   private resize() {
