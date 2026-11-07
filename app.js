@@ -855,6 +855,7 @@ var MapScene = class {
     bgColor.set(this.pal.bg);
     this.snow.material.uniforms.uColor.value.setRGB(...this.pal.snow);
     this.rings.forEach((r) => r.material.color.set(this.pal.select));
+    if (this.highlight) this.highlight.material.color.set(this.pal.select);
     setBadgeTheme(dark);
     this.dirty = true;
   }

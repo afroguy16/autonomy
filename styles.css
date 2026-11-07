@@ -480,6 +480,7 @@ html.scene-up .boot { background-color: transparent; }
 :root[data-theme="dark"] a:hover { color: #c3c8fb; }
 :root[data-theme="dark"] .card,
 :root[data-theme="dark"] .hint,
+:root[data-theme="dark"] .legend-btn,
 :root[data-theme="dark"] .power-exit { background: rgba(22, 23, 27, .92); border-color: var(--line-2); box-shadow: 0 4px 16px rgba(0, 0, 0, .35); }
 :root[data-theme="dark"] .lbl { color: var(--ink); text-shadow: 0 0 3px #0d0e11, 0 0 3px #0d0e11, 0 0 2px #0d0e11, 0 0 1px #0d0e11; }
 :root[data-theme="dark"] .toast,
