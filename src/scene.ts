@@ -1145,10 +1145,16 @@ export class MapScene {
     const W = this.width, H = this.height;
     const proj = new THREE.Vector3();
     const cands: { i: number; x: number; y: number; pri: number; close: boolean }[] = [];
+    // Names stay quiet: only the selected account (or both ends of a selected
+    // connection) is named on the map. Hovering shows a name in the hover card, and
+    // the names button (Aa) shows everyone's names, without overlaps.
+    const named = new Set<string>();
+    if (v.selectedNode) named.add(v.selectedNode);
+    if (v.selectedEdge) { const e = this.findEdge(v.selectedEdge); if (e) { named.add(e.source); named.add(e.target); } }
     for (let i = 0; i < this.ids.length; i++) {
       const id = this.ids[i];
       const vis = this.visCur[i];
-      const forced = v.focus.has(id) || v.matches.has(id) || id === this.hoverNode;
+      const forced = named.has(id);
       if (!forced && vis < 0.55) continue;
       if (this.introS[i] < 0.9) continue;
       if (v.filtersActive && !forced && !v.nodeMatch(id)) continue;
@@ -1163,10 +1169,8 @@ export class MapScene {
       const x = (proj.x * 0.5 + 0.5) * W, y = (-proj.y * 0.5 + 0.5) * H;
       const rpx = (this.nodeSize(i) * H) / (2 * Math.tan((this.camera.fov * Math.PI) / 360) * Math.max(d, 0.1));
       let pri = this.deg[i] * 40 - d * 3;
-      if (id === v.selectedNode || id === this.hoverNode) pri = 1e9;
-      else if (v.focus.has(id)) pri = 1e8 - d;
-      else if (v.matches.has(id)) pri = 1e7 - d;
-      cands.push({ i, x: x + Math.max(rpx * 1.15, 4) + 7, y, pri, close: id === v.selectedNode || id === this.hoverNode });
+      if (forced) pri = 1e9;
+      cands.push({ i, x: x + Math.max(rpx * 1.15, 4) + 7, y, pri, close: forced });
     }
     cands.sort((a, b) => b.pri - a.pri);
     const placed: { x0: number; y0: number; x1: number; y1: number }[] = [];
@@ -1183,7 +1187,7 @@ export class MapScene {
       const el = this.labelEl(used++);
       const id = this.ids[c.i];
       el.dataset.id = id;
-      el.className = `lbl t-${this.nodeType[c.i]}${id === v.selectedNode ? " sel" : v.focus.has(id) ? " focus" : v.matches.has(id) ? " match" : ""}`;
+      el.className = `lbl t-${this.nodeType[c.i]}${named.has(id) ? " sel" : ""}`;
       const handle = c.close && node.handle ? `<span class="h">@${escapeHtml(node.handle)}</span>` : "";
       const html = `<span class="n">${escapeHtml(name)}</span>${handle}`;
       if (el.innerHTML !== html) el.innerHTML = html;
