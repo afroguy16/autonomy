@@ -780,6 +780,11 @@ var MapScene = class {
     this.fxNow = 0;
     /** Curved fly-to: pull back a little, travel, then swoop in. */
     this.flight = null;
+    /** Hover lift: per-account spring scale and velocity, plus how much the rest dims. */
+    this.hoverS = new Float32Array(0);
+    this.hoverV = new Float32Array(0);
+    this.hoverDim = 0;
+    this.hoverNbrs = /* @__PURE__ */ new Set();
     /** Selection ripple: a pulse travelling out along the selected account's lines. */
     this.ripple = null;
     // ---------- entrance ----------
@@ -890,6 +895,37 @@ var MapScene = class {
     this.rig.snap();
     this.dirty = true;
     if (k >= 1) this.flight = null;
+  }
+  /** Spring each badge toward 1.18× when hovered, 1× otherwise; a little overshoot. */
+  stepHover(dt) {
+    if (this.hoverS.length !== this.ids.length) {
+      this.hoverS = new Float32Array(this.ids.length).fill(1);
+      this.hoverV = new Float32Array(this.ids.length);
+    }
+    const h = Math.min(dt, 1 / 30);
+    let moving = false;
+    const stiff = 260, damp = 2 * Math.sqrt(stiff) * 0.55;
+    const hi = this.hoverNode ? this.index.get(this.hoverNode) : void 0;
+    for (let i = 0; i < this.ids.length; i++) {
+      const goal = i === hi && !this.rig.reducedMotion ? 1.18 : 1;
+      const x = this.hoverS[i], v = this.hoverV[i];
+      if (x === goal && v === 0) continue;
+      const a = stiff * (goal - x) - damp * v;
+      const nv = v + a * h, nx = x + nv * h;
+      if (Math.abs(nx - goal) < 1e-3 && Math.abs(nv) < 0.01) {
+        this.hoverS[i] = goal;
+        this.hoverV[i] = 0;
+      } else {
+        this.hoverS[i] = nx;
+        this.hoverV[i] = nv;
+        moving = true;
+      }
+    }
+    const dimGoal = this.hoverNode && !this.view.selectedNode && !this.view.selectedEdge ? 1 : 0;
+    const nd = this.hoverDim + (dimGoal - this.hoverDim) * (1 - Math.exp(-dt * 10));
+    if (Math.abs(nd - this.hoverDim) > 1e-3) moving = true;
+    this.hoverDim = Math.abs(nd - dimGoal) < 1e-3 ? dimGoal : nd;
+    if (moving) this.dirty = true;
   }
   startRipple(id) {
     const i = this.index.get(id);
@@ -1423,6 +1459,7 @@ var MapScene = class {
     this.fxNow = now / 1e3;
     if (this.ripple && this.fxNow - this.ripple.start > 1.2) this.ripple = null;
     this.stepFlight();
+    this.stepHover(dt);
     if (this.ripple) this.dirty = true;
     this.stepIntro(dt, now);
     this.stepDrift(dt, now);
@@ -1487,10 +1524,12 @@ var MapScene = class {
       const bump = this.rippleBump(i);
       const sp = this.sprites.get(id);
       sp.position.set(p.x, p.y, p.z);
-      sp.scale.setScalar(Math.max(size * (1 + 0.38 * bump), 1e-4) * 2.3);
+      const lift = this.hoverS[i] ?? 1;
+      sp.scale.setScalar(Math.max(size * (1 + 0.38 * bump) * lift, 1e-4) * 2.3);
       this.dispR[i] = size * (t === "agent" ? 1.05 : 1.12);
       sp.visible = size > 1e-3;
-      const op = dimFilter ? 0.25 : dimSel ? 0.3 : 1;
+      let op = dimFilter ? 0.25 : dimSel ? 0.3 : 1;
+      if (this.hoverDim > 0 && id !== this.hoverNode && !this.hoverNbrs.has(id)) op *= 1 - 0.45 * this.hoverDim;
       sp.material.opacity = op;
       sp.renderOrder = op > 0.9 ? 3 : 2;
       ga.pos[i * 3] = p.x;
@@ -1607,6 +1646,10 @@ var MapScene = class {
           s = Math.max(s, 1);
           colored = true;
         }
+        if (this.hoverDim > 0 && (e.source === this.hoverNode || e.target === this.hoverNode)) {
+          s = Math.max(s, 0.9 * this.hoverDim);
+          colored = true;
+        } else if (this.hoverDim > 0 && !selActive) s *= 1 - 0.5 * this.hoverDim;
         const cr = colored ? kr : nr, cg = colored ? kg : ng, cb = colored ? kb : nb;
         this.edgeStrength.set(e.id, s);
         const a = this.layout.get(e.source), b = this.layout.get(e.target);
@@ -1768,6 +1811,8 @@ var MapScene = class {
     const node = r.node ?? null, edge = node ? null : r.edge ?? null;
     if (node !== this.hoverNode || edge !== this.hoverEdge) {
       this.hoverNode = node;
+      this.hoverNbrs = /* @__PURE__ */ new Set();
+      if (node && this.analysis) for (const e of this.analysis.edgesByNode.get(node) ?? []) this.hoverNbrs.add(e.source === node ? e.target : e.source);
       this.hoverEdge = edge;
       this.dirty = true;
     }
