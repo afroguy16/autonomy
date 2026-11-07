@@ -778,6 +778,8 @@ var MapScene = class {
     // ---------- interaction animations ----------
     /** Seconds (performance.now()/1000), set at the start of each frame. */
     this.fxNow = 0;
+    /** Curved fly-to: pull back a little, travel, then swoop in. */
+    this.flight = null;
     /** Selection ripple: a pulse travelling out along the selected account's lines. */
     this.ripple = null;
     // ---------- entrance ----------
@@ -852,6 +854,43 @@ var MapScene = class {
     this.resize();
     requestAnimationFrame((t) => this.loop(t));
   }
+  /**
+   * Fly to a point. Short hops glide straight; longer trips first rise back so you
+   * glimpse where you are going in the map, then swoop in. One easing curve drives
+   * position and distance together, and any input hands the camera back at once.
+   */
+  flyTo(p, dist) {
+    const d = this.rig.clampDist(dist);
+    if (this.rig.reducedMotion) {
+      this.rig.flyTo(p, d);
+      this.rig.snap();
+      return;
+    }
+    if (this.dive) {
+      this.dive = null;
+      this.nextDiveAt = this.driftT + 60;
+    }
+    this.driftLevel = 0;
+    const t = this.rig.currentTarget, fd = this.rig.currentDist;
+    const travel = Math.hypot(p.x - t.x, p.y - t.y, p.z - t.z);
+    const far = Math.min(1, travel / this.extentR);
+    const lift = Math.log(1 + 1.4 * far);
+    this.flight = { t0: this.fxNow || performance.now() / 1e3, dur: 0.9 + 0.7 * far, fx: t.x, fy: t.y, fz: t.z, fd, tx: p.x, ty: p.y, tz: p.z, td: d, lift };
+    this.rig.target.copy(t);
+    this.rig.dist = fd;
+  }
+  stepFlight() {
+    const f = this.flight;
+    if (!f) return;
+    const k = Math.min(1, (this.fxNow - f.t0) / f.dur);
+    const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+    const em = Math.min(1, Math.max(0, (e - 0.08) / 0.92));
+    this.rig.target.set(f.fx + (f.tx - f.fx) * em, f.fy + (f.ty - f.fy) * em, f.fz + (f.tz - f.fz) * em);
+    this.rig.dist = Math.exp(Math.log(f.fd) + (Math.log(f.td) - Math.log(f.fd)) * e + f.lift * Math.sin(Math.PI * e));
+    this.rig.snap();
+    this.dirty = true;
+    if (k >= 1) this.flight = null;
+  }
   startRipple(id) {
     const i = this.index.get(id);
     if (i === void 0 || !this.analysis || this.rig.reducedMotion) {
@@ -868,7 +907,9 @@ var MapScene = class {
     }
     const far = Math.max(1e-6, ...nb.map((x) => x[1]));
     const delay = new Map(nb.map(([j, d]) => [j, 0.06 + 0.4 * (d / far)]));
-    this.ripple = { i, start: performance.now() / 1e3, delay };
+    const now = performance.now() / 1e3;
+    const start = this.flight ? Math.max(now, this.flight.t0 + this.flight.dur - 0.35) : now;
+    this.ripple = { i, start, delay };
   }
   /** 0…1…0 as the ripple passes account i. */
   rippleBump(i) {
@@ -1040,6 +1081,11 @@ var MapScene = class {
     }
   }
   setView(v) {
+    if ((v.selectedNode || v.selectedEdge) && this.dive) {
+      this.dive = null;
+      this.nextDiveAt = this.driftT + 60;
+      this.driftLevel = 0;
+    }
     if (v.selectedNode && v.selectedNode !== this.view.selectedNode) this.startRipple(v.selectedNode);
     else if (!v.selectedNode) this.ripple = null;
     this.view = v;
@@ -1250,6 +1296,7 @@ var MapScene = class {
   }
   /** Called on any direct input: stop drifting now, resume after a quiet spell. */
   noteInput() {
+    this.flight = null;
     if (this.dive) {
       this.dive = null;
       this.nextDiveAt = this.driftT + 60;
@@ -1283,7 +1330,7 @@ var MapScene = class {
       const o = this.layout.get(e.source === id ? e.target : e.source);
       if (o) far = Math.max(far, Math.hypot(o.x - p.x, o.y - p.y, o.z - p.z));
     }
-    this.rig.flyTo(p, Math.min(Math.max(far * 2.4, 14), this.extentR * 1.6));
+    this.flyTo(p, Math.min(Math.max(far * 2.4, 14), this.extentR * 1.6));
     this.rig.userMoved = true;
     this.dirty = true;
   }
@@ -1291,7 +1338,7 @@ var MapScene = class {
     const a = this.layout.get(e.source), b = this.layout.get(e.target);
     if (!a || !b) return;
     const len = Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
-    this.rig.flyTo({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: (a.z + b.z) / 2 }, Math.max(len * 2.3, 18));
+    this.flyTo({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: (a.z + b.z) / 2 }, Math.max(len * 2.3, 18));
     this.rig.userMoved = true;
     this.dirty = true;
   }
@@ -1375,6 +1422,7 @@ var MapScene = class {
     }
     this.fxNow = now / 1e3;
     if (this.ripple && this.fxNow - this.ripple.start > 1.2) this.ripple = null;
+    this.stepFlight();
     if (this.ripple) this.dirty = true;
     this.stepIntro(dt, now);
     this.stepDrift(dt, now);

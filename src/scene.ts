@@ -129,6 +129,44 @@ export class MapScene {
   // ---------- interaction animations ----------
   /** Seconds (performance.now()/1000), set at the start of each frame. */
   private fxNow = 0;
+  /** Curved fly-to: pull back a little, travel, then swoop in. */
+  private flight: { t0: number; dur: number; fx: number; fy: number; fz: number; fd: number; tx: number; ty: number; tz: number; td: number; lift: number } | null = null;
+
+  /**
+   * Fly to a point. Short hops glide straight; longer trips first rise back so you
+   * glimpse where you are going in the map, then swoop in. One easing curve drives
+   * position and distance together, and any input hands the camera back at once.
+   */
+  private flyTo(p: { x: number; y: number; z: number }, dist: number) {
+    const d = this.rig.clampDist(dist);
+    if (this.rig.reducedMotion) { this.rig.flyTo(p, d); this.rig.snap(); return; }
+    // A flight takes over the camera: end any drift or dive that was steering it.
+    if (this.dive) { this.dive = null; this.nextDiveAt = this.driftT + 60; }
+    this.driftLevel = 0;
+    const t = this.rig.currentTarget, fd = this.rig.currentDist;
+    const travel = Math.hypot(p.x - t.x, p.y - t.y, p.z - t.z);
+    const far = Math.min(1, travel / this.extentR);
+    // Rise to show the journey: up to ~2.4× farther out at the midpoint for long trips.
+    const lift = Math.log(1 + 1.4 * far);
+    this.flight = { t0: this.fxNow || performance.now() / 1000, dur: 0.9 + 0.7 * far, fx: t.x, fy: t.y, fz: t.z, fd, tx: p.x, ty: p.y, tz: p.z, td: d, lift };
+    this.rig.target.copy(t);
+    this.rig.dist = fd;
+  }
+
+  private stepFlight() {
+    const f = this.flight;
+    if (!f) return;
+    const k = Math.min(1, (this.fxNow - f.t0) / f.dur);
+    const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+    // Travel slightly later than the rise, so the pull-back reads before the move.
+    const em = Math.min(1, Math.max(0, (e - 0.08) / 0.92));
+    this.rig.target.set(f.fx + (f.tx - f.fx) * em, f.fy + (f.ty - f.fy) * em, f.fz + (f.tz - f.fz) * em);
+    this.rig.dist = Math.exp(Math.log(f.fd) + (Math.log(f.td) - Math.log(f.fd)) * e + f.lift * Math.sin(Math.PI * e));
+    this.rig.snap();
+    this.dirty = true;
+    if (k >= 1) this.flight = null;
+  }
+
   /** Selection ripple: a pulse travelling out along the selected account's lines. */
   private ripple: { i: number; start: number; delay: Map<number, number> } | null = null;
 
@@ -146,7 +184,10 @@ export class MapScene {
     const far = Math.max(1e-6, ...nb.map((x) => x[1]));
     // The pulse reaches the nearest neighbours first and the farthest after ~0.45s.
     const delay = new Map(nb.map(([j, d]) => [j, 0.06 + 0.4 * (d / far)]));
-    this.ripple = { i, start: performance.now() / 1000, delay };
+    // If the camera is flying there, start the pulse just before it arrives.
+    const now = performance.now() / 1000;
+    const start = this.flight ? Math.max(now, this.flight.t0 + this.flight.dur - 0.35) : now;
+    this.ripple = { i, start, delay };
   }
 
   /** 0…1…0 as the ripple passes account i. */
@@ -415,6 +456,8 @@ export class MapScene {
   }
 
   setView(v: ViewState) {
+    // A selection ends any dive in progress where it is.
+    if ((v.selectedNode || v.selectedEdge) && this.dive) { this.dive = null; this.nextDiveAt = this.driftT + 60; this.driftLevel = 0; }
     if (v.selectedNode && v.selectedNode !== this.view.selectedNode) this.startRipple(v.selectedNode);
     else if (!v.selectedNode) this.ripple = null;
     this.view = v;
@@ -630,6 +673,7 @@ export class MapScene {
 
   /** Called on any direct input: stop drifting now, resume after a quiet spell. */
   private noteInput() {
+    this.flight = null;
     // Abandon a dive where it is; the user now has the camera.
     if (this.dive) { this.dive = null; this.nextDiveAt = this.driftT + 60; }
     this.driftLevel = 0;
@@ -665,7 +709,7 @@ export class MapScene {
       const o = this.layout.get(e.source === id ? e.target : e.source);
       if (o) far = Math.max(far, Math.hypot(o.x - p.x, o.y - p.y, o.z - p.z));
     }
-    this.rig.flyTo(p, Math.min(Math.max(far * 2.4, 14), this.extentR * 1.6));
+    this.flyTo(p, Math.min(Math.max(far * 2.4, 14), this.extentR * 1.6));
     this.rig.userMoved = true;
     this.dirty = true;
   }
@@ -674,7 +718,7 @@ export class MapScene {
     const a = this.layout.get(e.source), b = this.layout.get(e.target);
     if (!a || !b) return;
     const len = Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
-    this.rig.flyTo({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: (a.z + b.z) / 2 }, Math.max(len * 2.3, 18));
+    this.flyTo({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: (a.z + b.z) / 2 }, Math.max(len * 2.3, 18));
     this.rig.userMoved = true;
     this.dirty = true;
   }
@@ -744,6 +788,7 @@ export class MapScene {
     }
     this.fxNow = now / 1000;
     if (this.ripple && this.fxNow - this.ripple.start > 1.2) this.ripple = null;
+    this.stepFlight();
     if (this.ripple) this.dirty = true;
     this.stepIntro(dt, now);
     this.stepDrift(dt, now);
