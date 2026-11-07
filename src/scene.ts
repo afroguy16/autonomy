@@ -167,6 +167,42 @@ export class MapScene {
     if (k >= 1) this.flight = null;
   }
 
+  /** Filter transitions: per account 1 = full, 0 = filtered out; springs after a staggered start. */
+  private filterF = new Float32Array(0);
+  private filterV = new Float32Array(0);
+  private filterAt = new Float64Array(0);
+  private filterDim = new Uint8Array(0);
+
+  /**
+   * Advance account i's filter spring. A change starts after a delay that grows with
+   * distance from the map's centre, so a filter washes across the map as a wave;
+   * accounts coming back pop in with a little overshoot.
+   */
+  private filterStep(i: number, dim: boolean, p: Vec3, dt: number) {
+    if (this.filterF.length !== this.ids.length) {
+      this.filterF = new Float32Array(this.ids.length).fill(1);
+      this.filterV = new Float32Array(this.ids.length);
+      this.filterAt = new Float64Array(this.ids.length);
+      this.filterDim = new Uint8Array(this.ids.length);
+    }
+    const goal = dim ? 0 : 1;
+    if (this.filterDim[i] !== (dim ? 1 : 0)) {
+      this.filterDim[i] = dim ? 1 : 0;
+      const r = Math.min(1, Math.hypot(p.x - this.extentC.x, p.y - this.extentC.y, p.z - this.extentC.z) / this.extentR);
+      this.filterAt[i] = this.fxNow + 0.32 * r;
+    }
+    if (this.rig.reducedMotion) { this.filterF[i] = goal; this.filterV[i] = 0; return goal; }
+    let x = this.filterF[i], v = this.filterV[i];
+    if (x === goal && v === 0) return x;
+    if (this.fxNow < this.filterAt[i]) return x;
+    const h = Math.min(dt, 1 / 30), stiff = 170, damp = 2 * Math.sqrt(stiff) * (goal ? 0.5 : 0.9);
+    v += (stiff * (goal - x) - damp * v) * h;
+    x += v * h;
+    if (Math.abs(x - goal) < 1e-3 && Math.abs(v) < 1e-2) { x = goal; v = 0; }
+    this.filterF[i] = x; this.filterV[i] = v;
+    return x;
+  }
+
   /** Hover lift: per-account spring scale and velocity, plus how much the rest dims. */
   private hoverS = new Float32Array(0);
   private hoverV = new Float32Array(0);
@@ -880,8 +916,12 @@ export class MapScene {
 
       const dimSel = selActive && !v.focus.has(id);
       const dimFilter = v.filtersActive && !match;
-      const minWorld = d * pxToWorld * (dimFilter ? 2.6 : 3.6); // badge never smaller than a few pixels
-      const size = Math.max(this.nodeSize(i) * (dimFilter ? 0.6 : 1), minWorld) * cur * (id === v.selectedNode ? 1.3 : 1) * this.introS[i]
+      // F: 1 = shown fully, 0 = filtered out (shrunk and faded), animated as a wave.
+      const F = this.filterStep(i, dimFilter, p, dt);
+      if (F !== (dimFilter ? 0 : 1)) fading = true;
+      const Fc = Math.max(0, F);
+      const minWorld = d * pxToWorld * (2.6 + 1.0 * Fc); // badge never smaller than a few pixels
+      const size = Math.max(this.nodeSize(i) * (0.6 + 0.4 * F), minWorld) * cur * (id === v.selectedNode ? 1.3 : 1) * this.introS[i]
         // During the entrance, badges right in front of the camera stay out of the shot.
         * (this.introState === "playing" ? Math.min(1, Math.max(0, (d - this.extentR * 0.1) / (this.extentR * 0.12)))
           // While diving, only badges almost touching the lens fade, so you pass between the rest.
@@ -893,7 +933,7 @@ export class MapScene {
       sp.scale.setScalar(Math.max(size * (1 + 0.38 * bump) * lift, 0.0001) * 2.3);
       this.dispR[i] = size * (t === "agent" ? 1.05 : 1.12);
       sp.visible = size > 0.001;
-      let op = dimFilter ? 0.25 : dimSel ? 0.3 : 1;
+      let op = Math.min(0.25 + 0.75 * Math.min(1, Fc), dimSel ? 0.3 : 1);
       if (this.hoverDim > 0 && id !== this.hoverNode && !this.hoverNbrs.has(id)) op *= 1 - 0.45 * this.hoverDim;
       // Badges always sit on top of lines; among themselves they draw back to front.
       sp.material.opacity = op;

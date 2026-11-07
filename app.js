@@ -780,6 +780,11 @@ var MapScene = class {
     this.fxNow = 0;
     /** Curved fly-to: pull back a little, travel, then swoop in. */
     this.flight = null;
+    /** Filter transitions: per account 1 = full, 0 = filtered out; springs after a staggered start. */
+    this.filterF = new Float32Array(0);
+    this.filterV = new Float32Array(0);
+    this.filterAt = new Float64Array(0);
+    this.filterDim = new Uint8Array(0);
     /** Hover lift: per-account spring scale and velocity, plus how much the rest dims. */
     this.hoverS = new Float32Array(0);
     this.hoverV = new Float32Array(0);
@@ -895,6 +900,43 @@ var MapScene = class {
     this.rig.snap();
     this.dirty = true;
     if (k >= 1) this.flight = null;
+  }
+  /**
+   * Advance account i's filter spring. A change starts after a delay that grows with
+   * distance from the map's centre, so a filter washes across the map as a wave;
+   * accounts coming back pop in with a little overshoot.
+   */
+  filterStep(i, dim, p, dt) {
+    if (this.filterF.length !== this.ids.length) {
+      this.filterF = new Float32Array(this.ids.length).fill(1);
+      this.filterV = new Float32Array(this.ids.length);
+      this.filterAt = new Float64Array(this.ids.length);
+      this.filterDim = new Uint8Array(this.ids.length);
+    }
+    const goal = dim ? 0 : 1;
+    if (this.filterDim[i] !== (dim ? 1 : 0)) {
+      this.filterDim[i] = dim ? 1 : 0;
+      const r = Math.min(1, Math.hypot(p.x - this.extentC.x, p.y - this.extentC.y, p.z - this.extentC.z) / this.extentR);
+      this.filterAt[i] = this.fxNow + 0.32 * r;
+    }
+    if (this.rig.reducedMotion) {
+      this.filterF[i] = goal;
+      this.filterV[i] = 0;
+      return goal;
+    }
+    let x = this.filterF[i], v = this.filterV[i];
+    if (x === goal && v === 0) return x;
+    if (this.fxNow < this.filterAt[i]) return x;
+    const h = Math.min(dt, 1 / 30), stiff = 170, damp = 2 * Math.sqrt(stiff) * (goal ? 0.5 : 0.9);
+    v += (stiff * (goal - x) - damp * v) * h;
+    x += v * h;
+    if (Math.abs(x - goal) < 1e-3 && Math.abs(v) < 0.01) {
+      x = goal;
+      v = 0;
+    }
+    this.filterF[i] = x;
+    this.filterV[i] = v;
+    return x;
   }
   /** Spring each badge toward 1.18× when hovered, 1× otherwise; a little overshoot. */
   stepHover(dt) {
@@ -1519,8 +1561,11 @@ var MapScene = class {
       this.visCur[i] = cur;
       const dimSel = selActive && !v.focus.has(id);
       const dimFilter = v.filtersActive && !match;
-      const minWorld = d * pxToWorld * (dimFilter ? 2.6 : 3.6);
-      const size = Math.max(this.nodeSize(i) * (dimFilter ? 0.6 : 1), minWorld) * cur * (id === v.selectedNode ? 1.3 : 1) * this.introS[i] * (this.introState === "playing" ? Math.min(1, Math.max(0, (d - this.extentR * 0.1) / (this.extentR * 0.12))) : this.dive ? Math.min(1, Math.max(0, (d - this.extentR * 0.015) / (this.extentR * 0.03))) : 1);
+      const F = this.filterStep(i, dimFilter, p, dt);
+      if (F !== (dimFilter ? 0 : 1)) fading = true;
+      const Fc = Math.max(0, F);
+      const minWorld = d * pxToWorld * (2.6 + 1 * Fc);
+      const size = Math.max(this.nodeSize(i) * (0.6 + 0.4 * F), minWorld) * cur * (id === v.selectedNode ? 1.3 : 1) * this.introS[i] * (this.introState === "playing" ? Math.min(1, Math.max(0, (d - this.extentR * 0.1) / (this.extentR * 0.12))) : this.dive ? Math.min(1, Math.max(0, (d - this.extentR * 0.015) / (this.extentR * 0.03))) : 1);
       const bump = this.rippleBump(i);
       const sp = this.sprites.get(id);
       sp.position.set(p.x, p.y, p.z);
@@ -1528,7 +1573,7 @@ var MapScene = class {
       sp.scale.setScalar(Math.max(size * (1 + 0.38 * bump) * lift, 1e-4) * 2.3);
       this.dispR[i] = size * (t === "agent" ? 1.05 : 1.12);
       sp.visible = size > 1e-3;
-      let op = dimFilter ? 0.25 : dimSel ? 0.3 : 1;
+      let op = Math.min(0.25 + 0.75 * Math.min(1, Fc), dimSel ? 0.3 : 1);
       if (this.hoverDim > 0 && id !== this.hoverNode && !this.hoverNbrs.has(id)) op *= 1 - 0.45 * this.hoverDim;
       sp.material.opacity = op;
       sp.renderOrder = op > 0.9 ? 3 : 2;
