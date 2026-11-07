@@ -775,6 +775,11 @@ var MapScene = class {
     this.height = 1;
     this.initialLayoutPending = false;
     this.pal = PALETTES.light;
+    // ---------- interaction animations ----------
+    /** Seconds (performance.now()/1000), set at the start of each frame. */
+    this.fxNow = 0;
+    /** Selection ripple: a pulse travelling out along the selected account's lines. */
+    this.ripple = null;
     // ---------- entrance ----------
     /** "waiting": data is in but positions are still being worked out; "playing": the network grows in. */
     this.introState = "off";
@@ -846,6 +851,54 @@ var MapScene = class {
     new ResizeObserver(() => this.resize()).observe(canvas);
     this.resize();
     requestAnimationFrame((t) => this.loop(t));
+  }
+  startRipple(id) {
+    const i = this.index.get(id);
+    if (i === void 0 || !this.analysis || this.rig.reducedMotion) {
+      this.ripple = null;
+      return;
+    }
+    const p = this.layout.get(id);
+    const nb = [];
+    for (const e of this.analysis.edgesByNode.get(id) ?? []) {
+      const j = this.index.get(e.source === id ? e.target : e.source);
+      if (j === void 0) continue;
+      const q = this.layout.get(this.ids[j]);
+      nb.push([j, Math.hypot(q.x - p.x, q.y - p.y, q.z - p.z)]);
+    }
+    const far = Math.max(1e-6, ...nb.map((x) => x[1]));
+    const delay = new Map(nb.map(([j, d]) => [j, 0.06 + 0.4 * (d / far)]));
+    this.ripple = { i, start: performance.now() / 1e3, delay };
+  }
+  /** 0…1…0 as the ripple passes account i. */
+  rippleBump(i) {
+    const r = this.ripple;
+    if (!r) return 0;
+    const d = r.delay.get(i);
+    if (d === void 0) return 0;
+    const u = (this.fxNow - r.start - d) / 0.5;
+    return u > 0 && u < 1 ? Math.sin(Math.PI * u) : 0;
+  }
+  /**
+   * How far a line has drawn in (0…1) and which end it grows from. Lines draw in
+   * during the entrance, and along the ripple from a newly selected account.
+   */
+  edgeReveal(ia, ib) {
+    let ink = 1, fromA = true;
+    if (this.introState !== "off") {
+      ink = this.edgeInk(ia, ib);
+      fromA = this.introAt[ia] <= this.introAt[ib];
+    }
+    const r = this.ripple;
+    if (r && (ia === r.i || ib === r.i)) {
+      const other = ia === r.i ? ib : ia;
+      const k = Math.min(1, Math.max(0, (this.fxNow - r.start) / Math.max(0.12, (r.delay.get(other) ?? 0.3) + 0.04)));
+      if (k < ink) {
+        ink = k;
+        fromA = ia === r.i;
+      }
+    }
+    return { ink, fromA };
   }
   /** Switch the map between the light and dark palettes. */
   setTheme(dark) {
@@ -987,6 +1040,8 @@ var MapScene = class {
     }
   }
   setView(v) {
+    if (v.selectedNode && v.selectedNode !== this.view.selectedNode) this.startRipple(v.selectedNode);
+    else if (!v.selectedNode) this.ripple = null;
     this.view = v;
     this.dirty = true;
   }
@@ -1318,6 +1373,9 @@ var MapScene = class {
       if (this.frameN % 10 === 0 || this.layout.settled) this.updateExtent();
       if (!this.rig.userMoved && this.introState === "off") this.rig.overview(this.extentC, this.extentR);
     }
+    this.fxNow = now / 1e3;
+    if (this.ripple && this.fxNow - this.ripple.start > 1.2) this.ripple = null;
+    if (this.ripple) this.dirty = true;
     this.stepIntro(dt, now);
     this.stepDrift(dt, now);
     const camMoving = this.rig.update(dt);
@@ -1378,9 +1436,10 @@ var MapScene = class {
       const dimFilter = v.filtersActive && !match;
       const minWorld = d * pxToWorld * (dimFilter ? 2.6 : 3.6);
       const size = Math.max(this.nodeSize(i) * (dimFilter ? 0.6 : 1), minWorld) * cur * (id === v.selectedNode ? 1.3 : 1) * this.introS[i] * (this.introState === "playing" ? Math.min(1, Math.max(0, (d - this.extentR * 0.1) / (this.extentR * 0.12))) : this.dive ? Math.min(1, Math.max(0, (d - this.extentR * 0.015) / (this.extentR * 0.03))) : 1);
+      const bump = this.rippleBump(i);
       const sp = this.sprites.get(id);
       sp.position.set(p.x, p.y, p.z);
-      sp.scale.setScalar(Math.max(size, 1e-4) * 2.3);
+      sp.scale.setScalar(Math.max(size * (1 + 0.38 * bump), 1e-4) * 2.3);
       this.dispR[i] = size * (t === "agent" ? 1.05 : 1.12);
       sp.visible = size > 1e-3;
       const op = dimFilter ? 0.25 : dimSel ? 0.3 : 1;
@@ -1402,6 +1461,13 @@ var MapScene = class {
       if (dimFilter) alpha *= v.hideFiltered ? 0 : 0.3;
       if (isMatch) alpha = 0.35;
       if (isSel) alpha = 0.4;
+      if (bump > 0) {
+        alpha = Math.max(alpha, 0.5 * bump);
+        tmpColor.set(this.pal.select);
+        ga.col[i * 3] = tmpColor.r;
+        ga.col[i * 3 + 1] = tmpColor.g;
+        ga.col[i * 3 + 2] = tmpColor.b;
+      }
       ga.alpha[i] = alpha;
     }
     const geo = this.glow.geometry;
@@ -1479,7 +1545,8 @@ var MapScene = class {
       grp.edges.forEach((e, ei) => {
         const ia = this.index.get(e.source), ib = this.index.get(e.target);
         const base = kind === "interaction" ? 0.42 : kind === "cluster" ? 0.35 : 0.8;
-        const ink = this.edgeInk(ia, ib);
+        const reveal = this.edgeReveal(ia, ib);
+        const ink = reveal.ink;
         let s = Math.min(this.visCur[ia], this.visCur[ib]) * base * Math.min(1, ink * 1.6);
         if (v.filtersActive && !v.edgeMatch(e)) s *= v.hideFiltered ? 0 : 0.06;
         let colored = !!v.colorKinds && (!v.filtersActive || v.edgeMatch(e));
@@ -1503,7 +1570,7 @@ var MapScene = class {
         for (let j = 0; j < n; j++, o++) {
           this.edgeEnds(e, ends, j, n, perp);
           if (ink < 1 && n === 1) {
-            const fromA = this.introAt[ia] <= this.introAt[ib];
+            const fromA = reveal.fromA;
             const o0 = fromA ? 0 : 3, o1 = fromA ? 3 : 0;
             for (let c = 0; c < 3; c++) ends[o1 + c] = ends[o0 + c] + (ends[o1 + c] - ends[o0 + c]) * ink;
           }

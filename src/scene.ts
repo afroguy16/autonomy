@@ -126,6 +126,58 @@ export class MapScene {
 
   private pal: MapPalette = PALETTES.light;
 
+  // ---------- interaction animations ----------
+  /** Seconds (performance.now()/1000), set at the start of each frame. */
+  private fxNow = 0;
+  /** Selection ripple: a pulse travelling out along the selected account's lines. */
+  private ripple: { i: number; start: number; delay: Map<number, number> } | null = null;
+
+  private startRipple(id: string) {
+    const i = this.index.get(id);
+    if (i === undefined || !this.analysis || this.rig.reducedMotion) { this.ripple = null; return; }
+    const p = this.layout.get(id)!;
+    const nb: [number, number][] = [];
+    for (const e of this.analysis.edgesByNode.get(id) ?? []) {
+      const j = this.index.get(e.source === id ? e.target : e.source);
+      if (j === undefined) continue;
+      const q = this.layout.get(this.ids[j])!;
+      nb.push([j, Math.hypot(q.x - p.x, q.y - p.y, q.z - p.z)]);
+    }
+    const far = Math.max(1e-6, ...nb.map((x) => x[1]));
+    // The pulse reaches the nearest neighbours first and the farthest after ~0.45s.
+    const delay = new Map(nb.map(([j, d]) => [j, 0.06 + 0.4 * (d / far)]));
+    this.ripple = { i, start: performance.now() / 1000, delay };
+  }
+
+  /** 0…1…0 as the ripple passes account i. */
+  private rippleBump(i: number) {
+    const r = this.ripple;
+    if (!r) return 0;
+    const d = r.delay.get(i);
+    if (d === undefined) return 0;
+    const u = (this.fxNow - r.start - d) / 0.5;
+    return u > 0 && u < 1 ? Math.sin(Math.PI * u) : 0;
+  }
+
+  /**
+   * How far a line has drawn in (0…1) and which end it grows from. Lines draw in
+   * during the entrance, and along the ripple from a newly selected account.
+   */
+  private edgeReveal(ia: number, ib: number) {
+    let ink = 1, fromA = true;
+    if (this.introState !== "off") {
+      ink = this.edgeInk(ia, ib);
+      fromA = this.introAt[ia] <= this.introAt[ib];
+    }
+    const r = this.ripple;
+    if (r && (ia === r.i || ib === r.i)) {
+      const other = ia === r.i ? ib : ia;
+      const k = Math.min(1, Math.max(0, (this.fxNow - r.start) / Math.max(0.12, (r.delay.get(other) ?? 0.3) + 0.04)));
+      if (k < ink) { ink = k; fromA = ia === r.i; }
+    }
+    return { ink, fromA };
+  }
+
   /** Switch the map between the light and dark palettes. */
   setTheme(dark: boolean) {
     this.pal = dark ? PALETTES.dark : PALETTES.light;
@@ -363,6 +415,8 @@ export class MapScene {
   }
 
   setView(v: ViewState) {
+    if (v.selectedNode && v.selectedNode !== this.view.selectedNode) this.startRipple(v.selectedNode);
+    else if (!v.selectedNode) this.ripple = null;
     this.view = v;
     this.dirty = true;
   }
@@ -688,6 +742,9 @@ export class MapScene {
       if (this.frameN % 10 === 0 || this.layout.settled) this.updateExtent();
       if (!this.rig.userMoved && this.introState === "off") this.rig.overview(this.extentC, this.extentR);
     }
+    this.fxNow = now / 1000;
+    if (this.ripple && this.fxNow - this.ripple.start > 1.2) this.ripple = null;
+    if (this.ripple) this.dirty = true;
     this.stepIntro(dt, now);
     this.stepDrift(dt, now);
     const camMoving = this.rig.update(dt);
@@ -753,9 +810,10 @@ export class MapScene {
         * (this.introState === "playing" ? Math.min(1, Math.max(0, (d - this.extentR * 0.1) / (this.extentR * 0.12)))
           // While diving, only badges almost touching the lens fade, so you pass between the rest.
           : this.dive ? Math.min(1, Math.max(0, (d - this.extentR * 0.015) / (this.extentR * 0.03))) : 1);
+      const bump = this.rippleBump(i);
       const sp = this.sprites.get(id)!;
       sp.position.set(p.x, p.y, p.z);
-      sp.scale.setScalar(Math.max(size, 0.0001) * 2.3);
+      sp.scale.setScalar(Math.max(size * (1 + 0.38 * bump), 0.0001) * 2.3);
       this.dispR[i] = size * (t === "agent" ? 1.05 : 1.12);
       sp.visible = size > 0.001;
       const op = dimFilter ? 0.25 : dimSel ? 0.3 : 1;
@@ -775,6 +833,12 @@ export class MapScene {
       if (dimFilter) alpha *= v.hideFiltered ? 0 : 0.3;
       if (isMatch) alpha = 0.35;
       if (isSel) alpha = 0.4;
+      if (bump > 0) {
+        // The ripple lights each neighbour briefly as it passes.
+        alpha = Math.max(alpha, 0.5 * bump);
+        tmpColor.set(this.pal.select);
+        ga.col[i * 3] = tmpColor.r; ga.col[i * 3 + 1] = tmpColor.g; ga.col[i * 3 + 2] = tmpColor.b;
+      }
       ga.alpha[i] = alpha;
     }
     const geo = this.glow.geometry;
@@ -844,7 +908,8 @@ export class MapScene {
         const ia = this.index.get(e.source)!, ib = this.index.get(e.target)!;
         // Structural links read strongest; the many interaction paths stay lighter until selected.
         const base = kind === "interaction" ? 0.42 : kind === "cluster" ? 0.35 : 0.8;
-        const ink = this.edgeInk(ia, ib);
+        const reveal = this.edgeReveal(ia, ib);
+        const ink = reveal.ink;
         let s = Math.min(this.visCur[ia], this.visCur[ib]) * base * Math.min(1, ink * 1.6);
         if (v.filtersActive && !v.edgeMatch(e)) s *= v.hideFiltered ? 0 : 0.06;
         // Lines are neutral grey; they take their kind colour only when you are looking at them.
@@ -866,7 +931,7 @@ export class MapScene {
           this.edgeEnds(e, ends, j, n, perp);
           if (ink < 1 && n === 1) {
             // Draw the line out from whichever end appeared first.
-            const fromA = this.introAt[ia] <= this.introAt[ib];
+            const fromA = reveal.fromA;
             const o0 = fromA ? 0 : 3, o1 = fromA ? 3 : 0;
             for (let c = 0; c < 3; c++) ends[o1 + c] = ends[o0 + c] + (ends[o1 + c] - ends[o0 + c]) * ink;
           }
