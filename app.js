@@ -1042,6 +1042,16 @@ var MapScene = class {
     }
     return { ink, fromA };
   }
+  /** Draw one frame right now (used so a theme switch is captured fully drawn). */
+  renderNow() {
+    if (!this.ids.length) {
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
+    this.updateNodes(0);
+    this.updateEdges();
+    this.renderer.render(this.scene, this.camera);
+  }
   /** Switch the map between the light and dark palettes. */
   setTheme(dark) {
     this.pal = dark ? PALETTES.dark : PALETTES.light;
@@ -2653,20 +2663,40 @@ function applyTheme() {
   renderLegend();
   if (!$("minimapWrap").hidden) drawMinimap();
 }
-function setTheme(pref) {
+function setTheme(pref, from) {
   try {
     if (pref === "system") localStorage.removeItem(THEME_KEY);
     else localStorage.setItem(THEME_KEY, pref);
   } catch {
   }
-  applyTheme();
+  const run = () => {
+    applyTheme();
+    scene.renderNow();
+  };
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const startVT = document.startViewTransition?.bind(document);
+  if (!startVT || reduce) run();
+  else {
+    const x = from?.x ?? innerWidth / 2, y = from?.y ?? innerHeight / 2;
+    const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    const t = startVT(run);
+    t.ready.then(() => document.documentElement.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+      { duration: 620, easing: "cubic-bezier(.45,0,.2,1)", pseudoElement: "::view-transition-new(root)" }
+    )).catch(() => {
+    });
+  }
   announce(pref === "system" ? "Theme follows your system." : `${pref === "dark" ? "Dark" : "Light"} theme.`);
 }
 systemDark?.addEventListener?.("change", () => {
   if (themePref() === "system") applyTheme();
 });
-$("themePower").addEventListener("click", () => setTheme(isDarkTheme() ? "light" : "dark"));
-$("themeBtn").addEventListener("click", () => setTheme(isDarkTheme() ? "light" : "dark"));
+var centreOf = (el) => {
+  const r = el.getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+};
+$("themePower").addEventListener("click", (e) => setTheme(isDarkTheme() ? "light" : "dark", centreOf(e.currentTarget)));
+$("themeBtn").addEventListener("click", (e) => setTheme(isDarkTheme() ? "light" : "dark", centreOf(e.currentTarget)));
 var PAUSE_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5v14M15.5 5v14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`;
 var PLAY_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>`;
 function setDrift(on) {

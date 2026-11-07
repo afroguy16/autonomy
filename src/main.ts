@@ -552,14 +552,29 @@ function applyTheme() {
   renderLegend();
   if (!$("minimapWrap").hidden) drawMinimap();
 }
-function setTheme(pref: "light" | "dark" | "system") {
+function setTheme(pref: "light" | "dark" | "system", from?: { x: number; y: number }) {
   try { if (pref === "system") localStorage.removeItem(THEME_KEY); else localStorage.setItem(THEME_KEY, pref); } catch { /* not remembered */ }
-  applyTheme();
+  // The new theme spreads out as a circle from the button you pressed (or the
+  // middle of the screen). Browsers without view transitions just switch.
+  const run = () => { applyTheme(); scene.renderNow(); };
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const startVT = (document as any).startViewTransition?.bind(document);
+  if (!startVT || reduce) run();
+  else {
+    const x = from?.x ?? innerWidth / 2, y = from?.y ?? innerHeight / 2;
+    const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    const t = startVT(run);
+    t.ready.then(() => document.documentElement.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+      { duration: 620, easing: "cubic-bezier(.45,0,.2,1)", pseudoElement: "::view-transition-new(root)" }
+    )).catch(() => { /* the switch already happened */ });
+  }
   announce(pref === "system" ? "Theme follows your system." : `${pref === "dark" ? "Dark" : "Light"} theme.`);
 }
 systemDark?.addEventListener?.("change", () => { if (themePref() === "system") applyTheme(); });
-$("themePower").addEventListener("click", () => setTheme(isDarkTheme() ? "light" : "dark"));
-$("themeBtn").addEventListener("click", () => setTheme(isDarkTheme() ? "light" : "dark"));
+const centreOf = (el: Element) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+$("themePower").addEventListener("click", (e) => setTheme(isDarkTheme() ? "light" : "dark", centreOf(e.currentTarget as Element)));
+$("themeBtn").addEventListener("click", (e) => setTheme(isDarkTheme() ? "light" : "dark", centreOf(e.currentTarget as Element)));
 
 // Ambient drift: the map turns slowly on its own until you touch it.
 const PAUSE_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5v14M15.5 5v14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`;

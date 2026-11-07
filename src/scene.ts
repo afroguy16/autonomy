@@ -309,6 +309,14 @@ export class MapScene {
     return { ink, fromA };
   }
 
+  /** Draw one frame right now (used so a theme switch is captured fully drawn). */
+  renderNow() {
+    if (!this.ids.length) { this.renderer.render(this.scene, this.camera); return; }
+    this.updateNodes(0);
+    this.updateEdges();
+    this.renderer.render(this.scene, this.camera);
+  }
+
   /** Switch the map between the light and dark palettes. */
   setTheme(dark: boolean) {
     this.pal = dark ? PALETTES.dark : PALETTES.light;
