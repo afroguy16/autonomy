@@ -780,6 +780,9 @@ var MapScene = class {
     this.fxNow = 0;
     /** Curved fly-to: pull back a little, travel, then swoop in. */
     this.flight = null;
+    /** New data: when each newly added account pops in (seconds), or -1. */
+    this.popAt = new Float64Array(0);
+    this.popUntil = 0;
     /** Filter transitions: per account 1 = full, 0 = filtered out; springs after a staggered start. */
     this.filterF = new Float32Array(0);
     this.filterV = new Float32Array(0);
@@ -901,6 +904,16 @@ var MapScene = class {
     this.dirty = true;
     if (k >= 1) this.flight = null;
   }
+  /** 0…1 (with a little overshoot) as a newly added account pops in; 1 otherwise. */
+  popScale(i) {
+    const t0 = this.popAt[i];
+    if (!(t0 >= 0)) return 1;
+    const u = (this.fxNow - t0) / 0.45;
+    if (u <= 0) return 0;
+    if (u >= 1) return 1;
+    const c1 = 1.9, c3 = c1 + 1;
+    return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2);
+  }
   /**
    * Advance account i's filter spring. A change starts after a delay that grows with
    * distance from the map's centre, so a filter washes across the map as a wave;
@@ -1008,6 +1021,16 @@ var MapScene = class {
       ink = this.edgeInk(ia, ib);
       fromA = this.introAt[ia] <= this.introAt[ib];
     }
+    const pa = this.popAt[ia] ?? -1, pb = this.popAt[ib] ?? -1;
+    if ((pa >= 0 || pb >= 0) && this.fxNow < this.popUntil) {
+      const aFirst = pa < 0 || pb >= 0 && pa <= pb;
+      const tNew = aFirst ? pb : pa;
+      const k = Math.min(1, Math.max(0, (this.fxNow - (tNew - 0.2)) / 0.4));
+      if (k < ink) {
+        ink = k;
+        fromA = aFirst;
+      }
+    }
     const r = this.ripple;
     if (r && (ia === r.i || ib === r.i)) {
       const other = ia === r.i ? ib : ia;
@@ -1050,6 +1073,16 @@ var MapScene = class {
     this.visCur = new Float32Array(ids.map((id) => oldVis.get(id) ?? 0));
     this.dispR = new Float32Array(ids.length);
     this.introS = new Float32Array(ids.length).fill(this.introState === "off" ? 1 : 0);
+    this.popAt = new Float64Array(ids.length).fill(-1);
+    if (prevIds && prevIds.length && this.introState === "off" && !this.rig.reducedMotion) {
+      const had = new Set(prevIds);
+      const now = performance.now() / 1e3;
+      let k = 0;
+      ids.forEach((id, i) => {
+        if (!had.has(id)) this.popAt[i] = now + 0.15 + Math.min(0.6, 0.035 * k++);
+      });
+      if (k) this.popUntil = now + 0.15 + Math.min(0.6, 0.035 * k) + 0.9;
+    }
     this._prevIds = ids;
     const pairs = /* @__PURE__ */ new Map();
     const groups = /* @__PURE__ */ new Map();
@@ -1502,7 +1535,7 @@ var MapScene = class {
     if (this.ripple && this.fxNow - this.ripple.start > 1.2) this.ripple = null;
     this.stepFlight();
     this.stepHover(dt);
-    if (this.ripple) this.dirty = true;
+    if (this.ripple || this.fxNow < this.popUntil) this.dirty = true;
     this.stepIntro(dt, now);
     this.stepDrift(dt, now);
     const camMoving = this.rig.update(dt);
@@ -1569,7 +1602,7 @@ var MapScene = class {
       const bump = this.rippleBump(i);
       const sp = this.sprites.get(id);
       sp.position.set(p.x, p.y, p.z);
-      const lift = this.hoverS[i] ?? 1;
+      const lift = (this.hoverS[i] ?? 1) * this.popScale(i);
       sp.scale.setScalar(Math.max(size * (1 + 0.38 * bump) * lift, 1e-4) * 2.3);
       this.dispR[i] = size * (t === "agent" ? 1.05 : 1.12);
       sp.visible = size > 1e-3;

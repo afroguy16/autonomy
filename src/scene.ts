@@ -167,6 +167,21 @@ export class MapScene {
     if (k >= 1) this.flight = null;
   }
 
+  /** New data: when each newly added account pops in (seconds), or -1. */
+  private popAt = new Float64Array(0);
+  private popUntil = 0;
+
+  /** 0…1 (with a little overshoot) as a newly added account pops in; 1 otherwise. */
+  private popScale(i: number) {
+    const t0 = this.popAt[i];
+    if (!(t0 >= 0)) return 1;
+    const u = (this.fxNow - t0) / 0.45;
+    if (u <= 0) return 0;
+    if (u >= 1) return 1;
+    const c1 = 1.9, c3 = c1 + 1;
+    return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2);
+  }
+
   /** Filter transitions: per account 1 = full, 0 = filtered out; springs after a staggered start. */
   private filterF = new Float32Array(0);
   private filterV = new Float32Array(0);
@@ -275,6 +290,15 @@ export class MapScene {
     if (this.introState !== "off") {
       ink = this.edgeInk(ia, ib);
       fromA = this.introAt[ia] <= this.introAt[ib];
+    }
+    const pa = this.popAt[ia] ?? -1, pb = this.popAt[ib] ?? -1;
+    if ((pa >= 0 || pb >= 0) && this.fxNow < this.popUntil) {
+      // A line to a new account draws out from the account that was already there
+      // (or the one that popped first), arriving as the new badge pops in.
+      const aFirst = pa < 0 || (pb >= 0 && pa <= pb);
+      const tNew = aFirst ? pb : pa;
+      const k = Math.min(1, Math.max(0, (this.fxNow - (tNew - 0.2)) / 0.4));
+      if (k < ink) { ink = k; fromA = aFirst; }
     }
     const r = this.ripple;
     if (r && (ia === r.i || ib === r.i)) {
@@ -410,6 +434,15 @@ export class MapScene {
     this.dispR = new Float32Array(ids.length);
     // Accounts added later (merges) appear at once; only the first load gets the entrance.
     this.introS = new Float32Array(ids.length).fill(this.introState === "off" ? 1 : 0);
+    // Accounts added after the first load pop in where they land, one after another.
+    this.popAt = new Float64Array(ids.length).fill(-1);
+    if (prevIds && prevIds.length && this.introState === "off" && !this.rig.reducedMotion) {
+      const had = new Set(prevIds);
+      const now = performance.now() / 1000;
+      let k = 0;
+      ids.forEach((id, i) => { if (!had.has(id)) this.popAt[i] = now + 0.15 + Math.min(0.6, 0.035 * k++); });
+      if (k) this.popUntil = now + 0.15 + Math.min(0.6, 0.035 * k) + 0.9;
+    }
     (this as any)._prevIds = ids;
 
     // One spring per linked pair, regardless of how many edge records the pair has.
@@ -856,7 +889,7 @@ export class MapScene {
     if (this.ripple && this.fxNow - this.ripple.start > 1.2) this.ripple = null;
     this.stepFlight();
     this.stepHover(dt);
-    if (this.ripple) this.dirty = true;
+    if (this.ripple || this.fxNow < this.popUntil) this.dirty = true;
     this.stepIntro(dt, now);
     this.stepDrift(dt, now);
     const camMoving = this.rig.update(dt);
@@ -929,7 +962,7 @@ export class MapScene {
       const bump = this.rippleBump(i);
       const sp = this.sprites.get(id)!;
       sp.position.set(p.x, p.y, p.z);
-      const lift = this.hoverS[i] ?? 1;
+      const lift = (this.hoverS[i] ?? 1) * this.popScale(i);
       sp.scale.setScalar(Math.max(size * (1 + 0.38 * bump) * lift, 0.0001) * 2.3);
       this.dispR[i] = size * (t === "agent" ? 1.05 : 1.12);
       sp.visible = size > 0.001;
