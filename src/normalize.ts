@@ -1,7 +1,7 @@
 // Normalizes incoming JSON (unified shape or older CPM shape) and works out
-// what can honestly be drawn: only eligible accounts with at least one valid edge.
+// which eligible accounts and sourced relationships can be shown honestly.
 
-import { EDGE_KINDS, type Edge, type EdgeKind, type GraphMap, type Node, type NodeType, type Source } from "./types";
+import { EDGE_KINDS, type Edge, type EdgeKind, type GraphMap, type Node, type NodeType, type ProfileLink, type Source } from "./types";
 
 type Raw = Record<string, any>;
 
@@ -30,30 +30,60 @@ export function normalizeGraph(raw: Raw): GraphMap {
   };
 
   const nodes: Node[] = (Array.isArray(raw.nodes) ? raw.nodes : []).filter(Boolean).map((n: Raw): Node => {
-    const handle = n.handle ? String(n.handle).replace(/^@/, "") : undefined;
+    const rawProfileLinks: ProfileLink[] = Array.isArray(n.profiles)
+      ? n.profiles.filter((p: Raw) => p && p.platform && p.url).map((p: Raw) => ({
+        platform: String(p.platform).toLowerCase(), handle: p.handle ? String(p.handle) : undefined, url: String(p.url)
+      }))
+      : Object.entries(n.profiles ?? {}).filter(([, url]) => typeof url === "string" && url.length > 0).map(([platform, url]) => ({
+        platform: platform.toLowerCase(), handle: undefined, url: String(url)
+      }));
+    const rawHandle = n.handle ?? rawProfileLinks.find((p) => p.handle)?.handle;
+    const handle = rawHandle ? String(rawHandle).replace(/^@/, "") : undefined;
     const id = String(n.id ?? handle ?? "").replace(/^@/, "");
     const type = TYPE_ALIASES[String(n.type ?? "").toLowerCase()] ?? ("person" as NodeType);
     const profileUrl = typeof n.url === "string" ? n.url : null;
+    const profileMap = Array.isArray(n.profiles)
+      ? Object.fromEntries(rawProfileLinks.map((p) => [p.platform, p.url]))
+      : { ...(n.profiles ?? {}) };
     const profiles = {
-      x: n.profiles?.x ?? n.x ?? (profileUrl && /(?:^|\/\/)(?:www\.)?(?:x\.com|twitter\.com)\//i.test(profileUrl) ? profileUrl : null),
-      linkedin: n.profiles?.linkedin ?? n.linkedin ?? (profileUrl && /(?:^|\/\/)(?:www\.)?linkedin\.com\//i.test(profileUrl) ? profileUrl : null)
+      ...profileMap,
+      x: profileMap.x ?? n.x ?? (profileUrl && /(?:^|\/\/)(?:www\.)?(?:x\.com|twitter\.com)\//i.test(profileUrl) ? profileUrl : null),
+      linkedin: profileMap.linkedin ?? n.linkedin ?? (profileUrl && /(?:^|\/\/)(?:www\.)?linkedin\.com\//i.test(profileUrl) ? profileUrl : null)
     };
     const rawNote = n.note && typeof n.note === "object" ? n.note.text : typeof n.note === "string" ? n.note : undefined;
-    const noteSourceIds: string[] = Array.isArray(n.note?.sourceIds) ? n.note.sourceIds : Array.isArray(n.note_source_ids) ? n.note_source_ids : [];
+    const workNote = typeof n.work?.note === "string" ? n.work.note : undefined;
+    const directNoteUrls: string[] = Array.isArray(n.work?.sourceUrls) ? n.work.sourceUrls : Array.isArray(n.note?.sourceUrls) ? n.note.sourceUrls : [];
+    const noteSourceIds: string[] = Array.isArray(n.note?.sourceIds)
+      ? n.note.sourceIds
+      : Array.isArray(n.note_source_ids)
+        ? n.note_source_ids
+        : directNoteUrls.map(sourceIdForUrl);
+    const workSourceIds: string[] = Array.isArray(n.work?.sourceUrls) ? n.work.sourceUrls.map(sourceIdForUrl) : [];
+    const rawClaims = Array.isArray(n.claims)
+      ? n.claims
+      : workNote
+        ? [{ id: `${id}-work`, kind: "work", text: workNote, source_ids: workSourceIds }]
+        : [];
+    const rawProjects: Raw[] = Array.isArray(n.projects) ? n.projects : Array.isArray(n.orgs) ? n.orgs : [];
     return {
       id,
       type,
       handle,
       name: n.name ?? n.label ?? undefined,
       profiles,
+      profile_links: rawProfileLinks,
       avatarUrl: n.avatarUrl,
       summary: n.summary,
-      notes: n.notes ?? rawNote ?? "",
+      notes: n.notes ?? rawNote ?? workNote ?? "",
       note_source_ids: [...new Set(noteSourceIds)],
       primary_topic: n.primary_topic,
       topics: Array.isArray(n.topics) ? n.topics : [],
-      projects: Array.isArray(n.projects) ? n.projects.map((p: Raw, i: number) => ({ id: String(p.id ?? `${id}-project-${i}`), name: String(p.name ?? "Untitled project"), description: p.description, url: p.url, source_ids: p.source_ids ?? [] })) : [],
-      claims: Array.isArray(n.claims) ? n.claims : [],
+      projects: rawProjects.map((p: Raw, i: number) => ({
+        id: String(p.id ?? `${id}-project-${i}`), name: String(p.name ?? "Untitled project"),
+        description: p.description, url: p.url,
+        source_ids: Array.isArray(p.source_ids) ? p.source_ids : Array.isArray(p.sourceUrls) ? p.sourceUrls.map(sourceIdForUrl) : []
+      })),
+      claims: rawClaims,
       incomplete: n.incomplete ? true : undefined,
       missing: Array.isArray(n.missing) ? n.missing : undefined
     };
@@ -62,6 +92,7 @@ export function normalizeGraph(raw: Raw): GraphMap {
   let edgeN = 0;
   const edges: Edge[] = (Array.isArray(raw.edges) ? raw.edges : []).filter(Boolean).map((e: Raw): Edge => {
     const evidenceUrls: string[] = Array.isArray(e.evidence) ? e.evidence : typeof e.evidence === "string" ? [e.evidence] : [];
+    const sourceUrls: string[] = Array.isArray(e.sourceUrls) ? e.sourceUrls : Array.isArray(e.source_urls) ? e.source_urls : [];
     const source = String(e.source ?? e.from ?? "").replace(/^@/, "");
     const target = String(e.target ?? e.to ?? "").replace(/^@/, "");
     const sourceIds = e.source_ids ?? e.sourceIds ?? [];
@@ -76,7 +107,7 @@ export function normalizeGraph(raw: Raw): GraphMap {
       period: e.period ?? null,
       project_id: e.project_id,
       topic_ids: e.topic_ids,
-      source_ids: [...new Set([...sourceIds, ...evidenceUrls.map(sourceIdForUrl)])],
+      source_ids: [...new Set([...sourceIds, ...evidenceUrls.map(sourceIdForUrl), ...sourceUrls.map(sourceIdForUrl)])],
       incomplete: e.incomplete ? true : undefined,
       missing: Array.isArray(e.missing) ? e.missing : undefined,
       pendingDefinition: e.pendingDefinition ? true : undefined
@@ -123,7 +154,7 @@ export type Analysis = {
   topicLabel: Map<string, string>;
   /** Edges that can be drawn: both ends exist, are eligible, valid kind. */
   drawnEdges: Edge[];
-  /** Nodes drawn on the map (eligible, with at least one drawn edge). */
+  /** Eligible nodes, including qualified accounts with no drawn connections. */
   mapNodeIds: string[];
   /** Records kept in the JSON but not drawn, with the reason. */
   offMap: { id: string; reason: string }[];
@@ -133,10 +164,9 @@ export type Analysis = {
 };
 
 export function profileProblem(n: Node): string | null {
-  if (n.type === "agent" || n.type === "organization") {
-    return n.profiles?.x ? null : `${n.type === "agent" ? "Agents" : "Organizations"} need a public X profile`;
-  }
-  return n.profiles?.x || n.profiles?.linkedin ? null : "People need a public X or LinkedIn profile";
+  const hasProfile = (n.profile_links ?? []).some((p) => Boolean(p.url)) || Object.values(n.profiles ?? {}).some(Boolean);
+  if (hasProfile) return null;
+  return `${n.type === "agent" ? "Agents" : n.type === "organization" ? "Organizations" : "People"} need a public profile`;
 }
 
 export function analyze(g: GraphMap): Analysis {
@@ -227,18 +257,13 @@ export function analyze(g: GraphMap): Analysis {
       edgesByNode.get(id)!.push(e);
     }
   }
-  const mapNodeIds = Array.from(nodeById.keys()).filter((id) => (degree.get(id) ?? 0) > 0);
+  const mapNodeIds = Array.from(nodeById.keys()).filter((id) => !ineligible.has(id));
   const offMap: { id: string; reason: string }[] = [];
-  const drawnIds = new Set(drawnEdges.map((e) => e.id));
   for (const n of nodeById.values()) {
-    if (degree.get(n.id)) continue;
-    const held = g.edges.filter((e) => (e.source === n.id || e.target === n.id) && !drawnIds.has(e.id));
-    const heldKinds = [...new Set(held.map((e) => e.incomplete ? "incomplete connection" : "undefined connection"))];
-    const heldReason = held.length ? `${held.length} ${heldKinds.join(" / ")} record${held.length === 1 ? " is" : "s are"} kept in the data but not drawn` : "No connections to other accounts on the map";
-    offMap.push({ id: n.id, reason: ineligible.get(n.id) ?? heldReason });
+    if (ineligible.has(n.id)) offMap.push({ id: n.id, reason: ineligible.get(n.id)! });
   }
-  const isolatedOnly = offMap.filter((o) => !ineligible.has(o.id));
-  if (isolatedOnly.length) issues.push({ level: "info", code: "isolated", message: `${isolatedOnly.length} account${isolatedOnly.length > 1 ? "s have" : " has"} no connections. Kept in the data, not drawn on the map.`, ids: isolatedOnly.map((o) => o.id) });
+  const isolated = mapNodeIds.filter((id) => (degree.get(id) ?? 0) === 0);
+  if (isolated.length) issues.push({ level: "info", code: "isolated", message: `${isolated.length} qualified account${isolated.length > 1 ? "s have" : " has"} no verified connections; shown without connection lines.`, ids: isolated });
 
   return { nodeById, sourceById, topicLabel, drawnEdges, mapNodeIds, offMap, degree, edgesByNode, issues };
 }

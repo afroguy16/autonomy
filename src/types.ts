@@ -49,7 +49,10 @@ export type Node = {
   profiles: {
     x?: string | null;
     linkedin?: string | null;
+    bluesky?: string | null;
+    [platform: string]: string | null | undefined;
   };
+  profile_links?: ProfileLink[];
   avatarUrl?: string;
 
   summary?: string;
@@ -63,6 +66,12 @@ export type Node = {
   missing?: string[];
 };
 
+export type ProfileLink = {
+  platform: string;
+  handle?: string;
+  url: string;
+};
+
 export type Project = {
   id: string;
   name: string;
@@ -72,8 +81,12 @@ export type Project = {
 };
 
 export type Claim = {
-  field: string;
+  id: string;
+  kind: "work" | "selection";
+  basis?: "interaction" | "relevant_work" | "affiliation" | "mention" | "seed";
+  text: string;
   source_ids: string[];
+  edge_ids?: string[];
 };
 
 export type Edge = {

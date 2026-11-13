@@ -36,30 +36,54 @@ function normalizeGraph(raw) {
     return id;
   };
   const nodes = (Array.isArray(raw.nodes) ? raw.nodes : []).filter(Boolean).map((n) => {
-    const handle = n.handle ? String(n.handle).replace(/^@/, "") : void 0;
+    const rawProfileLinks = Array.isArray(n.profiles) ? n.profiles.filter((p) => p && p.platform && p.url).map((p) => ({
+      platform: String(p.platform).toLowerCase(),
+      handle: p.handle ? String(p.handle) : void 0,
+      url: String(p.url)
+    })) : Object.entries(n.profiles ?? {}).filter(([, url]) => typeof url === "string" && url.length > 0).map(([platform, url]) => ({
+      platform: platform.toLowerCase(),
+      handle: void 0,
+      url: String(url)
+    }));
+    const rawHandle = n.handle ?? rawProfileLinks.find((p) => p.handle)?.handle;
+    const handle = rawHandle ? String(rawHandle).replace(/^@/, "") : void 0;
     const id = String(n.id ?? handle ?? "").replace(/^@/, "");
     const type = TYPE_ALIASES[String(n.type ?? "").toLowerCase()] ?? "person";
     const profileUrl = typeof n.url === "string" ? n.url : null;
+    const profileMap = Array.isArray(n.profiles) ? Object.fromEntries(rawProfileLinks.map((p) => [p.platform, p.url])) : { ...n.profiles ?? {} };
     const profiles = {
-      x: n.profiles?.x ?? n.x ?? (profileUrl && /(?:^|\/\/)(?:www\.)?(?:x\.com|twitter\.com)\//i.test(profileUrl) ? profileUrl : null),
-      linkedin: n.profiles?.linkedin ?? n.linkedin ?? (profileUrl && /(?:^|\/\/)(?:www\.)?linkedin\.com\//i.test(profileUrl) ? profileUrl : null)
+      ...profileMap,
+      x: profileMap.x ?? n.x ?? (profileUrl && /(?:^|\/\/)(?:www\.)?(?:x\.com|twitter\.com)\//i.test(profileUrl) ? profileUrl : null),
+      linkedin: profileMap.linkedin ?? n.linkedin ?? (profileUrl && /(?:^|\/\/)(?:www\.)?linkedin\.com\//i.test(profileUrl) ? profileUrl : null)
     };
     const rawNote = n.note && typeof n.note === "object" ? n.note.text : typeof n.note === "string" ? n.note : void 0;
-    const noteSourceIds = Array.isArray(n.note?.sourceIds) ? n.note.sourceIds : Array.isArray(n.note_source_ids) ? n.note_source_ids : [];
+    const workNote = typeof n.work?.note === "string" ? n.work.note : void 0;
+    const directNoteUrls = Array.isArray(n.work?.sourceUrls) ? n.work.sourceUrls : Array.isArray(n.note?.sourceUrls) ? n.note.sourceUrls : [];
+    const noteSourceIds = Array.isArray(n.note?.sourceIds) ? n.note.sourceIds : Array.isArray(n.note_source_ids) ? n.note_source_ids : directNoteUrls.map(sourceIdForUrl);
+    const workSourceIds = Array.isArray(n.work?.sourceUrls) ? n.work.sourceUrls.map(sourceIdForUrl) : [];
+    const rawClaims = Array.isArray(n.claims) ? n.claims : workNote ? [{ id: `${id}-work`, kind: "work", text: workNote, source_ids: workSourceIds }] : [];
+    const rawProjects = Array.isArray(n.projects) ? n.projects : Array.isArray(n.orgs) ? n.orgs : [];
     return {
       id,
       type,
       handle,
       name: n.name ?? n.label ?? void 0,
       profiles,
+      profile_links: rawProfileLinks,
       avatarUrl: n.avatarUrl,
       summary: n.summary,
-      notes: n.notes ?? rawNote ?? "",
+      notes: n.notes ?? rawNote ?? workNote ?? "",
       note_source_ids: [...new Set(noteSourceIds)],
       primary_topic: n.primary_topic,
       topics: Array.isArray(n.topics) ? n.topics : [],
-      projects: Array.isArray(n.projects) ? n.projects.map((p, i) => ({ id: String(p.id ?? `${id}-project-${i}`), name: String(p.name ?? "Untitled project"), description: p.description, url: p.url, source_ids: p.source_ids ?? [] })) : [],
-      claims: Array.isArray(n.claims) ? n.claims : [],
+      projects: rawProjects.map((p, i) => ({
+        id: String(p.id ?? `${id}-project-${i}`),
+        name: String(p.name ?? "Untitled project"),
+        description: p.description,
+        url: p.url,
+        source_ids: Array.isArray(p.source_ids) ? p.source_ids : Array.isArray(p.sourceUrls) ? p.sourceUrls.map(sourceIdForUrl) : []
+      })),
+      claims: rawClaims,
       incomplete: n.incomplete ? true : void 0,
       missing: Array.isArray(n.missing) ? n.missing : void 0
     };
@@ -67,6 +91,7 @@ function normalizeGraph(raw) {
   let edgeN = 0;
   const edges = (Array.isArray(raw.edges) ? raw.edges : []).filter(Boolean).map((e) => {
     const evidenceUrls = Array.isArray(e.evidence) ? e.evidence : typeof e.evidence === "string" ? [e.evidence] : [];
+    const sourceUrls = Array.isArray(e.sourceUrls) ? e.sourceUrls : Array.isArray(e.source_urls) ? e.source_urls : [];
     const source = String(e.source ?? e.from ?? "").replace(/^@/, "");
     const target = String(e.target ?? e.to ?? "").replace(/^@/, "");
     const sourceIds = e.source_ids ?? e.sourceIds ?? [];
@@ -81,7 +106,7 @@ function normalizeGraph(raw) {
       period: e.period ?? null,
       project_id: e.project_id,
       topic_ids: e.topic_ids,
-      source_ids: [.../* @__PURE__ */ new Set([...sourceIds, ...evidenceUrls.map(sourceIdForUrl)])],
+      source_ids: [.../* @__PURE__ */ new Set([...sourceIds, ...evidenceUrls.map(sourceIdForUrl), ...sourceUrls.map(sourceIdForUrl)])],
       incomplete: e.incomplete ? true : void 0,
       missing: Array.isArray(e.missing) ? e.missing : void 0,
       pendingDefinition: e.pendingDefinition ? true : void 0
@@ -116,10 +141,9 @@ function mergeGraph(base, add) {
   };
 }
 function profileProblem(n) {
-  if (n.type === "agent" || n.type === "organization") {
-    return n.profiles?.x ? null : `${n.type === "agent" ? "Agents" : "Organizations"} need a public X profile`;
-  }
-  return n.profiles?.x || n.profiles?.linkedin ? null : "People need a public X or LinkedIn profile";
+  const hasProfile = (n.profile_links ?? []).some((p) => Boolean(p.url)) || Object.values(n.profiles ?? {}).some(Boolean);
+  if (hasProfile) return null;
+  return `${n.type === "agent" ? "Agents" : n.type === "organization" ? "Organizations" : "People"} need a public profile`;
 }
 function analyze(g) {
   const issues = [];
@@ -221,18 +245,13 @@ function analyze(g) {
       edgesByNode.get(id).push(e);
     }
   }
-  const mapNodeIds = Array.from(nodeById.keys()).filter((id) => (degree.get(id) ?? 0) > 0);
+  const mapNodeIds = Array.from(nodeById.keys()).filter((id) => !ineligible.has(id));
   const offMap = [];
-  const drawnIds = new Set(drawnEdges.map((e) => e.id));
   for (const n of nodeById.values()) {
-    if (degree.get(n.id)) continue;
-    const held = g.edges.filter((e) => (e.source === n.id || e.target === n.id) && !drawnIds.has(e.id));
-    const heldKinds = [...new Set(held.map((e) => e.incomplete ? "incomplete connection" : "undefined connection"))];
-    const heldReason = held.length ? `${held.length} ${heldKinds.join(" / ")} record${held.length === 1 ? " is" : "s are"} kept in the data but not drawn` : "No connections to other accounts on the map";
-    offMap.push({ id: n.id, reason: ineligible.get(n.id) ?? heldReason });
+    if (ineligible.has(n.id)) offMap.push({ id: n.id, reason: ineligible.get(n.id) });
   }
-  const isolatedOnly = offMap.filter((o) => !ineligible.has(o.id));
-  if (isolatedOnly.length) issues.push({ level: "info", code: "isolated", message: `${isolatedOnly.length} account${isolatedOnly.length > 1 ? "s have" : " has"} no connections. Kept in the data, not drawn on the map.`, ids: isolatedOnly.map((o) => o.id) });
+  const isolated = mapNodeIds.filter((id) => (degree.get(id) ?? 0) === 0);
+  if (isolated.length) issues.push({ level: "info", code: "isolated", message: `${isolated.length} qualified account${isolated.length > 1 ? "s have" : " has"} no verified connections; shown without connection lines.`, ids: isolated });
   return { nodeById, sourceById, topicLabel, drawnEdges, mapNodeIds, offMap, degree, edgesByNode, issues };
 }
 
@@ -2173,7 +2192,7 @@ function selectNode(id, opts) {
   renderList();
   pushView();
   const links = A.degree.get(id) ?? 0;
-  announce(onMap.has(id) ? `${nodeName(id)} selected, ${links} connection${links === 1 ? "" : "s"}.` : `${nodeName(id)} is not on the map: it has no connections.`);
+  announce(onMap.has(id) ? `${nodeName(id)} selected, ${links} verified connection${links === 1 ? "" : "s"}.` : `${nodeName(id)} is not on the map because its research record is incomplete.`);
 }
 function selectEdge(id, opts) {
   const e = A.drawnEdges.find((x) => x.id === id);
@@ -2261,11 +2280,22 @@ function nodeHtml(n) {
         </div>`;
   }).join("")}
     </div>`).join("");
+  const claimSections = n.claims.length ? n.claims.map((claim) => {
+    const title = claim.kind === "work" ? "What they work on" : "Why they\u2019re on the map";
+    const basis = claim.kind === "selection" && claim.basis ? `<div class="small muted">Selection basis: ${escapeHtml(claim.basis.replace(/_/g, " "))}</div>` : "";
+    const citations = claim.source_ids.map((id) => ({ id, why: claim.kind === "work" ? "work claim" : "selection reason" }));
+    return `<section class="d-sec"><h3>${title}</h3><div class="notes">${escapeHtml(claim.text)}${basis}${citations.length ? `<div class="note-citations">${citations.map(({ id }) => {
+      const src = A.sourceById.get(id);
+      return src ? `<div class="note-citation"><span class="small muted">Supporting source</span><a href="${escapeHtml(src.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(src.title ?? src.url)} ${ICON.ext}</a></div>` : `<div class="note-citation missing">Missing source record \u201C${escapeHtml(id)}\u201D</div>`;
+    }).join("")}</div>` : `<div class="note-citations muted small">No source is attached to this claim.</div>`}</div></section>`;
+  }).join("") : "";
   const noteSources = n.note_source_ids.map((id) => ({ id, why: "research note" }));
-  const profiles = [
-    x ? `<a href="${escapeHtml(x)}" target="_blank" rel="noopener noreferrer">X ${ICON.ext}</a>` : "",
-    li ? `<a href="${escapeHtml(li)}" target="_blank" rel="noopener noreferrer">LinkedIn ${ICON.ext}</a>` : ""
-  ].filter(Boolean).join('<span class="sep">\xB7</span>');
+  const profileLinks = n.profile_links?.length ? n.profile_links : [
+    ...x ? [{ platform: "x", url: x }] : [],
+    ...li ? [{ platform: "linkedin", url: li }] : []
+  ];
+  const platformName = (platform) => ({ x: "X", twitter: "X", linkedin: "LinkedIn", bluesky: "Bluesky" })[platform.toLowerCase()] ?? platform;
+  const profiles = profileLinks.map((p) => `<a href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(platformName(p.platform))} ${ICON.ext}</a>`).join('<span class="sep">\xB7</span>');
   const topics = n.topics.length ? `<span class="chips">${n.topics.map((t) => `<button type="button" data-act="topic" data-id="${escapeHtml(t)}" aria-pressed="${st.topics.has(t)}">${escapeHtml(A.topicLabel.get(t) ?? t)}</button>`).join("")}</span>` : "";
   return `
   <div class="d-head">
@@ -2286,11 +2316,14 @@ function nodeHtml(n) {
       ${prop("Connections on map", String(edges.length))}
       ${heldEdges.length ? prop("Connections held back", String(heldEdges.length)) : ""}
     </dl>
-    ${n.notes ? `<section class="d-sec"><h3>Research note</h3><div class="notes">${escapeHtml(n.notes)}${noteSources.length ? `<div class="note-citations">${noteSources.map(({ id }) => {
+    ${claimSections || (n.notes ? `<section class="d-sec"><h3>Research note</h3><div class="notes">${escapeHtml(n.notes)}${noteSources.length ? `<div class="note-citations">${noteSources.map(({ id }) => {
     const src = A.sourceById.get(id);
     return src ? `<div class="note-citation"><span class="small muted">Supporting source</span><a href="${escapeHtml(src.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(src.title ?? src.url)} ${ICON.ext}</a></div>` : `<div class="note-citation missing">Missing source record \u201C${escapeHtml(id)}\u201D</div>`;
-  }).join("")}</div>` : `<div class="note-citations muted small">No source is attached to this note.</div>`}</div></section>` : ""}
-    ${n.projects.length ? `<section class="d-sec"><h3>Projects</h3><ul class="plain">${n.projects.map((p) => `<li>${p.url ? `<a href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.name)} ${ICON.ext}</a>` : `<b>${escapeHtml(p.name)}</b>`}<span class="m">${escapeHtml(p.description ?? "")}</span></li>`).join("")}</ul></section>` : ""}
+  }).join("")}</div>` : `<div class="note-citations muted small">No source is attached to this note.</div>`}</div></section>` : "")}
+    ${n.projects.length ? `<section class="d-sec"><h3>Projects</h3><ul class="plain">${n.projects.map((p) => `<li>${p.url ? `<a href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.name)} ${ICON.ext}</a>` : `<b>${escapeHtml(p.name)}</b>`}<span class="m">${escapeHtml(p.description ?? "")}</span>${p.source_ids.length ? `<div class="note-citations">${p.source_ids.map((id) => {
+    const src = A.sourceById.get(id);
+    return src ? `<div class="note-citation"><span class="small muted">Supporting source</span><a href="${escapeHtml(src.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(src.title ?? src.url)} ${ICON.ext}</a></div>` : "";
+  }).join("")}</div>` : ""}</li>`).join("")}</ul></section>` : ""}
     <section class="d-sec"><h3>Connections</h3>${conns || `<p class="muted small">No complete, defined connections to show.</p>`}${heldEdges.length ? `<p class="muted small">${heldEdges.length} other connection record${heldEdges.length === 1 ? " is" : "s are"} kept in the data but not drawn because a source, relationship detail, or definition is missing.</p>` : ""}</section>
   </div>`;
 }
@@ -2775,8 +2808,8 @@ function renderReport() {
       <div><b>${A.offMap.length}</b><span class="small muted">kept, not drawn</span></div>
       <div><b>${A.drawnEdges.length}</b><span class="small muted">connections drawn</span></div>
     </div>
-    <h3>Not drawn on the map</h3>
-    <p class="small muted">Every account on the map links to at least one other. These records stay in the data; no edges were invented for them.</p>
+    <h3>Research records not shown</h3>
+    <p class="small muted">Qualified accounts appear even when they have no verified connections. This list contains records withheld because required profile or research information is missing.</p>
     <ul>${A.offMap.map((o) => `<li><button type="button" class="link" data-open="${escapeHtml(o.id)}">${escapeHtml(nodeName(o.id))}</button> \u2014 ${escapeHtml(o.reason)}</li>`).join("") || "<li>None</li>"}</ul>
     <h3>Research gaps and retained links</h3>
     <ul>
