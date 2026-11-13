@@ -62,6 +62,11 @@ function normalizeGraph(raw) {
     const noteSourceIds = Array.isArray(n.note?.sourceIds) ? n.note.sourceIds : Array.isArray(n.note_source_ids) ? n.note_source_ids : directNoteUrls.map(sourceIdForUrl);
     const workSourceIds = Array.isArray(n.work?.sourceUrls) ? n.work.sourceUrls.map(sourceIdForUrl) : [];
     const rawClaims = Array.isArray(n.claims) ? n.claims : workNote ? [{ id: `${id}-work`, kind: "work", text: workNote, source_ids: workSourceIds }] : [];
+    const workClaim = rawClaims.find((claim) => claim.kind === "work");
+    const hasSelectionClaim = rawClaims.some((claim) => claim.kind === "selection");
+    const displayClaims = rawClaims.filter((claim) => claim.kind === "work");
+    const workClaimSourceIds = Array.isArray(workClaim?.source_ids) ? workClaim.source_ids : [];
+    const displayedNoteSourceIds = directNoteUrls.length ? directNoteUrls.map(sourceIdForUrl) : workClaimSourceIds.length ? workClaimSourceIds : hasSelectionClaim ? [] : noteSourceIds;
     const rawProjects = Array.isArray(n.projects) ? n.projects : Array.isArray(n.orgs) ? n.orgs : [];
     return {
       id,
@@ -72,8 +77,8 @@ function normalizeGraph(raw) {
       profile_links: rawProfileLinks,
       avatarUrl: n.avatarUrl,
       summary: n.summary,
-      notes: n.notes ?? rawNote ?? workNote ?? "",
-      note_source_ids: [...new Set(noteSourceIds)],
+      notes: workNote ?? workClaim?.text ?? (hasSelectionClaim ? "" : n.notes ?? rawNote ?? ""),
+      note_source_ids: [...new Set(displayedNoteSourceIds)],
       primary_topic: n.primary_topic,
       topics: Array.isArray(n.topics) ? n.topics : [],
       projects: rawProjects.map((p, i) => ({
@@ -83,7 +88,7 @@ function normalizeGraph(raw) {
         url: p.url,
         source_ids: Array.isArray(p.source_ids) ? p.source_ids : Array.isArray(p.sourceUrls) ? p.sourceUrls.map(sourceIdForUrl) : []
       })),
-      claims: rawClaims,
+      claims: displayClaims,
       incomplete: n.incomplete ? true : void 0,
       missing: Array.isArray(n.missing) ? n.missing : void 0
     };
@@ -2280,15 +2285,14 @@ function nodeHtml(n) {
         </div>`;
   }).join("")}
     </div>`).join("");
-  const claimSections = n.claims.length ? n.claims.map((claim) => {
-    const title = claim.kind === "work" ? "What they work on" : "Why they\u2019re on the map";
-    const basis = claim.kind === "selection" && claim.basis ? `<div class="small muted">Selection basis: ${escapeHtml(claim.basis.replace(/_/g, " "))}</div>` : "";
-    const citations = claim.source_ids.map((id) => ({ id, why: claim.kind === "work" ? "work claim" : "selection reason" }));
-    return `<section class="d-sec"><h3>${title}</h3><div class="notes">${escapeHtml(claim.text)}${basis}${citations.length ? `<div class="note-citations">${citations.map(({ id }) => {
+  const workClaims = n.claims.filter((claim) => claim.kind === "work");
+  const claimSections = workClaims.map((claim) => {
+    const citations = claim.source_ids;
+    return `<section class="d-sec"><h3>What they work on</h3><div class="notes">${escapeHtml(claim.text)}${citations.length ? `<div class="note-citations">${citations.map((id) => {
       const src = A.sourceById.get(id);
       return src ? `<div class="note-citation"><span class="small muted">Supporting source</span><a href="${escapeHtml(src.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(src.title ?? src.url)} ${ICON.ext}</a></div>` : `<div class="note-citation missing">Missing source record \u201C${escapeHtml(id)}\u201D</div>`;
-    }).join("")}</div>` : `<div class="note-citations muted small">No source is attached to this claim.</div>`}</div></section>`;
-  }).join("") : "";
+    }).join("")}</div>` : `<div class="note-citations muted small">No source is attached to this work note.</div>`}</div></section>`;
+  }).join("");
   const noteSources = n.note_source_ids.map((id) => ({ id, why: "research note" }));
   const profileLinks = n.profile_links?.length ? n.profile_links : [
     ...x ? [{ platform: "x", url: x }] : [],
@@ -2332,7 +2336,7 @@ function edgeHtml(e) {
   const a = A.nodeById.get(e.source), b = A.nodeById.get(e.target);
   const pairOthers = A.drawnEdges.filter((x) => x.id !== e.id && (x.source === e.source && x.target === e.target || x.source === e.target && x.target === e.source));
   const project = e.project_id ? [a, b].flatMap((n) => n.projects).find((p) => p.id === e.project_id) : void 0;
-  const explain = e.kind === "interaction" ? `<div class="callout interaction"><b>Discovery path, not collaboration.</b> A reply or quote on X led the research from one account to the other. On its own it does not mean they work together.</div>` : e.kind === "shared_topic" ? `<div class="callout"><b>Same area of work.</b> Both are linked to the same topic. No direct relationship between them is claimed.</div>` : e.kind === "cluster" ? `<div class="callout"><b>Legacy link.</b> Kept from older data. What a cluster link means has not been defined, so read nothing into it yet.</div>` : "";
+  const explain = e.kind === "interaction" ? `<div class="callout interaction"><b>Discovery path, not collaboration.</b> A reply or quote led the research from one account to the other. On its own it does not mean they work together.</div>` : e.kind === "shared_topic" ? `<div class="callout"><b>Same area of work.</b> Both are linked to the same topic. No direct relationship between them is claimed.</div>` : e.kind === "cluster" ? `<div class="callout"><b>Legacy link.</b> Kept from older data. What a cluster link means has not been defined, so read nothing into it yet.</div>` : "";
   const period = e.period && (e.period.start || e.period.end) ? `${e.period.start ?? "?"} \u2013 ${e.period.end ?? "present"}` : "";
   const who = (n) => `<button type="button" class="link-btn" data-act="select" data-id="${escapeHtml(n.id)}">${shape(n.type)}${escapeHtml(nodeName(n.id))}</button>`;
   return `

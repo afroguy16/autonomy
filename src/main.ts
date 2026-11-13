@@ -210,14 +210,11 @@ function nodeHtml(n: Node) {
         </div>`;
       }).join("")}
     </div>`).join("");
-  const claimSections = n.claims.length ? n.claims.map((claim) => {
-    const title = claim.kind === "work" ? "What they work on" : "Why they’re on the map";
-    const basis = claim.kind === "selection" && claim.basis
-      ? `<div class="small muted">Selection basis: ${esc(claim.basis.replace(/_/g, " "))}</div>`
-      : "";
-    const citations = claim.source_ids.map((id) => ({ id, why: claim.kind === "work" ? "work claim" : "selection reason" }));
-    return `<section class="d-sec"><h3>${title}</h3><div class="notes">${esc(claim.text)}${basis}${citations.length ? `<div class="note-citations">${citations.map(({ id }) => { const src = A.sourceById.get(id); return src ? `<div class="note-citation"><span class="small muted">Supporting source</span><a href="${esc(src.url)}" target="_blank" rel="noopener noreferrer">${esc(src.title ?? src.url)} ${ICON.ext}</a></div>` : `<div class="note-citation missing">Missing source record “${esc(id)}”</div>`; }).join("")}</div>` : `<div class="note-citations muted small">No source is attached to this claim.</div>`}</div></section>`;
-  }).join("") : "";
+  const workClaims = n.claims.filter((claim) => claim.kind === "work");
+  const claimSections = workClaims.map((claim) => {
+    const citations = claim.source_ids;
+    return `<section class="d-sec"><h3>What they work on</h3><div class="notes">${esc(claim.text)}${citations.length ? `<div class="note-citations">${citations.map((id) => { const src = A.sourceById.get(id); return src ? `<div class="note-citation"><span class="small muted">Supporting source</span><a href="${esc(src.url)}" target="_blank" rel="noopener noreferrer">${esc(src.title ?? src.url)} ${ICON.ext}</a></div>` : `<div class="note-citation missing">Missing source record “${esc(id)}”</div>`; }).join("")}</div>` : `<div class="note-citations muted small">No source is attached to this work note.</div>`}</div></section>`;
+  }).join("");
   const noteSources = n.note_source_ids.map((id) => ({ id, why: "research note" }));
   const profileLinks = n.profile_links?.length ? n.profile_links : [
     ...(x ? [{ platform: "x", url: x }] : []),

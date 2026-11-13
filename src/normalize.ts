@@ -64,6 +64,16 @@ export function normalizeGraph(raw: Raw): GraphMap {
       : workNote
         ? [{ id: `${id}-work`, kind: "work", text: workNote, source_ids: workSourceIds }]
         : [];
+    const workClaim = rawClaims.find((claim: Raw) => claim.kind === "work");
+    const hasSelectionClaim = rawClaims.some((claim: Raw) => claim.kind === "selection");
+    // Work qualifies the account; actual interactions and affiliations appear as edges.
+    const displayClaims = rawClaims.filter((claim: Raw) => claim.kind === "work");
+    const workClaimSourceIds: string[] = Array.isArray(workClaim?.source_ids) ? workClaim.source_ids : [];
+    const displayedNoteSourceIds: string[] = directNoteUrls.length
+      ? directNoteUrls.map(sourceIdForUrl)
+      : workClaimSourceIds.length
+        ? workClaimSourceIds
+        : hasSelectionClaim ? [] : noteSourceIds;
     const rawProjects: Raw[] = Array.isArray(n.projects) ? n.projects : Array.isArray(n.orgs) ? n.orgs : [];
     return {
       id,
@@ -74,8 +84,8 @@ export function normalizeGraph(raw: Raw): GraphMap {
       profile_links: rawProfileLinks,
       avatarUrl: n.avatarUrl,
       summary: n.summary,
-      notes: n.notes ?? rawNote ?? workNote ?? "",
-      note_source_ids: [...new Set(noteSourceIds)],
+      notes: workNote ?? workClaim?.text ?? (hasSelectionClaim ? "" : n.notes ?? rawNote ?? ""),
+      note_source_ids: [...new Set(displayedNoteSourceIds)],
       primary_topic: n.primary_topic,
       topics: Array.isArray(n.topics) ? n.topics : [],
       projects: rawProjects.map((p: Raw, i: number) => ({
@@ -83,7 +93,7 @@ export function normalizeGraph(raw: Raw): GraphMap {
         description: p.description, url: p.url,
         source_ids: Array.isArray(p.source_ids) ? p.source_ids : Array.isArray(p.sourceUrls) ? p.sourceUrls.map(sourceIdForUrl) : []
       })),
-      claims: rawClaims,
+      claims: displayClaims,
       incomplete: n.incomplete ? true : undefined,
       missing: Array.isArray(n.missing) ? n.missing : undefined
     };

@@ -56,8 +56,8 @@ export type Node = {
   avatarUrl?: string;
 
   summary?: string;
-  notes: string; // Researcher's account-selection note
-  note_source_ids: string[]; // URLs supporting this note, attached to the note
+  notes: string; // Work note, used when an input has no explicit work claim
+  note_source_ids: string[]; // Source catalog entries supporting the work note
   primary_topic?: string;
   topics: string[];
   projects: Project[];
@@ -82,11 +82,9 @@ export type Project = {
 
 export type Claim = {
   id: string;
-  kind: "work" | "selection";
-  basis?: "interaction" | "relevant_work" | "affiliation" | "mention" | "seed";
+  kind: "work";
   text: string;
   source_ids: string[];
-  edge_ids?: string[];
 };
 
 export type Edge = {
