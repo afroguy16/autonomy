@@ -1,8 +1,8 @@
 {
   "meta": {
     "name": "infra-underneath graph map",
-    "version": 3,
-    "updated": "2026-11-07",
+    "version": 4,
+    "updated": "2026-11-13",
     "is_sample": false,
     "legend": {
       "person": "#1d3557",
@@ -10,1946 +10,777 @@
       "agent": "#2d6a4f"
     }
   },
-  "topics": [],
-  "sources": [
-    {
-      "id": "src_0026",
-      "url": "https://x.com/AntithesisHQ/status/2116210636392968384"
-    },
-    {
-      "id": "src_0027",
-      "url": "https://x.com/AntithesisHQ/status/2118316637371945053"
-    },
-    {
-      "id": "src_0092",
-      "url": "https://x.com/Letta_AI/status/2112957074644873289"
-    },
-    {
-      "id": "src_0110",
-      "url": "https://x.com/OpenFGA/status/2015962095477555301"
-    },
-    {
-      "id": "src_0190",
-      "url": "https://x.com/authzed/status/2092661164769521718"
-    },
-    {
-      "id": "src_0211",
-      "url": "https://x.com/cerbosdev/status/2115720547493613892"
-    },
-    {
-      "id": "src_0212",
-      "url": "https://x.com/charlespacker/status/2113439325258154141"
-    },
-    {
-      "id": "src_0215",
-      "url": "https://x.com/charlespacker/status/2117705131756249520"
-    },
-    {
-      "id": "src_0250",
-      "url": "https://x.com/deshrajdry/status/2099902701396242784"
-    },
-    {
-      "id": "src_0306",
-      "url": "https://x.com/i/status/2016211465003483295"
-    },
-    {
-      "id": "src_0309",
-      "url": "https://x.com/i/status/2028879155581145439"
-    },
-    {
-      "id": "src_0324",
-      "url": "https://x.com/i/status/2110340868179673465"
-    },
-    {
-      "id": "src_0327",
-      "url": "https://x.com/i/status/2111120337060639052"
-    },
-    {
-      "id": "src_0332",
-      "url": "https://x.com/i/status/2113057774234161550"
-    },
-    {
-      "id": "src_0382",
-      "url": "https://x.com/jullerino/status/2118440085146554559"
-    },
-    {
-      "id": "src_0403",
-      "url": "https://x.com/luke_alvoeiro/status/2097759674779222037"
-    },
-    {
-      "id": "src_0411",
-      "url": "https://x.com/marcelotryle/status/2117255966659858729"
-    },
-    {
-      "id": "src_0454",
-      "url": "https://x.com/omuxapp/status/2118435439875096646"
-    },
-    {
-      "id": "src_0460",
-      "url": "https://x.com/osoHQ/status/2064419010343535070"
-    },
-    {
-      "id": "src_0511",
-      "url": "https://x.com/sarahwooders/status/2112964548533907613"
-    },
-    {
-      "id": "src_0514",
-      "url": "https://x.com/sarahwooders/status/2114930857983283572"
-    },
-    {
-      "id": "src_0594",
-      "url": "https://x.com/FlowSkillharnes/status/2112536295109280018"
-    },
-    {
-      "id": "src_0603",
-      "url": "https://x.com/alvvst/status/2059636986009342344"
-    },
-    {
-      "id": "src_0604",
-      "url": "https://x.com/alvvst/status/2079839852216889670"
-    },
-    {
-      "id": "src_0605",
-      "url": "https://x.com/alvvst/status/2081128376585080889"
-    },
-    {
-      "id": "src_0606",
-      "url": "https://x.com/alvvst/status/2109552685880144333"
-    },
-    {
-      "id": "src_0611",
-      "url": "https://x.com/alvvst/status/2112090908610994427"
-    },
-    {
-      "id": "src_0613",
-      "url": "https://x.com/alvvst/status/2115436293085946181"
-    },
-    {
-      "id": "src_0614",
-      "url": "https://x.com/alvvst/status/2116074939304259760"
-    },
-    {
-      "id": "src_0627",
-      "url": "https://x.com/jakejooyoung/status/2115836471513083982"
-    },
-    {
-      "id": "src_0654",
-      "url": "https://x.com/guohao_li/status/2112651135785861426"
-    },
-    {
-      "id": "src_0655",
-      "url": "https://x.com/AgentOpsAI/status/1950844751877726540"
-    },
-    {
-      "id": "src_0656",
-      "url": "https://x.com/alvvst/status/2108506760218574972"
-    },
-    {
-      "id": "src_0657",
-      "url": "https://www.frontiermemory.com/blog/v1/"
-    },
-    {
-      "id": "src_0658",
-      "url": "https://antithesis.com/docs/"
-    },
-    {
-      "id": "src_0659",
-      "url": "https://x.com/GeoffreyHuntley/status/2118275477433364606"
-    },
-    {
-      "id": "src_0660",
-      "url": "https://x.com/owickstrom/status/2118315784829125114"
-    },
-    {
-      "id": "src_0661",
-      "url": "https://www.osohq.com/docs"
-    },
-    {
-      "id": "src_0662",
-      "url": "https://x.com/osoHQ/status/2064418712061456665"
-    },
-    {
-      "id": "src_0663",
-      "url": "https://docs.crewai.com/en/concepts/flows"
-    },
-    {
-      "id": "src_0664",
-      "url": "https://x.com/zechengzh/status/2112596868698136924"
-    },
-    {
-      "id": "src_0665",
-      "url": "https://agentvfs.org/"
-    },
-    {
-      "id": "src_0666",
-      "url": "https://arize.com/docs/phoenix/tracing/llm-traces"
-    },
-    {
-      "id": "src_0667",
-      "url": "https://spiffe.io/docs/latest/spiffe-about/overview/"
-    },
-    {
-      "id": "src_0668",
-      "url": "https://x.com/SPIFFEio/status/1527615232318836738"
-    },
-    {
-      "id": "src_0669",
-      "url": "https://openfga.dev/docs/fga"
-    },
-    {
-      "id": "src_0670",
-      "url": "https://x.com/factory/status/2113702956768088334"
-    },
-    {
-      "id": "src_0671",
-      "url": "https://docs.factory.ai/cli/getting-started/overview"
-    },
-    {
-      "id": "src_0672",
-      "url": "https://x.com/DBOS_Inc/status/2115492710585110594"
-    },
-    {
-      "id": "src_0673",
-      "url": "https://antithesis.com/blog/2026/hillel-joins-antithesis/"
-    },
-    {
-      "id": "src_0674",
-      "url": "https://x.com/theo/status/2118620978632904721"
-    },
-    {
-      "id": "src_0675",
-      "url": "https://x.com/jullerino/status/2115930698074997125"
-    },
-    {
-      "id": "src_0676",
-      "url": "https://x.com/jonas/status/2079695001160708170"
-    },
-    {
-      "id": "src_0677",
-      "url": "https://x.com/garrytan/status/2115922231910084638"
-    },
-    {
-      "id": "src_0678",
-      "url": "https://x.com/garrytan/status/2116303457774899251"
-    },
-    {
-      "id": "src_0679",
-      "url": "https://x.com/garrytan/status/2115194484367692069"
-    },
-    {
-      "id": "src_0680",
-      "url": "https://x.com/trq212/status/2080710971228918066"
-    },
-    {
-      "id": "src_0681",
-      "url": "https://x.com/maria_rcks/status/2110504180204872112"
-    },
-    {
-      "id": "src_0682",
-      "url": "https://x.com/maria_rcks/status/2118179214801449134"
-    },
-    {
-      "id": "src_0683",
-      "url": "https://x.com/FlowSkillharnes/status/2110075170434187320"
-    },
-    {
-      "id": "src_0684",
-      "url": "https://x.com/omarsar0/status/2115843888212590999"
-    },
-    {
-      "id": "src_0685",
-      "url": "https://omux.app"
-    },
-    {
-      "id": "src_0686",
-      "url": "https://www.permit.io"
-    },
-    {
-      "id": "src_0687",
-      "url": "https://x.com/SurrealDB/status/1975856442931548281"
-    },
-    {
-      "id": "src_0688",
-      "url": "https://authzed.com/docs/spicedb/getting-started/discovering-spicedb"
-    },
-    {
-      "id": "src_0689",
-      "url": "https://docs.cerbos.dev"
-    },
-    {
-      "id": "src_0690",
-      "url": "https://docs.agentverse.ai"
-    },
-    {
-      "id": "src_0691",
-      "url": "https://x.com/Agentverse_ai/status/2112225269440282997"
-    },
-    {
-      "id": "src_0692",
-      "url": "https://docs.helicone.ai/getting-started/quick-start"
-    },
-    {
-      "id": "src_0693",
-      "url": "https://x.com/coleywoleyyy/status/2032157596325724277"
-    },
-    {
-      "id": "src_0694",
-      "url": "https://docs.agentops.ai/v2/introduction"
-    },
-    {
-      "id": "src_0695",
-      "url": "https://mem0.ai/gateway"
-    }
-  ],
   "nodes": [
     {
       "id": "alvvst",
       "type": "person",
-      "handle": "@alvvst",
       "name": "Amino",
-      "profiles": {
-        "x": "https://x.com/alvvst",
-        "linkedin": null
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@alvvst",
+          "url": "https://x.com/alvvst"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1460515496441360386/-g7PQ40A_normal.jpg",
+      "work": {
+        "note": "Argues that once an agent step becomes predictable, the harness should move it out of model reasoning into software rather than re-deriving it every run.",
+        "sourceUrls": [
+          "https://x.com/alvvst/status/2108506760218574972"
+        ]
       },
-      "notes": "Harness thesis: graduate predictable agent steps from reasoning into software. Quoted Jake's Serro launch.",
-      "note_source_ids": [
-        "src_0656",
-        "src_0614"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_alvvst_work",
-          "kind": "work",
-          "text": "Argues that once an agent step becomes predictable, the harness should move it out of model reasoning into software rather than re-deriving it every run.",
-          "source_ids": [
-            "src_0656"
-          ]
-        },
-        {
-          "id": "claim_alvvst_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "Quoted jakejooyoung's Serro launch post, commenting that syncing designs and decisions is a new problem as AI speeds up.",
-          "source_ids": [
-            "src_0614"
-          ],
-          "edge_ids": [
-            "edge_0011"
-          ]
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Root research node; harness/provenance/receipts",
-          "previous_note_source_ids": [
-            "src_0602"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ],
-      "avatarUrl": "https://pbs.twimg.com/profile_images/1460515496441360386/-g7PQ40A_normal.jpg"
+      "orgs": []
     },
     {
       "id": "jakejooyoung",
       "type": "person",
-      "handle": "@jakejooyoung",
-      "name": null,
-      "profiles": {
-        "x": "https://x.com/jakejooyoung",
-        "linkedin": null
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@jakejooyoung",
+          "url": "https://x.com/jakejooyoung"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2108981136814981120/JfsbsGti_normal.jpg",
+      "work": {
+        "note": "Introduced Serro, described as \"the Agentic TPM\" that keeps people and coding agents working from the same evolving program.",
+        "sourceUrls": [
+          "https://x.com/jakejooyoung/status/2115836471513083982"
+        ]
       },
-      "notes": "Introduced Serro, an \"Agentic TPM\" keeping people and coding agents on one evolving program. Quoted by Alvis.",
-      "note_source_ids": [
-        "src_0627",
-        "src_0614"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_jakejooyoung_work",
-          "kind": "work",
-          "text": "Introduced Serro, described as \"the Agentic TPM\" that keeps people and coding agents working from the same evolving program.",
-          "source_ids": [
-            "src_0627"
-          ]
-        },
-        {
-          "id": "claim_jakejooyoung_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "His Serro launch post was quoted by alvvst.",
-          "source_ids": [
-            "src_0614"
-          ],
-          "edge_ids": [
-            "edge_0011"
-          ]
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Deep-dived; Serro founder",
-          "previous_note_source_ids": [
-            "src_0626"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ],
-      "avatarUrl": "https://pbs.twimg.com/profile_images/2108981136814981120/JfsbsGti_normal.jpg"
+      "orgs": []
     },
     {
       "id": "sarahwooders",
       "type": "person",
-      "handle": "@sarahwooders",
       "name": "Sarah Wooders",
-      "profiles": {
-        "x": "https://x.com/sarahwooders",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@sarahwooders",
+          "url": "https://x.com/sarahwooders"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/2008789540501417987/D0g0JjeM_bigger.jpg",
-      "notes": "FrontierMemory thesis: evaluate agent learning from experience, not recall. Quoted Letta's FrontierMemory announcement.",
-      "note_source_ids": [
-        "src_0511",
-        "src_0657",
-        "src_0514"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_sarahwooders_work",
-          "kind": "work",
-          "text": "Argues memory benchmarks measure recall rather than learning across related tasks, and describes FrontierMemory, which adapts coding/knowledge-work tasks so context must be learned from past experience. The Letta Research FrontierMemory 1.0 post documents the 15-task benchmark.",
-          "source_ids": [
-            "src_0511",
-            "src_0657"
-          ]
-        },
-        {
-          "id": "claim_sarahwooders_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "Quoted Letta_AI's FrontierMemory announcement in a post on models' ability to write memory, prompts and skills.",
-          "source_ids": [
-            "src_0514"
-          ],
-          "edge_ids": [
-            "edge_0431"
-          ]
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Letta CTO; memory as adaptation from experience across harnesses",
-          "previous_note_source_ids": [
-            "src_0511"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "Argues memory benchmarks measure recall rather than learning across related tasks, and describes FrontierMemory, which adapts coding/knowledge-work tasks so context must be learned from past experience. The Letta Research FrontierMemory 1.0 post documents the 15-task benchmark.",
+        "sourceUrls": [
+          "https://x.com/sarahwooders/status/2112964548533907613",
+          "https://www.frontiermemory.com/blog/v1/"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "AntithesisHQ",
       "type": "organization",
-      "handle": "@AntithesisHQ",
       "name": "Antithesis",
-      "profiles": {
-        "x": "https://x.com/AntithesisHQ",
-        "linkedin": null
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@AntithesisHQ",
+          "url": "https://x.com/AntithesisHQ"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2072369883791212544/Y5vbRpKW_normal.jpg",
+      "work": {
+        "note": "Antithesis docs describe a tool for verifying complex distributed systems whose simulation is perfectly deterministic, and offer Bombadil, an open-source property-based testing tool for web and terminal UIs. GeoffreyHuntley reports doing verification runs with @AntithesisHQ to shake out defects.",
+        "sourceUrls": [
+          "https://antithesis.com/docs/",
+          "https://x.com/GeoffreyHuntley/status/2118275477433364606"
+        ]
       },
-      "notes": "Deterministic-simulation verification for distributed systems; offers open-source Bombadil. Quoted Oskar's Bombadil demo.",
-      "note_source_ids": [
-        "src_0658",
-        "src_0659",
-        "src_0027"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_AntithesisHQ_work",
-          "kind": "work",
-          "text": "Antithesis docs describe a tool for verifying complex distributed systems whose simulation is perfectly deterministic, and offer Bombadil, an open-source property-based testing tool for web and terminal UIs. GeoffreyHuntley reports doing verification runs with @AntithesisHQ to shake out defects.",
-          "source_ids": [
-            "src_0658",
-            "src_0659"
-          ]
-        },
-        {
-          "id": "claim_AntithesisHQ_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "Quoted owickstrom's Bombadil guided-fuzzing demo.",
-          "source_ids": [
-            "src_0027"
-          ],
-          "edge_ids": [
-            "edge_0206"
-          ]
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Deterministic verification in CI/dev//loop so merges can happen without hoping tests were enough.",
-          "previous_note_source_ids": [
-            "src_0358"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ],
-      "avatarUrl": "https://pbs.twimg.com/profile_images/2072369883791212544/Y5vbRpKW_normal.jpg"
+      "orgs": []
     },
     {
       "id": "owickstrom",
       "type": "person",
-      "handle": "@owickstrom",
       "name": "Oskar Wickström",
-      "profiles": {
-        "x": "https://x.com/owickstrom",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@owickstrom",
+          "url": "https://x.com/owickstrom"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/2052040311874981893/gjDjUgwo_normal.jpg",
-      "notes": "Posted Bombadil guided web-app fuzzing demo (early access); Antithesis quoted it.",
-      "note_source_ids": [
-        "src_0660",
-        "src_0658",
-        "src_0027"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_owickstrom_work",
-          "kind": "work",
-          "text": "Posted a demo of \"Bombadil's new guided fuzzing on a web app\" and offered early access; Antithesis docs describe Bombadil as an open-source property-based testing tool for web and terminal UIs.",
-          "source_ids": [
-            "src_0660",
-            "src_0658"
-          ]
-        },
-        {
-          "id": "claim_owickstrom_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "AntithesisHQ quoted his Bombadil demo.",
-          "source_ids": [
-            "src_0027"
-          ],
-          "edge_ids": [
-            "edge_0206"
-          ]
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Works on Bombadil at Antithesis — guided fuzzing / generative testing. Antithesis quoted his Bombadil web-app fuzzing demo.",
-          "previous_note_source_ids": [
-            "src_0027"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "Posted a demo of \"Bombadil's new guided fuzzing on a web app\" and offered early access; Antithesis docs describe Bombadil as an open-source property-based testing tool for web and terminal UIs.",
+        "sourceUrls": [
+          "https://x.com/owickstrom/status/2118315784829125114",
+          "https://antithesis.com/docs/"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "osoHQ",
       "type": "organization",
-      "handle": "@osoHQ",
       "name": "Oso",
-      "profiles": {
-        "x": "https://x.com/osoHQ",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@osoHQ",
+          "url": "https://x.com/osoHQ"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/1506349761166671873/7WWkPaUq_normal.jpg",
-      "notes": "Centralized authorization service (Polar). Research with Cyera on over-permissioning and agents inheriting human permissions. Country seed for authz-runtime-policy (authorization/runtime policy, not login identity).",
-      "note_source_ids": [
-        "src_0661",
-        "src_0662",
-        "src_0460"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_osoHQ_work",
-          "kind": "work",
-          "text": "Oso Cloud docs describe a centralized authorization service built on the Polar policy language. Oso argues least privilege must be fixed for agents because, unlike humans, agents are not slow and do not sleep.",
-          "source_ids": [
-            "src_0661",
-            "src_0662"
-          ]
-        },
-        {
-          "id": "claim_osoHQ_selection",
-          "kind": "selection",
-          "basis": "relevant_work",
-          "text": "Selected for agent-authorization research: Oso states its research with @cyera_io shows humans are grossly over-permissioned and asks what happens if agents inherit human permissions.",
-          "source_ids": [
-            "src_0460"
-          ],
-          "edge_ids": []
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Visibility and controls to secure agents. Country seed for authz-runtime-policy (authorization/runtime policy, not login identity).",
-          "previous_note_source_ids": [
-            "src_0459"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "Oso Cloud docs describe a centralized authorization service built on the Polar policy language. Oso argues least privilege must be fixed for agents because, unlike humans, agents are not slow and do not sleep. Oso states its research with @cyera_io shows humans are grossly over-permissioned and asks what happens if agents inherit human permissions.",
+        "sourceUrls": [
+          "https://www.osohq.com/docs",
+          "https://x.com/osoHQ/status/2064418712061456665",
+          "https://x.com/osoHQ/status/2064419010343535070"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "crewAIInc",
       "type": "organization",
-      "handle": "@crewAIInc",
       "name": "CrewAI",
-      "profiles": {
-        "x": "https://x.com/crewAIInc",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@crewAIInc",
+          "url": "https://x.com/crewAIInc"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/1770816346906849281/t72FgUel_normal.jpg",
-      "notes": "Multi-agent framework: event-driven Flows with managed state; agents/tasks in YAML. CrewAI names joaomdmoura as CEO & founder.",
-      "note_source_ids": [
-        "src_0663",
-        "src_0306"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_crewAIInc_work",
-          "kind": "work",
-          "text": "CrewAI Flows docs describe structured, event-driven workflows that connect tasks and manage state; the scaffolded project defines agents and tasks in agents.yaml/tasks.yaml.",
-          "source_ids": [
-            "src_0663"
-          ]
-        },
-        {
-          "id": "claim_crewAIInc_selection",
-          "kind": "selection",
-          "basis": "affiliation",
-          "text": "CrewAI's own webinar post names @Joaomdmoura as \"CrewAI’s CEO & founder\".",
-          "source_ids": [
-            "src_0306"
-          ],
-          "edge_ids": [
-            "edge_0384"
-          ]
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Framework for orchestrating role-playing autonomous agents that work together on complex tasks (crews, flows, YAML or code). Posts contrast coordinating multiple AI specialists with a single model that handles everything.",
-          "previous_note_source_ids": [
-            "src_0307"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "CrewAI Flows docs describe structured, event-driven workflows that connect tasks and manage state; the scaffolded project defines agents and tasks in agents.yaml/tasks.yaml.",
+        "sourceUrls": [
+          "https://docs.crewai.com/en/concepts/flows"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "zechengzh",
       "type": "person",
-      "handle": "@zechengzh",
       "name": "Zecheng Zhang",
-      "profiles": {
-        "x": "https://x.com/zechengzh",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@zechengzh",
+          "url": "https://x.com/zechengzh"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/1905491374973353985/ACFtZilX_normal.jpg",
-      "notes": "Co-released AgentVFS and VFS-Bench 1.0 with Guohao: services as files and virtual CLIs instead of MCP tools.",
-      "note_source_ids": [
-        "src_0664",
-        "src_0665",
-        "src_0654"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_zechengzh_work",
-          "kind": "work",
-          "text": "Released AgentVFS, a virtual filesystem interface that presents services as files and virtual CLIs instead of MCP tool calls, plus VFS-Bench 1.0; agentvfs.org hosts the spec and benchmark.",
-          "source_ids": [
-            "src_0664",
-            "src_0665"
-          ]
-        },
-        {
-          "id": "claim_zechengzh_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "guohao_li quoted the release, saying AgentVFS and VFS-Bench 1.0 were released \"with @zechengzh\".",
-          "source_ids": [
-            "src_0654"
-          ],
-          "edge_ids": []
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Co-released AgentVFS and VFS-Bench 1.0 with Guohao/CAMEL: a virtual filesystem plus virtual CLI so agents share world-state across services instead of calling per-service MCP tools.",
-          "previous_note_source_ids": [
-            "src_0331"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "Released AgentVFS, a virtual filesystem interface that presents services as files and virtual CLIs instead of MCP tool calls, plus VFS-Bench 1.0; agentvfs.org hosts the spec and benchmark. Guohao_li quoted the release, saying AgentVFS and VFS-Bench 1.0 were released \"with @zechengzh\".",
+        "sourceUrls": [
+          "https://x.com/zechengzh/status/2112596868698136924",
+          "https://agentvfs.org/",
+          "https://x.com/guohao_li/status/2112651135785861426"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "ArizePhoenix",
       "type": "organization",
-      "handle": "@ArizePhoenix",
       "name": "Arize Phoenix",
-      "profiles": {
-        "x": "https://x.com/ArizePhoenix",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@ArizePhoenix",
+          "url": "https://x.com/ArizePhoenix"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/1652081979146506240/e2xH7qJL_normal.png",
-      "notes": "Open-source AI tracing over OpenTelemetry/OTLP; shared an Atomic Agents tracing guide credited to Kenny_V.",
-      "note_source_ids": [
-        "src_0666",
-        "src_0332"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_ArizePhoenix_work",
-          "kind": "work",
-          "text": "Phoenix docs: traces AI applications via OpenTelemetry and accepts traces over OTLP, with instrumentation for frameworks such as LlamaIndex, LangChain and DSPy.",
-          "source_ids": [
-            "src_0666"
-          ]
-        },
-        {
-          "id": "claim_ArizePhoenix_selection",
-          "kind": "selection",
-          "basis": "relevant_work",
-          "text": "Selected for agent-framework observability: its post shares an Atomic Agents tracing guide for Phoenix, thanking @Kenny_V for the community contribution.",
-          "source_ids": [
-            "src_0332"
-          ],
-          "edge_ids": []
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Open-source AI observability. Traces agent tool calls (Scalekit AgentKit, Atomic Agents, Claude managed agents); discussed OpenInference’s donation into OpenTelemetry GenAI semantic conventions.",
-          "previous_note_source_ids": [
-            "src_0336",
-            "src_0332"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "Phoenix docs: traces AI applications via OpenTelemetry and accepts traces over OTLP, with instrumentation for frameworks such as LlamaIndex, LangChain and DSPy. Its post shares an Atomic Agents tracing guide for Phoenix, thanking @Kenny_V for the community contribution.",
+        "sourceUrls": [
+          "https://arize.com/docs/phoenix/tracing/llm-traces",
+          "https://x.com/i/status/2113057774234161550"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "SPIFFEio",
       "type": "organization",
-      "handle": "@SPIFFEio",
       "name": "SPIFFE",
-      "profiles": {
-        "x": "https://x.com/SPIFFEio",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@SPIFFEio",
+          "url": "https://x.com/SPIFFEio"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/867153041178472449/8HxEEuDX_normal.jpg",
-      "notes": "Open-source workload identity specifications (SPIFFE); announced SPIRE Windows support. Country seed for authz-runtime-policy.",
-      "note_source_ids": [
-        "src_0667",
-        "src_0668"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_SPIFFEio_work",
-          "kind": "work",
-          "text": "SPIFFE docs: a set of open-source specifications for bootstrapping and issuing identity to services across heterogeneous environments.",
-          "source_ids": [
-            "src_0667"
-          ]
-        },
-        {
-          "id": "claim_SPIFFEio_selection",
-          "kind": "selection",
-          "basis": "relevant_work",
-          "text": "Selected as workload-identity infrastructure (authz/runtime-policy topic): SPIFFE's own post announces that SPIRE now runs on Windows, linking the SPIFFE blog.",
-          "source_ids": [
-            "src_0668"
-          ],
-          "edge_ids": []
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Secure Production Identity Framework For Everyone — workload identity that runtime policies bind to. Country seed for authz-runtime-policy.",
-          "previous_note_source_ids": [
-            "src_0123"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "SPIFFE docs: a set of open-source specifications for bootstrapping and issuing identity to services across heterogeneous environments. Selected as workload-identity infrastructure (authz/runtime-policy topic): SPIFFE's own post announces that SPIRE now runs on Windows, linking the SPIFFE blog.",
+        "sourceUrls": [
+          "https://spiffe.io/docs/latest/spiffe-about/overview/",
+          "https://x.com/SPIFFEio/status/1527615232318836738"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "OpenFGA",
       "type": "organization",
-      "handle": "@OpenFGA",
       "name": "OpenFGA",
-      "profiles": {
-        "x": "https://x.com/OpenFGA",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@OpenFGA",
+          "url": "https://x.com/OpenFGA"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/1524742634694131717/MdDK4KUx_normal.png",
-      "notes": "Open-source fine-grained authorization; featured community work on authorization for AI agents. Country seed for authz-runtime-policy.",
-      "note_source_ids": [
-        "src_0669",
-        "src_0110"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_OpenFGA_work",
-          "kind": "work",
-          "text": "OpenFGA docs: a scalable open-source authorization system implementing relationship-, role- and attribute-based access control.",
-          "source_ids": [
-            "src_0669"
-          ]
-        },
-        {
-          "id": "claim_OpenFGA_selection",
-          "kind": "selection",
-          "basis": "relevant_work",
-          "text": "Selected for AI-agent authorization: its post features @Siddhant_K_code's \"Fine-grained authorization for AI agents using OpenFGA\" blog and project.",
-          "source_ids": [
-            "src_0110"
-          ],
-          "edge_ids": []
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Fine-grained authorization inspired by Zanzibar; CNCF incubation. Country seed for authz-runtime-policy.",
-          "previous_note_source_ids": [
-            "src_0109"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "OpenFGA docs: a scalable open-source authorization system implementing relationship-, role- and attribute-based access control. Its post features @Siddhant_K_code's \"Fine-grained authorization for AI agents using OpenFGA\" blog and project.",
+        "sourceUrls": [
+          "https://openfga.dev/docs/fga",
+          "https://x.com/OpenFGA/status/2015962095477555301"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "droid",
       "type": "agent",
-      "handle": "@droid",
       "name": "Droid",
-      "profiles": {
-        "x": "https://x.com/droid",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@droid",
+          "url": "https://x.com/droid"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/1998812835594514436/Ovslr4G7_normal.jpg",
-      "notes": "Factory's Droid coding agent (Factory tags @Droid in its Claude customer story): CLI with approvals, MCP tools and Missions. Luke explained loops vs missions.",
-      "note_source_ids": [
-        "src_0670",
-        "src_0671",
-        "src_0403"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_droid_work",
-          "kind": "work",
-          "text": "Factory's own post tags @Droid (this account) as the product in which Anthropic frontier models \"are enabling engineering teams to handle long-horizon tasks across large codebases\"; Factory docs describe the Droid CLI: the Factory runtime in a terminal UI with project context, approvals, MCP tools, Missions and headless execution.",
-          "source_ids": [
-            "src_0670",
-            "src_0671"
-          ]
-        },
-        {
-          "id": "claim_droid_selection",
-          "kind": "selection",
-          "basis": "mention",
-          "text": "Selected through a graph member's public explanation of the agent: answering a question addressed to @droid, luke_alvoeiro explains that loops schedule recurring jobs while missions are bounded goals droid should drive home.",
-          "source_ids": [
-            "src_0403"
-          ],
-          "edge_ids": []
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Factory’s coding agent (“assembled by Factory”). Luke distinguished loops (scheduled jobs) from missions (bounded goals the droid should drive).",
-          "previous_note_source_ids": [
-            "src_0403"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "Factory's own post tags @Droid (this account) as the product in which Anthropic frontier models \"are enabling engineering teams to handle long-horizon tasks across large codebases\"; Factory docs describe the Droid CLI: the Factory runtime in a terminal UI with project context, approvals, MCP tools, Missions and headless execution. Answering a question addressed to @droid, luke_alvoeiro explains that loops schedule recurring jobs while missions are bounded goals droid should drive home.",
+        "sourceUrls": [
+          "https://x.com/factory/status/2113702956768088334",
+          "https://docs.factory.ai/cli/getting-started/overview",
+          "https://x.com/luke_alvoeiro/status/2097759674779222037"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "Letta_AI",
       "type": "organization",
-      "handle": "@Letta_AI",
       "name": "Letta",
-      "profiles": {
-        "x": "https://x.com/Letta_AI",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@Letta_AI",
+          "url": "https://x.com/Letta_AI"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/1940424059990200321/59lbFsxt_bigger.jpg",
-      "notes": "FrontierMemory: benchmarking agent learning from experience via downstream tasks. Quoted by Sarah Wooders.",
-      "note_source_ids": [
-        "src_0092",
-        "src_0657",
-        "src_0511"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_Letta_AI_work",
-          "kind": "work",
-          "text": "Introduced FrontierMemory, evaluating agent memory through downstream task performance rather than recall; the Letta Research FrontierMemory 1.0 post documents the benchmark.",
-          "source_ids": [
-            "src_0092",
-            "src_0657"
-          ]
-        },
-        {
-          "id": "claim_Letta_AI_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "sarahwooders quoted Letta's FrontierMemory announcement.",
-          "source_ids": [
-            "src_0511"
-          ],
-          "edge_ids": [
-            "edge_0431"
-          ]
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Stateful agent platform; FrontierMemory benchmark for learning from experience",
-          "previous_note_source_ids": [
-            "src_0092"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "Introduced FrontierMemory, evaluating agent memory through downstream task performance rather than recall; the Letta Research FrontierMemory 1.0 post documents the benchmark.",
+        "sourceUrls": [
+          "https://x.com/Letta_AI/status/2112957074644873289",
+          "https://www.frontiermemory.com/blog/v1/"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "DBOS_Inc",
       "type": "organization",
-      "handle": "@DBOS_Inc",
       "name": "DBOS",
-      "profiles": {
-        "x": "https://x.com/DBOS_Inc",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@DBOS_Inc",
+          "url": "https://x.com/DBOS_Inc"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/1897449445748264960/HA4MD2N3_normal.jpg",
-      "notes": "Durable workflows (Transact Enterprise release); Pydantic AI agents made durable with DBOS.",
-      "note_source_ids": [
-        "src_0672",
-        "src_0411"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_DBOS_Inc_work",
-          "kind": "work",
-          "text": "Released DBOS TypeScript 5.4 and Python 3.4 with DBOS Transact Enterprise for operating durable workflows at scale (e.g., sharded Postgres support).",
-          "source_ids": [
-            "src_0672"
-          ]
-        },
-        {
-          "id": "claim_DBOS_Inc_selection",
-          "kind": "selection",
-          "basis": "relevant_work",
-          "text": "Selected for durable agent execution: marcelotryle documents Pydantic AI agents getting durable with DBOS, with model and MCP calls saved to Postgres or SQLite and crash recovery from the last completed step.",
-          "source_ids": [
-            "src_0411"
-          ],
-          "edge_ids": []
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Durable backend workflows (from the Postgres/Spark lineage). marcelotryle: Pydantic AI agents get durable with DBOSDurability — model/MCP calls saved to Postgres/SQLite and a crash resumes from the last completed step. The post tagged @DBOS (a 5-follower squat) but linked Pydantic’s DBOS durable-execution docs; this is the product account.",
-          "previous_note_source_ids": [
-            "src_0411"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "Released DBOS TypeScript 5.4 and Python 3.4 with DBOS Transact Enterprise for operating durable workflows at scale (e.g., sharded Postgres support). Marcelotryle documents Pydantic AI agents getting durable with DBOS, with model and MCP calls saved to Postgres or SQLite and crash recovery from the last completed step.",
+        "sourceUrls": [
+          "https://x.com/DBOS_Inc/status/2115492710585110594",
+          "https://x.com/marcelotryle/status/2117255966659858729"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "hillelogram",
       "type": "person",
-      "handle": "@hillelogram",
       "name": "Hillel Wayne",
-      "profiles": {
-        "x": "https://x.com/hillelogram",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@hillelogram",
+          "url": "https://x.com/hillelogram"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/2102803234821709824/s-qsobax_normal.png",
-      "notes": "Formal-methods educator; wrote why deterministic simulation testing drew him to join Antithesis.",
-      "note_source_ids": [
-        "src_0673",
-        "src_0026"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_hillelogram_work",
-          "kind": "work",
-          "text": "Wrote \"Why Antithesis?\" on the Antithesis blog (bylined Hillel Wayne), comparing formal methods with deterministic simulation testing and describing his job as making that knowledge more accessible to the public.",
-          "source_ids": [
-            "src_0673"
-          ]
-        },
-        {
-          "id": "claim_hillelogram_selection",
-          "kind": "selection",
-          "basis": "affiliation",
-          "text": "AntithesisHQ says @hillelogram joined Antithesis and links his write-up.",
-          "source_ids": [
-            "src_0026"
-          ],
-          "edge_ids": [
-            "edge_0322"
-          ]
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Formal-methods educator who joined Antithesis. Antithesis posted his own write-up of why he went from surprise-hire to the verification product.",
-          "previous_note_source_ids": [
-            "src_0026"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "Wrote \"Why Antithesis?\" on the Antithesis blog (bylined Hillel Wayne), comparing formal methods with deterministic simulation testing and describing his job as making that knowledge more accessible to the public.",
+        "sourceUrls": [
+          "https://antithesis.com/blog/2026/hillel-joins-antithesis/"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "theo",
       "type": "person",
-      "handle": "@theo",
       "name": "T3 Code / Chat",
-      "profiles": {
-        "x": "https://x.com/theo",
-        "linkedin": null
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@theo",
+          "url": "https://x.com/theo"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2106484435382333440/vXOVE8EX_normal.jpg",
+      "work": {
+        "note": "Works on T3 Code: replying in a thread tagging @t3dotcodes, jullerino says \"Desktop sidebar is Theo’s\"; Theo argues that once you have more than one AI subscription or computer, or want to code on your phone, T3 Code is \"the legit only reasonable option\".",
+        "sourceUrls": [
+          "https://x.com/jullerino/status/2118440085146554559",
+          "https://x.com/theo/status/2118620978632904721"
+        ]
       },
-      "notes": "Works on T3 Code (desktop sidebar, per jullerino); argues for multi-machine, multi-subscription agent coding.",
-      "note_source_ids": [
-        "src_0382",
-        "src_0674",
-        "src_0613"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_theo_work",
-          "kind": "work",
-          "text": "Works on T3 Code: replying in a thread tagging @t3dotcodes, jullerino says \"Desktop sidebar is Theo’s\"; Theo argues that once you have more than one AI subscription or computer, or want to code on your phone, T3 Code is \"the legit only reasonable option\".",
-          "source_ids": [
-            "src_0382",
-            "src_0674"
-          ]
-        },
-        {
-          "id": "claim_theo_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "alvvst replied to Theo's post (\"100 machines\").",
-          "source_ids": [
-            "src_0613"
-          ],
-          "edge_ids": [
-            "edge_0002"
-          ]
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "CEO of T3 Code (@t3dotcodes) and T3 Chat (@t3dotchat). [selection rationale needed]",
-          "previous_note_source_ids": [
-            "src_0650"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ],
-      "avatarUrl": "https://pbs.twimg.com/profile_images/2106484435382333440/vXOVE8EX_normal.jpg"
+      "orgs": []
     },
     {
       "id": "jullerino",
       "type": "person",
-      "handle": "@jullerino",
       "name": "T3 Code",
-      "profiles": {
-        "x": "https://x.com/jullerino",
-        "linkedin": null
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@jullerino",
+          "url": "https://x.com/jullerino"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1526143235067985922/DmFx1k13_normal.jpg",
+      "work": {
+        "note": "Announced Simlock in T3 Code, a gateway connecting multiple machines behind one API that agents request leases from to test mobile apps; says \"i own mobile\" for T3 Code.",
+        "sourceUrls": [
+          "https://x.com/jullerino/status/2115930698074997125",
+          "https://x.com/jullerino/status/2118440085146554559"
+        ]
       },
-      "notes": "Announced Simlock in T3 Code (machine leasing for agents testing mobile); owns T3 Code mobile.",
-      "note_source_ids": [
-        "src_0675",
-        "src_0382",
-        "src_0611"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_jullerino_work",
-          "kind": "work",
-          "text": "Announced Simlock in T3 Code, a gateway connecting multiple machines behind one API that agents request leases from to test mobile apps; says \"i own mobile\" for T3 Code.",
-          "source_ids": [
-            "src_0675",
-            "src_0382"
-          ]
-        },
-        {
-          "id": "claim_jullerino_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "alvvst replied asking for a per-environment thread filter before shipping.",
-          "source_ids": [
-            "src_0611"
-          ],
-          "edge_ids": [
-            "edge_0003"
-          ]
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Builds T3 Chat and T3 Code; open-source work on tRPC and TanStack. [selection rationale needed]",
-          "previous_note_source_ids": [
-            "src_0634"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ],
-      "avatarUrl": "https://pbs.twimg.com/profile_images/1526143235067985922/DmFx1k13_normal.jpg"
+      "orgs": []
     },
     {
       "id": "jonas",
       "type": "person",
-      "handle": "@jonas",
       "name": "Iterate",
-      "profiles": {
-        "x": "https://x.com/jonas",
-        "linkedin": null
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@jonas",
+          "url": "https://x.com/jonas"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/606150238068310016/LFZvZ_bO_normal.png",
+      "work": {
+        "note": "Argues agents cause real-world side effects mainly through HTTP requests, so human approval belongs at the egress layer, with permission slips signed by a key held in a hardware security unit; an agent able to press \"approve\" defeats human-in-the-loop.",
+        "sourceUrls": [
+          "https://x.com/jonas/status/2079695001160708170"
+        ]
       },
-      "notes": "HTTP-egress approval thesis with hardware-signed permission slips. Alvis replied on blast radius.",
-      "note_source_ids": [
-        "src_0676",
-        "src_0604"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_jonas_work",
-          "kind": "work",
-          "text": "Argues agents cause real-world side effects mainly through HTTP requests, so human approval belongs at the egress layer, with permission slips signed by a key held in a hardware security unit; an agent able to press \"approve\" defeats human-in-the-loop.",
-          "source_ids": [
-            "src_0676"
-          ]
-        },
-        {
-          "id": "claim_jonas_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "alvvst replied that the approve button is inside the blast radius and suggested approval on a second device.",
-          "source_ids": [
-            "src_0604"
-          ],
-          "edge_ids": [
-            "edge_0004"
-          ]
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Public profile lists him as a CEO; previously cofounder/CTO of Monzo. [selection rationale needed]",
-          "previous_note_source_ids": [
-            "src_0633"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ],
-      "avatarUrl": "https://pbs.twimg.com/profile_images/606150238068310016/LFZvZ_bO_normal.png"
+      "orgs": []
     },
     {
       "id": "garrytan",
       "type": "person",
-      "handle": "@garrytan",
       "name": "GStack / GBrain",
-      "profiles": {
-        "x": "https://x.com/garrytan",
-        "linkedin": null
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@garrytan",
+          "url": "https://x.com/garrytan"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2102142455281811456/-kNX65wI_normal.jpg",
+      "work": {
+        "note": "Describes hosted GBrain / GBrain Cloud as autoscaled Postgres with pgvector that lets agent context run across harnesses, and says he has it working on self-improvement on gbrain-evals.",
+        "sourceUrls": [
+          "https://x.com/garrytan/status/2115922231910084638",
+          "https://x.com/garrytan/status/2116303457774899251",
+          "https://x.com/garrytan/status/2115194484367692069"
+        ]
       },
-      "notes": "GBrain: hosted Postgres/pgvector agent context across harnesses; working on gbrain-evals self-improvement.",
-      "note_source_ids": [
-        "src_0677",
-        "src_0678",
-        "src_0679",
-        "src_0603"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_garrytan_work",
-          "kind": "work",
-          "text": "Describes hosted GBrain / GBrain Cloud as autoscaled Postgres with pgvector that lets agent context run across harnesses, and says he has it working on self-improvement on gbrain-evals.",
-          "source_ids": [
-            "src_0677",
-            "src_0678",
-            "src_0679"
-          ]
-        },
-        {
-          "id": "claim_garrytan_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "alvvst replied that 2026 products are \"context-native\", not AI-powered.",
-          "source_ids": [
-            "src_0603"
-          ],
-          "edge_ids": [
-            "edge_0005"
-          ]
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "President and CEO of Y Combinator; creator of GStack and GBrain. [selection rationale needed]",
-          "previous_note_source_ids": [
-            "src_0623"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ],
-      "avatarUrl": "https://pbs.twimg.com/profile_images/2102142455281811456/-kNX65wI_normal.jpg"
+      "orgs": []
     },
     {
       "id": "trq212",
       "type": "person",
-      "handle": "@trq212",
-      "name": null,
-      "profiles": {
-        "x": "https://x.com/trq212",
-        "linkedin": null
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@trq212",
+          "url": "https://x.com/trq212"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1976939058741039104/r3GgzqRh_normal.jpg",
+      "work": {
+        "note": "Reports that \"we removed ~80% of the Claude Code system prompt\" for the newest models, with lessons for writing system prompts, skills and CLAUDE.md files (linked X article).",
+        "sourceUrls": [
+          "https://x.com/trq212/status/2080710971228918066"
+        ]
       },
-      "notes": "Claude Code system-prompt reduction (~80%) and lessons for prompts, skills and CLAUDE.md. Alvis replied.",
-      "note_source_ids": [
-        "src_0680",
-        "src_0605"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_trq212_work",
-          "kind": "work",
-          "text": "Reports that \"we removed ~80% of the Claude Code system prompt\" for the newest models, with lessons for writing system prompts, skills and CLAUDE.md files (linked X article).",
-          "source_ids": [
-            "src_0680"
-          ]
-        },
-        {
-          "id": "claim_trq212_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "alvvst replied predicting models will ship default context and hand-written CLAUDE.md files will fade.",
-          "source_ids": [
-            "src_0605"
-          ],
-          "edge_ids": [
-            "edge_0006"
-          ]
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Formerly worked on Claude Code at Anthropic (per public bio). [selection rationale needed]",
-          "previous_note_source_ids": [
-            "src_0651"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ],
-      "avatarUrl": "https://pbs.twimg.com/profile_images/1976939058741039104/r3GgzqRh_normal.jpg"
+      "orgs": []
     },
     {
       "id": "maria_rcks",
       "type": "person",
-      "handle": "@maria_rcks",
       "name": "T3",
-      "profiles": {
-        "x": "https://x.com/maria_rcks",
-        "linkedin": null
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@maria_rcks",
+          "url": "https://x.com/maria_rcks"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2105167323615141888/ioEz0cXm_normal.jpg",
+      "work": {
+        "note": "Working on T3 Code's design: \"T3 Code is not the prettiest — i'm trying to fix that\", and asks users of her redesign PR stack for feedback.",
+        "sourceUrls": [
+          "https://x.com/maria_rcks/status/2110504180204872112",
+          "https://x.com/maria_rcks/status/2118179214801449134"
+        ]
       },
-      "notes": "Redesigning T3 Code (redesign PR stack). Alvis quoted her post.",
-      "note_source_ids": [
-        "src_0681",
-        "src_0682",
-        "src_0606"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_maria_rcks_work",
-          "kind": "work",
-          "text": "Working on T3 Code's design: \"T3 Code is not the prettiest — i'm trying to fix that\", and asks users of her redesign PR stack for feedback.",
-          "source_ids": [
-            "src_0681",
-            "src_0682"
-          ]
-        },
-        {
-          "id": "claim_maria_rcks_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "alvvst quoted one of her posts.",
-          "source_ids": [
-            "src_0606"
-          ],
-          "edge_ids": [
-            "edge_0007"
-          ]
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Works on T3 Code at @theo corp (per public bio). [selection rationale needed]",
-          "previous_note_source_ids": [
-            "src_0639"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ],
-      "avatarUrl": "https://pbs.twimg.com/profile_images/2105167323615141888/ioEz0cXm_normal.jpg"
+      "orgs": []
     },
     {
       "id": "FlowSkillharnes",
       "type": "organization",
-      "handle": "@FlowSkillharnes",
       "name": "FlowSkill",
-      "profiles": {
-        "x": "https://x.com/FlowSkillharnes",
-        "linkedin": null
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@FlowSkillharnes",
+          "url": "https://x.com/FlowSkillharnes"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2110097031968559104/CbnRwBkv_normal.png",
+      "work": {
+        "note": "Says he built \"flow\" to make a coding agent's \"done\" mean something, since agents report done while files are empty or still contain [FILL].",
+        "sourceUrls": [
+          "https://x.com/FlowSkillharnes/status/2110075170434187320"
+        ]
       },
-      "notes": "Built \"flow\" to make coding-agent \"done\" claims verifiable; replied to Alvis on logs as evidence.",
-      "note_source_ids": [
-        "src_0683",
-        "src_0594"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_FlowSkillharnes_work",
-          "kind": "work",
-          "text": "Says he built \"flow\" to make a coding agent's \"done\" mean something, since agents report done while files are empty or still contain [FILL].",
-          "source_ids": [
-            "src_0683"
-          ]
-        },
-        {
-          "id": "claim_FlowSkillharnes_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "Replied to alvvst that logs of what actually ran are the evidence behind an agent's \"done\" claim.",
-          "source_ids": [
-            "src_0594"
-          ],
-          "edge_ids": [
-            "edge_0008"
-          ]
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Open-source gated harness around an existing coding agent: idea → research → scope → PRD → ADR → contract. [selection rationale needed]",
-          "previous_note_source_ids": [
-            "src_0593"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ],
-      "avatarUrl": "https://pbs.twimg.com/profile_images/2110097031968559104/CbnRwBkv_normal.png"
+      "orgs": []
     },
     {
       "id": "serroai",
       "type": "organization",
-      "handle": "@serroai",
-      "name": null,
-      "profiles": {
-        "x": "https://x.com/serroai",
-        "linkedin": null
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@serroai",
+          "url": "https://x.com/serroai"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2061192679548235776/jjWDuHOG_normal.jpg",
+      "work": {
+        "note": "Serro, introduced by jakejooyoung in a post tagging @serroai, is \"the Agentic TPM\" keeping people and coding agents working from the same evolving program. Omarsar0, quoting the Serro launch, says he likes \"the direction @serroai is taking\" because it \"captures plan changes, checks with the responsible person, and updates the relevant agents\".",
+        "sourceUrls": [
+          "https://x.com/jakejooyoung/status/2115836471513083982",
+          "https://x.com/omarsar0/status/2115843888212590999"
+        ]
       },
-      "notes": "Serro: Agentic TPM keeping people and coding agents on one program. omarsar0 described its plan-change coordination.",
-      "note_source_ids": [
-        "src_0627",
-        "src_0684"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_serroai_work",
-          "kind": "work",
-          "text": "Serro, introduced by jakejooyoung in a post tagging @serroai, is \"the Agentic TPM\" keeping people and coding agents working from the same evolving program.",
-          "source_ids": [
-            "src_0627"
-          ]
-        },
-        {
-          "id": "claim_serroai_selection",
-          "kind": "selection",
-          "basis": "mention",
-          "text": "Selected for agent-coordination work endorsed by a graph member: omarsar0, quoting the Serro launch, says he likes \"the direction @serroai is taking\" because it \"captures plan changes, checks with the responsible person, and updates the relevant agents\".",
-          "source_ids": [
-            "src_0684"
-          ],
-          "edge_ids": []
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Company account for Serro: program engineering for AI-native engineering organizations. [selection rationale needed]",
-          "previous_note_source_ids": [
-            "src_0646"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ],
-      "avatarUrl": "https://pbs.twimg.com/profile_images/2061192679548235776/jjWDuHOG_normal.jpg"
+      "orgs": []
     },
     {
       "id": "omuxapp",
       "type": "organization",
-      "handle": "@omuxapp",
-      "name": null,
-      "profiles": {
-        "x": "https://x.com/omuxapp",
-        "linkedin": null
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@omuxapp",
+          "url": "https://x.com/omuxapp"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2116879793417326593/YdWV5_-U_normal.jpg",
+      "work": {
+        "note": "omux.app: native terminal sessions for Claude Code and Codex with approval cards, a worktree per session, resumable conversations and diffs. Replied to fredrivett that his coding-agent workspace wishlist \"is basically omux\".",
+        "sourceUrls": [
+          "https://omux.app",
+          "https://x.com/omuxapp/status/2118435439875096646"
+        ]
       },
-      "notes": "Native agent-terminal app: per-session worktrees, approval cards, resumable sessions. Replied to Fred's wishlist.",
-      "note_source_ids": [
-        "src_0685",
-        "src_0454"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_omuxapp_work",
-          "kind": "work",
-          "text": "omux.app: native terminal sessions for Claude Code and Codex with approval cards, a worktree per session, resumable conversations and diffs.",
-          "source_ids": [
-            "src_0685"
-          ]
-        },
-        {
-          "id": "claim_omuxapp_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "Replied to fredrivett that his coding-agent workspace wishlist \"is basically omux\".",
-          "source_ids": [
-            "src_0454"
-          ],
-          "edge_ids": []
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Native Mac mission-control window for Claude Code and Codex sessions. [selection rationale needed]",
-          "previous_note_source_ids": [
-            "src_0645"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ],
-      "avatarUrl": "https://pbs.twimg.com/profile_images/2116879793417326593/YdWV5_-U_normal.jpg"
+      "orgs": []
     },
     {
       "id": "permit_io",
       "type": "organization",
-      "handle": "@permit_io",
       "name": "Permit.io",
-      "profiles": {
-        "x": "https://x.com/permit_io",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@permit_io",
+          "url": "https://x.com/permit_io"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/1742856459585511424/VR5DjWCN_normal.jpg",
-      "notes": "Fine-grained authorization for apps and AI agents; SurrealDB case study names Permit. Country seed for authz-runtime-policy.",
-      "note_source_ids": [
-        "src_0686",
-        "src_0687"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_permit_io_work",
-          "kind": "work",
-          "text": "Permit.io homepage: \"Fine-Grained Authorization for Apps and AI Agents\".",
-          "source_ids": [
-            "src_0686"
-          ]
-        },
-        {
-          "id": "claim_permit_io_selection",
-          "kind": "selection",
-          "basis": "mention",
-          "text": "Selected for AI-era authorization work named in a third-party case study: SurrealDB names @permit_io as delivering authorization-as-a-service for the AI era, using SurrealDB after its in-house OPA engine hit scale limits.",
-          "source_ids": [
-            "src_0687"
-          ],
-          "edge_ids": []
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Authorization platform (“never build permissions again”). Country seed for authz-runtime-policy.",
-          "previous_note_source_ids": [
-            "src_0471"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "Permit.io homepage: \"Fine-Grained Authorization for Apps and AI Agents\". SurrealDB names @permit_io as delivering authorization-as-a-service for the AI era, using SurrealDB after its in-house OPA engine hit scale limits.",
+        "sourceUrls": [
+          "https://www.permit.io",
+          "https://x.com/SurrealDB/status/1975856442931548281"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "authzed",
       "type": "organization",
-      "handle": "@authzed",
       "name": "authzed",
-      "profiles": {
-        "x": "https://x.com/authzed",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@authzed",
+          "url": "https://x.com/authzed"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/1636152006912909312/y1_f08hC_normal.jpg",
-      "notes": "SpiceDB Zanzibar-inspired permissions database. AuthZed names JacobMoshenko its CEO (agentic-AI permissions roundtable). Country seed for authz-runtime-policy.",
-      "note_source_ids": [
-        "src_0688",
-        "src_0190"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_authzed_work",
-          "kind": "work",
-          "text": "SpiceDB docs describe an open-source, Google Zanzibar-inspired permissions database.",
-          "source_ids": [
-            "src_0688"
-          ]
-        },
-        {
-          "id": "claim_authzed_selection",
-          "kind": "selection",
-          "basis": "affiliation",
-          "text": "AuthZed announces a roundtable on permissions in agentic AI \"hosted by AuthZed CEO @JacobMoshenko\".",
-          "source_ids": [
-            "src_0190"
-          ],
-          "edge_ids": []
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Creators of SpiceDB; ChatGPT uses AuthZed for authorization. Country seed for authz-runtime-policy.",
-          "previous_note_source_ids": [
-            "src_0187"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "SpiceDB docs describe an open-source, Google Zanzibar-inspired permissions database. AuthZed announces a roundtable on permissions in agentic AI \"hosted by AuthZed CEO @JacobMoshenko\".",
+        "sourceUrls": [
+          "https://authzed.com/docs/spicedb/getting-started/discovering-spicedb",
+          "https://x.com/authzed/status/2092661164769521718"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "cerbosdev",
       "type": "organization",
-      "handle": "@cerbosdev",
       "name": "Cerbos",
-      "profiles": {
-        "x": "https://x.com/cerbosdev",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@cerbosdev",
+          "url": "https://x.com/cerbosdev"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/1592926380639100931/yLJWMEnw_normal.jpg",
-      "notes": "Authorization platform for apps, APIs and AI agents. Partnered with iProov for named-person approval of agent actions. Country seed for authz-runtime-policy.",
-      "note_source_ids": [
-        "src_0689",
-        "src_0211"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_cerbosdev_work",
-          "kind": "work",
-          "text": "Cerbos docs: an authorization management platform for applications, APIs, AI agents, MCP servers, services and workloads.",
-          "source_ids": [
-            "src_0689"
-          ]
-        },
-        {
-          "id": "claim_cerbosdev_selection",
-          "kind": "selection",
-          "basis": "affiliation",
-          "text": "Cerbos announces it partnered with @iProov so a named person approves high-stakes AI agent actions before they run.",
-          "source_ids": [
-            "src_0211"
-          ],
-          "edge_ids": []
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Authorization for enterprise software and AI. Country seed for authz-runtime-policy.",
-          "previous_note_source_ids": [
-            "src_0209"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "Cerbos docs: an authorization management platform for applications, APIs, AI agents, MCP servers, services and workloads. Cerbos announces it partnered with @iProov so a named person approves high-stakes AI agent actions before they run.",
+        "sourceUrls": [
+          "https://docs.cerbos.dev",
+          "https://x.com/cerbosdev/status/2115720547493613892"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "joaomdmoura",
       "type": "person",
-      "handle": "@joaomdmoura",
       "name": "João Moura",
-      "profiles": {
-        "x": "https://x.com/joaomdmoura",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@joaomdmoura",
+          "url": "https://x.com/joaomdmoura"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/1993772444268810240/FPCMce3S_normal.jpg",
-      "notes": "Announced CrewAI's Agent Control Plane launch; CrewAI names him CEO & founder.",
-      "note_source_ids": [
-        "src_0327",
-        "src_0306"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_joaomdmoura_work",
-          "kind": "work",
-          "text": "Announced the launch of CrewAI’s Agent Control Plane (\"what is live today\" linked).",
-          "source_ids": [
-            "src_0327"
-          ]
-        },
-        {
-          "id": "claim_joaomdmoura_selection",
-          "kind": "selection",
-          "basis": "affiliation",
-          "text": "CrewAI's webinar post names him \"CrewAI’s CEO & founder\".",
-          "source_ids": [
-            "src_0306"
-          ],
-          "edge_ids": [
-            "edge_0384"
-          ]
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Founder/CEO of CrewAI. Launched the Agent Control Plane for visibility, cost control, and runtime policies across orchestrated agents (governance in the execution runtime, not only at an HTTP gateway).",
-          "previous_note_source_ids": [
-            "src_0327",
-            "src_0306"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "Announced the launch of CrewAI’s Agent Control Plane (\"what is live today\" linked).",
+        "sourceUrls": [
+          "https://x.com/i/status/2111120337060639052"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "Agentverse_ai",
       "type": "organization",
-      "handle": "@Agentverse_ai",
       "name": "Agentverse",
-      "profiles": {
-        "x": "https://x.com/Agentverse_ai",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@Agentverse_ai",
+          "url": "https://x.com/Agentverse_ai"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/1962834474632179712/tMi1wd28_normal.jpg",
-      "notes": "Agent discovery/hosting platform (Fetch.ai); SDK registration for A2A/CrewAI/LangGraph agents; mailbox and matching loop.",
-      "note_source_ids": [
-        "src_0690",
-        "src_0324",
-        "src_0691"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_Agentverse_ai_work",
-          "kind": "work",
-          "text": "Agentverse docs: the AI agent discovery and growth platform for the Fetch.ai ecosystem, for launching, hosting and connecting agents. Its post tells A2A, CrewAI or LangGraph builders to register with the Agentverse SDK.",
-          "source_ids": [
-            "src_0690",
-            "src_0324"
-          ]
-        },
-        {
-          "id": "claim_Agentverse_ai_selection",
-          "kind": "selection",
-          "basis": "relevant_work",
-          "text": "Selected for agent discovery and messaging: its post describes the loop for connected agents (offline mailbox, job matching, being picked, history).",
-          "source_ids": [
-            "src_0691"
-          ],
-          "edge_ids": []
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Agent directory/marketplace: register agents (A2A, CrewAI, or LangGraph) with the Agentverse SDK, publish a profile/README as the job card, then match and pick agents for work. Discovery vs selection, mailbox for offline messages.",
-          "previous_note_source_ids": [
-            "src_0324",
-            "src_0323"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "Agentverse docs: the AI agent discovery and growth platform for the Fetch.ai ecosystem, for launching, hosting and connecting agents. Its post tells A2A, CrewAI or LangGraph builders to register with the Agentverse SDK. Its post describes the loop for connected agents (offline mailbox, job matching, being picked, history).",
+        "sourceUrls": [
+          "https://docs.agentverse.ai",
+          "https://x.com/i/status/2110340868179673465",
+          "https://x.com/Agentverse_ai/status/2112225269440282997"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "helicone_ai",
       "type": "organization",
-      "handle": "@helicone_ai",
       "name": "Helicone",
-      "profiles": {
-        "x": "https://x.com/helicone_ai",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@helicone_ai",
+          "url": "https://x.com/helicone_ai"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/1768635467518382080/52olghTi_normal.jpg",
-      "notes": "AI gateway with logging/observability (maintenance mode since March 2026). Replicas was built while its creator worked at Helicone.",
-      "note_source_ids": [
-        "src_0692",
-        "src_0309",
-        "src_0693"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_helicone_ai_work",
-          "kind": "work",
-          "text": "Helicone docs: OpenAI-compatible access to 100+ models with automatic logging, observability and fallbacks. Helicone announced in March 2026 it is joining Mintlify and moving to maintenance mode with no new features.",
-          "source_ids": [
-            "src_0692",
-            "src_0309"
-          ]
-        },
-        {
-          "id": "claim_helicone_ai_selection",
-          "kind": "selection",
-          "basis": "mention",
-          "text": "Selected for its stated link to Replicas (graph node tryreplicas): coleywoleyyy, quoting connortbot, says Connor built @tryreplicas while working at @helicone_ai and \"we used it internally to handle about 70% of our bug reports\".",
-          "source_ids": [
-            "src_0693"
-          ],
-          "edge_ids": []
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Open-source AI gateway and LLM observability. Documented a one-line DSPy integration that gives full observability across DSPy programs; later announced joining Mintlify and moving the platform to maintenance mode.",
-          "previous_note_source_ids": [
-            "src_0305",
-            "src_0309"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "Helicone docs: OpenAI-compatible access to 100+ models with automatic logging, observability and fallbacks. Helicone announced in March 2026 it is joining Mintlify and moving to maintenance mode with no new features. Coleywoleyyy, quoting connortbot, says Connor built @tryreplicas while working at @helicone_ai and \"we used it internally to handle about 70% of our bug reports\".",
+        "sourceUrls": [
+          "https://docs.helicone.ai/getting-started/quick-start",
+          "https://x.com/i/status/2028879155581145439",
+          "https://x.com/coleywoleyyy/status/2032157596325724277"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "AgentOpsAI",
       "type": "organization",
-      "handle": "@AgentOpsAI",
       "name": "AgentOps",
-      "profiles": {
-        "x": "https://x.com/AgentOpsAI",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@AgentOpsAI",
+          "url": "https://x.com/AgentOpsAI"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/1837604284344807424/B7KYrv04_normal.jpg",
-      "notes": "Agent tracing SDK (auto-instrumentation); quoted n_sri_laasya's AgentOps+Agno observability walkthrough.",
-      "note_source_ids": [
-        "src_0694",
-        "src_0655"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_AgentOpsAI_work",
-          "kind": "work",
-          "text": "AgentOps docs: an SDK that automatically instruments code and tracks agent traces, with custom traces via decorators.",
-          "source_ids": [
-            "src_0694"
-          ]
-        },
-        {
-          "id": "claim_AgentOpsAI_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "Quoted n_sri_laasya's walkthrough of using @AgentOpsAI for native observability of session management and caching with Agno.",
-          "source_ids": [
-            "src_0655"
-          ],
-          "edge_ids": []
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Agent session tracing and reliability (‘making the next 1 billion agents fast, safe, and reliable’). Amplified a former builder’s Clawtrace work (on-call security/tracing for agents) from a YC web-agents hackathon.",
-          "previous_note_source_ids": [
-            "src_0308"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "AgentOps docs: an SDK that automatically instruments code and tracks agent traces, with custom traces via decorators. Quoted n_sri_laasya's walkthrough of using @AgentOpsAI for native observability of session management and caching with Agno.",
+        "sourceUrls": [
+          "https://docs.agentops.ai/v2/introduction",
+          "https://x.com/AgentOpsAI/status/1950844751877726540"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "mem0ai",
       "type": "organization",
-      "handle": "@mem0ai",
       "name": "mem0",
-      "profiles": {
-        "x": "https://x.com/mem0ai",
-        "linkedin": null
-      },
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@mem0ai",
+          "url": "https://x.com/mem0ai"
+        }
+      ],
       "avatarUrl": "https://pbs.twimg.com/profile_images/2038726039153881088/b3jpb6xu_bigger.jpg",
-      "notes": "Mem0 Gateway: per-agent keys and per-tool allowlists for MCP/API access. Launch quoted by deshrajdry.",
-      "note_source_ids": [
-        "src_0695",
-        "src_0250"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
-        {
-          "id": "claim_mem0ai_work",
-          "kind": "work",
-          "text": "Mem0 Gateway page: connect each MCP server or API once, give every agent its own key and per-tool allowlist, and revoke access without rotating credentials.",
-          "source_ids": [
-            "src_0695"
-          ]
-        },
-        {
-          "id": "claim_mem0ai_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "deshrajdry quoted Mem0's Gateway launch: \"We built Mem0 Gateway since giving an agent a task shouldn’t mean handing it every permission your API key has.\"",
-          "source_ids": [
-            "src_0250"
-          ],
-          "edge_ids": []
-        }
-      ],
-      "notes_history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Memory layer for AI agents; DolphinBench + Gateway tool scopes",
-          "previous_note_source_ids": [
-            "src_0423",
-            "src_0422"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
-        }
-      ]
+      "work": {
+        "note": "Mem0 Gateway page: connect each MCP server or API once, give every agent its own key and per-tool allowlist, and revoke access without rotating credentials. Deshrajdry quoted Mem0's Gateway launch: \"We built Mem0 Gateway since giving an agent a task shouldn’t mean handing it every permission your API key has.\"",
+        "sourceUrls": [
+          "https://mem0.ai/gateway",
+          "https://x.com/deshrajdry/status/2099902701396242784"
+        ]
+      },
+      "orgs": []
     },
     {
       "id": "charlespacker",
       "type": "person",
-      "handle": "@charlespacker",
       "name": "Charles Packer",
-      "profiles": {
-        "x": "https://x.com/charlespacker",
-        "linkedin": null
-      },
-      "avatarUrl": "https://pbs.twimg.com/profile_images/1956206627440484352/V7FCNqxS_bigger.jpg",
-      "notes": "Memory-generation analysis across models (Letta results). Replied to Letta.",
-      "note_source_ids": [
-        "src_0215",
-        "src_0212"
-      ],
-      "topics": [],
-      "projects": [],
-      "claims": [
+      "profiles": [
         {
-          "id": "claim_charlespacker_work",
-          "kind": "work",
-          "text": "Reports that GPT models are significantly worse than open-weights frontier models at memory generation, tending to write \"rules\" instead of generalized learnings, in a post quoting Letta_AI.",
-          "source_ids": [
-            "src_0215"
-          ]
-        },
-        {
-          "id": "claim_charlespacker_selection",
-          "kind": "selection",
-          "basis": "interaction",
-          "text": "Replied to a Letta_AI post.",
-          "source_ids": [
-            "src_0212"
-          ],
-          "edge_ids": [
-            "edge_0430"
-          ]
+          "platform": "x",
+          "handle": "@charlespacker",
+          "url": "https://x.com/charlespacker"
         }
       ],
-      "notes_history": [
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1956206627440484352/V7FCNqxS_bigger.jpg",
+      "work": {
+        "note": "Reports that GPT models are significantly worse than open-weights frontier models at memory generation, tending to write \"rules\" instead of generalized learnings, in a post quoting Letta_AI.",
+        "sourceUrls": [
+          "https://x.com/charlespacker/status/2117705131756249520"
+        ]
+      },
+      "orgs": []
+    },
+    {
+      "id": "5a8a9e90-5cf4-4f26-87c8-7f5f84e51b02",
+      "type": "person",
+      "name": "Thomas Wood",
+      "profiles": [
         {
-          "batch": "autonomy-batch-1",
-          "previous_notes": "Letta CEO; MemGPT / memory-generation research",
-          "previous_note_source_ids": [
-            "src_0215"
-          ],
-          "status": "superseded; legacy text retained for provenance, not published as verified"
+          "platform": "bluesky",
+          "handle": "@advanced-eschatonics.com",
+          "url": "https://bsky.app/profile/advanced-eschatonics.com"
+        }
+      ],
+      "work": {
+        "note": "Builds Crow, an open-source coding-agent and multi-agent orchestration system.",
+        "sourceUrls": [
+          "https://crow-ai.dev/",
+          "https://github.com/odellus/crow-cli"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "Crow",
+          "url": "https://crow-ai.dev/",
+          "sourceUrls": [
+            "https://crow-ai.dev/",
+            "https://github.com/odellus/crow-cli"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a33bf5eb-0a52-40f5-bafe-749213e6f26a",
+      "type": "person",
+      "name": "Orual",
+      "profiles": [
+        {
+          "platform": "bluesky",
+          "handle": "@nonbinary.computer",
+          "url": "https://bsky.app/profile/nonbinary.computer"
+        }
+      ],
+      "work": {
+        "note": "Builds Pattern, a Rust agent framework with agent groups, specialized roles, communication tools, and memory.",
+        "sourceUrls": [
+          "https://github.com/orual/pattern",
+          "https://whtwnd.com/nonbinary.computer/3lvhchxgab72l"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "Pattern",
+          "url": "https://github.com/orual/pattern",
+          "sourceUrls": [
+            "https://github.com/orual/pattern",
+            "https://whtwnd.com/nonbinary.computer/3lvhchxgab72l"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "5218e62c-cea0-4a5d-9be7-4ddbc8225fe2",
+      "type": "person",
+      "name": "Will",
+      "profiles": [
+        {
+          "platform": "bluesky",
+          "handle": "@alpacasoft.dev",
+          "url": "https://bsky.app/profile/alpacasoft.dev"
+        }
+      ],
+      "work": {
+        "note": "Builds Cairns, a system for splitting public research jobs across human and AI agents, with independent checks and provenance.",
+        "sourceUrls": [
+          "https://tangled.org/alpacasoft.dev/cairns",
+          "https://tangled.org/alpacasoft.dev/cairns/blob/main/docs/maintain.md"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "Cairns",
+          "url": "https://tangled.org/alpacasoft.dev/cairns",
+          "sourceUrls": [
+            "https://tangled.org/alpacasoft.dev/cairns",
+            "https://tangled.org/alpacasoft.dev/cairns/blob/main/docs/maintain.md"
+          ]
         }
       ]
     }
@@ -1957,185 +788,124 @@
   "edges": [
     {
       "id": "edge_0002",
-      "source": "alvvst",
-      "target": "theo",
+      "from": "alvvst",
+      "to": "theo",
       "kind": "interaction",
-      "source_ids": [
-        "src_0613"
+      "sourceUrls": [
+        "https://x.com/alvvst/status/2115436293085946181"
       ]
     },
     {
       "id": "edge_0003",
-      "source": "alvvst",
-      "target": "jullerino",
+      "from": "alvvst",
+      "to": "jullerino",
       "kind": "interaction",
-      "source_ids": [
-        "src_0611"
+      "sourceUrls": [
+        "https://x.com/alvvst/status/2112090908610994427"
       ]
     },
     {
       "id": "edge_0004",
-      "source": "alvvst",
-      "target": "jonas",
+      "from": "alvvst",
+      "to": "jonas",
       "kind": "interaction",
-      "source_ids": [
-        "src_0604"
+      "sourceUrls": [
+        "https://x.com/alvvst/status/2079839852216889670"
       ]
     },
     {
       "id": "edge_0005",
-      "source": "alvvst",
-      "target": "garrytan",
+      "from": "alvvst",
+      "to": "garrytan",
       "kind": "interaction",
-      "source_ids": [
-        "src_0603"
+      "sourceUrls": [
+        "https://x.com/alvvst/status/2059636986009342344"
       ]
     },
     {
       "id": "edge_0006",
-      "source": "alvvst",
-      "target": "trq212",
+      "from": "alvvst",
+      "to": "trq212",
       "kind": "interaction",
-      "source_ids": [
-        "src_0605"
+      "sourceUrls": [
+        "https://x.com/alvvst/status/2081128376585080889"
       ]
     },
     {
       "id": "edge_0007",
-      "source": "alvvst",
-      "target": "maria_rcks",
+      "from": "alvvst",
+      "to": "maria_rcks",
       "kind": "interaction",
-      "source_ids": [
-        "src_0606"
+      "sourceUrls": [
+        "https://x.com/alvvst/status/2109552685880144333"
       ]
     },
     {
       "id": "edge_0008",
-      "source": "FlowSkillharnes",
-      "target": "alvvst",
+      "from": "FlowSkillharnes",
+      "to": "alvvst",
       "kind": "interaction",
-      "source_ids": [
-        "src_0594"
-      ],
-      "history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous": {
-            "source": "alvvst",
-            "target": "FlowSkillharnes"
-          },
-          "reason": "Direction repair: cited post 2112536295109280018 is authored by FlowSkillharnes replying to alvvst."
-        }
+      "sourceUrls": [
+        "https://x.com/FlowSkillharnes/status/2112536295109280018"
       ]
     },
     {
       "id": "edge_0011",
-      "source": "alvvst",
-      "target": "jakejooyoung",
+      "from": "alvvst",
+      "to": "jakejooyoung",
       "kind": "interaction",
-      "source_ids": [
-        "src_0614"
+      "sourceUrls": [
+        "https://x.com/alvvst/status/2116074939304259760"
       ]
     },
     {
       "id": "edge_0206",
-      "source": "AntithesisHQ",
-      "target": "owickstrom",
+      "from": "AntithesisHQ",
+      "to": "owickstrom",
       "kind": "interaction",
-      "source_ids": [
-        "src_0027"
+      "sourceUrls": [
+        "https://x.com/AntithesisHQ/status/2118316637371945053"
       ]
     },
     {
       "id": "edge_0322",
-      "source": "hillelogram",
-      "target": "AntithesisHQ",
+      "from": "hillelogram",
+      "to": "AntithesisHQ",
       "kind": "affiliation",
-      "source_ids": [
-        "src_0026"
-      ],
       "detail": "Joined Antithesis, per AntithesisHQ.",
-      "history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous": {
-            "detail": null,
-            "incomplete": true,
-            "missing": [
-              "detail"
-            ]
-          },
-          "reason": "Detail repair: AntithesisHQ post states @hillelogram joined Antithesis."
-        }
+      "sourceUrls": [
+        "https://x.com/AntithesisHQ/status/2116210636392968384"
       ]
     },
     {
       "id": "edge_0384",
-      "source": "joaomdmoura",
-      "target": "crewAIInc",
+      "from": "joaomdmoura",
+      "to": "crewAIInc",
       "kind": "affiliation",
-      "source_ids": [
-        "src_0327",
-        "src_0306"
-      ],
       "detail": "Named by CrewAI as \"CrewAI’s CEO & founder\".",
-      "history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous": {
-            "source_ids": [
-              "src_0327"
-            ],
-            "detail": null,
-            "incomplete": true,
-            "missing": [
-              "detail"
-            ]
-          },
-          "reason": "Detail + source append: existing launch post (\"Today we launch CrewAI’s Agent Control Plane\") is kept; the CrewAI webinar post states the role."
-        }
+      "sourceUrls": [
+        "https://x.com/i/status/2111120337060639052",
+        "https://x.com/i/status/2016211465003483295"
       ]
     },
     {
       "id": "edge_0430",
-      "source": "charlespacker",
-      "target": "Letta_AI",
+      "from": "charlespacker",
+      "to": "Letta_AI",
       "kind": "interaction",
-      "source_ids": [
-        "src_0215",
-        "src_0212"
-      ],
-      "history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous": {
-            "source_ids": [
-              "src_0215"
-            ]
-          },
-          "reason": "Source append: 2113439325258154141 is a charlespacker reply to a Letta_AI post (same endpoints, kind, direction). Existing source kept."
-        }
+      "sourceUrls": [
+        "https://x.com/charlespacker/status/2117705131756249520",
+        "https://x.com/charlespacker/status/2113439325258154141"
       ]
     },
     {
       "id": "edge_0431",
-      "source": "sarahwooders",
-      "target": "Letta_AI",
+      "from": "sarahwooders",
+      "to": "Letta_AI",
       "kind": "interaction",
-      "source_ids": [
-        "src_0511",
-        "src_0514"
-      ],
-      "history": [
-        {
-          "batch": "autonomy-batch-1",
-          "previous": {
-            "source_ids": [
-              "src_0511"
-            ]
-          },
-          "reason": "Source append: 2114930857983283572 is a sarahwooders quote of Letta_AI (same endpoints, kind, direction). Existing source kept."
-        }
+      "sourceUrls": [
+        "https://x.com/sarahwooders/status/2112964548533907613",
+        "https://x.com/sarahwooders/status/2114930857983283572"
       ]
     }
   ]
