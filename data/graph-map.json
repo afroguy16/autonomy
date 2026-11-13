@@ -1,7 +1,7 @@
 {
   "meta": {
     "name": "infra-underneath graph map",
-    "version": 4,
+    "version": 5,
     "updated": "2026-11-13",
     "is_sample": false,
     "legend": {
@@ -783,6 +783,690 @@
           ]
         }
       ]
+    },
+    {
+      "id": "SadCreatorTalks",
+      "type": "person",
+      "name": "Sad Creator",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@SadCreatorTalks",
+          "url": "https://x.com/SadCreatorTalks"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1642175310081687552/m4Yssw0v_normal.jpg",
+      "work": {
+        "note": "Publishes a concrete harness-evaluation thesis: coding benchmark results depend heavily on harness, and merge-based evaluation is stricter than task scores.",
+        "sourceUrls": [
+          "https://x.com/SadCreatorTalks/status/2110174392357703833"
+        ]
+      },
+      "orgs": []
+    },
+    {
+      "id": "louislecat",
+      "type": "person",
+      "name": "Louis Lecat",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@louislecat",
+          "url": "https://x.com/louislecat"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1684793337919025152/WCZUSsMq_normal.jpg",
+      "work": {
+        "note": "Builds Upstream email tooling with built-in MCP connectors, a read-only Linear connector and custom MCP servers.",
+        "sourceUrls": [
+          "https://x.com/louislecat/status/2117365072133525722"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "Upstream",
+          "url": "https://www.upstream.do",
+          "socials": {
+            "x": "https://x.com/upstream_do"
+          },
+          "sourceUrls": [
+            "https://x.com/louislecat"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nickvernij",
+      "type": "person",
+      "name": "nick",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@nickvernij",
+          "url": "https://x.com/nickvernij"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1662518028829876226/2fx9FTYP_normal.jpg",
+      "work": {
+        "note": "Describes running an autoresearch agent over six years of radar images to train a near-term rain predictor; Divergent Studio site describes agent-driven experiment branching and measurement.",
+        "sourceUrls": [
+          "https://x.com/nickvernij/status/2108553500397306260",
+          "https://div.io"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "Divergent Labs",
+          "url": "https://div.io",
+          "sourceUrls": [
+            "https://x.com/nickvernij"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shanehegde",
+      "type": "person",
+      "name": "Shane Hegde",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@shanehegde",
+          "url": "https://x.com/shanehegde"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2110608914417057792/D9ysJzsY_normal.jpg",
+      "work": {
+        "note": "As co-founder/CEO of Air, reports Air's creative-task agent shipping new abilities daily and launching automations that run work before the user asks; separately publishes hands-on evaluation of the Figma design agent (template execution, context awareness, latency, passive waiting).",
+        "sourceUrls": [
+          "https://x.com/shanehegde/status/2115865117598560466",
+          "https://x.com/shanehegde/status/2110437810859847873"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "Air",
+          "url": "https://air.inc",
+          "socials": {
+            "x": "https://x.com/airHQ"
+          },
+          "sourceUrls": [
+            "https://x.com/shanehegde"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "yasser_elsaid_",
+      "type": "person",
+      "name": "Yasser",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@yasser_elsaid_",
+          "url": "https://x.com/yasser_elsaid_"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1761628238323802112/pXIc00nu_normal.jpg",
+      "work": {
+        "note": "Launches Chatbase Voice 2.0 combining a voice model with delegated frontier-model reasoning, Procedures, Actions and Guardrails.",
+        "sourceUrls": [
+          "https://x.com/yasser_elsaid_/status/2117316362175500638"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "Chatbase",
+          "url": "https://www.chatbase.co/",
+          "socials": {
+            "x": "https://x.com/chatbase"
+          },
+          "sourceUrls": [
+            "https://x.com/yasser_elsaid_"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "StackDhruv",
+      "type": "person",
+      "name": "dhruvieiei",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@StackDhruv",
+          "url": "https://x.com/StackDhruv"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1937359279566295040/UHYM5hzR_normal.jpg",
+      "work": {
+        "note": "Articulates production-agent evaluation blind spots at Agnost: repeated questions, context loss, false success and frustration can evade task-success metrics.",
+        "sourceUrls": [
+          "https://x.com/StackDhruv/status/2117213619821916527"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "Agnost AI",
+          "url": "https://agnost.ai",
+          "sourceUrls": [
+            "https://x.com/StackDhruv"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "johnroodepic",
+      "type": "person",
+      "name": "John Rood",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@johnroodepic",
+          "url": "https://x.com/johnroodepic"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2107625455813861376/4nNHd8o2_normal.jpg",
+      "work": {
+        "note": "Explains why code audits need a fresh agent session and independent context; official MemoryRouter page describes user-reviewed persistent cross-agent memory.",
+        "sourceUrls": [
+          "https://x.com/johnroodepic/status/2118451097421640057",
+          "https://memoryrouter.ai"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "MemoryRouter",
+          "url": "https://memoryrouter.ai",
+          "sourceUrls": [
+            "https://x.com/johnroodepic"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "noelkimx",
+      "type": "person",
+      "name": "noel",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@noelkimx",
+          "url": "https://x.com/noelkimx"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2111049951354748928/TCuA0aDc_normal.jpg",
+      "work": {
+        "note": "Teaches how prompt injections can persist via agent memory and why database-enforced SELECT privileges are stronger than a flawed SQL parser check.",
+        "sourceUrls": [
+          "https://x.com/noelkimx/status/2115655592694214753",
+          "https://x.com/noelkimx/status/2117107710508589090"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "Quelris",
+          "url": "https://quelris.dev",
+          "sourceUrls": [
+            "https://x.com/noelkimx"
+          ]
+        },
+        {
+          "name": "Qriple",
+          "url": "https://qriple.app",
+          "sourceUrls": [
+            "https://x.com/noelkimx"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "JohnWOE15",
+      "type": "person",
+      "name": "John Haastrup | Software Engineer & Founder",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@JohnWOE15",
+          "url": "https://x.com/JohnWOE15"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2097607417252999168/eHy_8F4j_normal.jpg",
+      "work": {
+        "note": "Built OpsTruth to inspect public GitHub evidence and distinguish checked from unproven software-delivery claims; Proof & State separates execution, verification and receipts.",
+        "sourceUrls": [
+          "https://x.com/JohnWOE15/status/2117334971673199053",
+          "https://proofandstate.com",
+          "https://github.com/AyobamiH/opstruth"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "Proof & State",
+          "url": "https://proofandstate.com",
+          "sourceUrls": [
+            "https://x.com/JohnWOE15"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "grahamneray",
+      "type": "person",
+      "name": "Graham Neray",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@grahamneray",
+          "url": "https://x.com/grahamneray"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2107498883060293632/1D6WpJ1H_normal.jpg",
+      "work": {
+        "note": "Authors a detailed agent-authorization thesis: permissions should narrow dynamically based on previously accessed information, enforced outside individual agents.",
+        "sourceUrls": [
+          "https://www.osohq.com/post/securing-agents-without-defeating-their-purpose"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "Temporal",
+          "url": "https://temporal.io",
+          "socials": {
+            "x": "https://x.com/temporalio"
+          },
+          "sourceUrls": [
+            "https://x.com/grahamneray"
+          ]
+        },
+        {
+          "name": "Oso",
+          "url": "https://www.osohq.com",
+          "socials": {
+            "x": "https://x.com/osoHQ"
+          },
+          "nodeId": "osoHQ",
+          "sourceUrls": [
+            "https://x.com/grahamneray"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cyera_io",
+      "type": "organization",
+      "name": "Cyera",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@cyera_io",
+          "url": "https://x.com/cyera_io"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2072309916375633920/wxJD0NTY_normal.jpg",
+      "work": {
+        "note": "Operates a data, identity and AI-agent security platform; current site describes governing agent identities and removing excessive agent permissions.",
+        "sourceUrls": [
+          "https://cyera.io"
+        ]
+      },
+      "orgs": []
+    },
+    {
+      "id": "outshiftbycisco",
+      "type": "organization",
+      "name": "Outshift by Cisco",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@outshiftbycisco",
+          "url": "https://x.com/outshiftbycisco"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1750113029981696000/4ZddUv52_normal.png",
+      "work": {
+        "note": "Outshift publishes agent-security research: Agent-ToM, a Theory-of-Mind detector that infers an agent's beliefs/intent from execution traces through a Reason-Verify-Refine pipeline with semantic guardrail memory, evaluated (self-reported) on the SHADE-Arena adversarial-monitoring benchmark.",
+        "sourceUrls": [
+          "https://outshift.cisco.com/blog/ai-ml/cognitive-security-detecting-agent-deception",
+          "https://x.com/outshiftbycisco/status/2118395419025613086"
+        ]
+      },
+      "orgs": []
+    },
+    {
+      "id": "JacobMoshenko",
+      "type": "person",
+      "name": "Jacob Moshenko",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@JacobMoshenko",
+          "url": "https://x.com/JacobMoshenko"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1587190895622983681/PKGJ1vI7_normal.jpg",
+      "work": {
+        "note": "Teaches fine-grained application authorization and how AuthZed/SpiceDB separates permission data from application logic; recounts building Quay and evolving beyond coarse repository roles.",
+        "sourceUrls": [
+          "https://www.matchrelevant.com/podcast/jacob-moshenko-talks-authzed-the-future-of-fine-grained-permissions"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "AuthZed",
+          "url": "https://authzed.com",
+          "socials": {
+            "x": "https://x.com/authzed"
+          },
+          "nodeId": "authzed",
+          "sourceUrls": [
+            "https://x.com/JacobMoshenko"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CamelAIOrg",
+      "type": "organization",
+      "name": "CAMEL-AI.org",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@CamelAIOrg",
+          "url": "https://x.com/CamelAIOrg"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1750937728701632512/VXvNnpL1_normal.jpg",
+      "work": {
+        "note": "CAMEL provides concrete multi-agent framework code/cookbooks, including role-playing data scraping/reporting and stateful agent memory.",
+        "sourceUrls": [
+          "https://github.com/camel-ai/camel"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "Eigent AI",
+          "url": "https://www.eigent.ai/",
+          "socials": {
+            "x": "https://x.com/Eigent_AI"
+          },
+          "nodeId": "Eigent_AI",
+          "sourceUrls": [
+            "https://x.com/CamelAIOrg"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Eigent_AI",
+      "type": "organization",
+      "name": "Eigent AI",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@Eigent_AI",
+          "url": "https://x.com/Eigent_AI"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1949976555335065601/syUm4_0k_normal.jpg",
+      "work": {
+        "note": "Ships cowork desktop sessions, explicit approval cards and task-to-skill/automation reuse in v1.0.7.",
+        "sourceUrls": [
+          "https://x.com/Eigent_AI/status/2116198268354929008"
+        ]
+      },
+      "orgs": []
+    },
+    {
+      "id": "ag2oss",
+      "type": "organization",
+      "name": "AG2",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@ag2oss",
+          "url": "https://x.com/ag2oss"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1879940580719087616/f52Q0GSU_normal.jpg",
+      "work": {
+        "note": "AG2 v1.0.0 framework release specifies event-stream substrate, long-running harness, multi-agent network, realtime voice and protocol adapters.",
+        "sourceUrls": [
+          "https://x.com/ag2oss/status/2081771595769450716"
+        ]
+      },
+      "orgs": []
+    },
+    {
+      "id": "Chi_Wang_",
+      "type": "person",
+      "name": "Chi Wang",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@Chi_Wang_",
+          "url": "https://x.com/Chi_Wang_"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1709614695198371840/jtHJjNXQ_normal.jpg",
+      "work": {
+        "note": "Introduces shared rooms for people and their personal agents; explains explicit agent identity/permission and an auditable shared room record.",
+        "sourceUrls": [
+          "https://x.com/Chi_Wang_/status/2117293406959378915",
+          "https://x.com/Chi_Wang_/status/2118437296387322283"
+        ]
+      },
+      "orgs": []
+    },
+    {
+      "id": "honeyhiveai",
+      "type": "organization",
+      "name": "HoneyHive",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@honeyhiveai",
+          "url": "https://x.com/honeyhiveai"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2087360467891068928/xOSkkY3Z_normal.jpg",
+      "work": {
+        "note": "HoneyHive announces OTLP Agent Bricks session observability and Agentforce conversation evaluation with tool/routing/cost/latency capture.",
+        "sourceUrls": [
+          "https://x.com/honeyhiveai/status/2088025251896578127"
+        ]
+      },
+      "orgs": []
+    },
+    {
+      "id": "arizeai",
+      "type": "organization",
+      "name": "Arize AI",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@arizeai",
+          "url": "https://x.com/arizeai"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2089685591856136193/QfrWjQo2_normal.jpg",
+      "work": {
+        "note": "Publishes an agent-observability execution-graph thesis and offers agent tracing/evaluation platform.",
+        "sourceUrls": [
+          "https://x.com/arizeai/status/2118070802100920827"
+        ]
+      },
+      "orgs": []
+    },
+    {
+      "id": "PortkeyAI",
+      "type": "organization",
+      "name": "Portkey",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@PortkeyAI",
+          "url": "https://x.com/PortkeyAI"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1678800913291694080/PdAHtaDW_normal.jpg",
+      "work": {
+        "note": "Provides AI Gateway/observability/guardrails/governance stack; announces joining Palo Alto and future Prisma AIRS gateway integration.",
+        "sourceUrls": [
+          "https://portkey.ai/",
+          "https://x.com/PortkeyAI/status/2060359251500159482"
+        ]
+      },
+      "orgs": []
+    },
+    {
+      "id": "taranjeetio",
+      "type": "person",
+      "name": "Taranjeet",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@taranjeetio",
+          "url": "https://x.com/taranjeetio"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1618616760353316864/p9apeyr6_normal.jpg",
+      "work": {
+        "note": "Introduces Mem0 Gateway granting agents only necessary tools; original Mem0 post specifies grant changes and credential isolation.",
+        "sourceUrls": [
+          "https://x.com/taranjeetio/status/2099912761019113549",
+          "https://x.com/mem0ai/status/2099898611337474354"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "Mem0",
+          "url": "https://mem0.ai",
+          "socials": {
+            "x": "https://x.com/mem0ai"
+          },
+          "nodeId": "mem0ai",
+          "sourceUrls": [
+            "https://x.com/taranjeetio"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deshrajdry",
+      "type": "person",
+      "name": "Deshraj Yadav",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@deshrajdry",
+          "url": "https://x.com/deshrajdry"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1769067760087359488/ZBroPsdK_normal.jpg",
+      "work": {
+        "note": "Says his team built Mem0 Gateway to avoid granting every API-key permission for one task; original release explains tool grants.",
+        "sourceUrls": [
+          "https://x.com/deshrajdry/status/2099902701396242784"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "Mem0",
+          "url": "https://mem0.ai",
+          "socials": {
+            "x": "https://x.com/mem0ai"
+          },
+          "nodeId": "mem0ai",
+          "sourceUrls": [
+            "https://x.com/deshrajdry"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RudrajMehta",
+      "type": "person",
+      "name": "Rudraj Mehta",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@RudrajMehta",
+          "url": "https://x.com/RudrajMehta"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1455466550555783174/oeusSumZ_normal.jpg",
+      "work": {
+        "note": "Explains Gateway’s tool-level access controls with centrally managed connectors/permissions and a single key.",
+        "sourceUrls": [
+          "https://x.com/RudrajMehta/status/2100279589251793313"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "Mem0",
+          "url": "https://mem0.ai",
+          "socials": {
+            "x": "https://x.com/mem0ai"
+          },
+          "nodeId": "mem0ai",
+          "sourceUrls": [
+            "https://x.com/RudrajMehta"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "himanshutwtxs",
+      "type": "person",
+      "name": "hims",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@himanshutwtxs",
+          "url": "https://x.com/himanshutwtxs"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1924099686123597825/gJe2i2Jf_normal.jpg",
+      "work": {
+        "note": "Co-announces Mem0 Gateway tool-level controls, a single key for MCP/API connectors, and one-page permission management.",
+        "sourceUrls": [
+          "https://x.com/himanshutwtxs/status/2099900885380002125"
+        ]
+      },
+      "orgs": [
+        {
+          "name": "Mem0",
+          "url": "https://mem0.ai",
+          "socials": {
+            "x": "https://x.com/mem0ai"
+          },
+          "nodeId": "mem0ai",
+          "sourceUrls": [
+            "https://x.com/himanshutwtxs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bot",
+      "type": "organization",
+      "name": "Grok Bot",
+      "profiles": [
+        {
+          "platform": "x",
+          "handle": "@bot",
+          "url": "https://x.com/bot"
+        }
+      ],
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2087219239275069440/KW6C403V_normal.jpg",
+      "work": {
+        "note": "The @bot (Grok Bot) product account publicly reports an approval-gated support workflow: Grok Bot spotted an incident in a support queue and cleared 204 associated tickets in about 10 minutes, with one engineer approving the batch.",
+        "sourceUrls": [
+          "https://x.com/bot/status/2112645531076096330"
+        ]
+      },
+      "orgs": []
     }
   ],
   "edges": [
@@ -906,6 +1590,146 @@
       "sourceUrls": [
         "https://x.com/sarahwooders/status/2112964548533907613",
         "https://x.com/sarahwooders/status/2114930857983283572"
+      ]
+    },
+    {
+      "id": "edge_x_2112112521934958895",
+      "from": "alvvst",
+      "to": "SadCreatorTalks",
+      "kind": "interaction",
+      "label": "quotes",
+      "sourceUrls": [
+        "https://x.com/alvvst/status/2112112521934958895"
+      ]
+    },
+    {
+      "id": "edge_x_2115811454297289162",
+      "from": "louislecat",
+      "to": "alvvst",
+      "kind": "interaction",
+      "label": "replies to",
+      "sourceUrls": [
+        "https://x.com/louislecat/status/2115811454297289162"
+      ]
+    },
+    {
+      "id": "edge_x_2109933662837887144",
+      "from": "alvvst",
+      "to": "nickvernij",
+      "kind": "interaction",
+      "label": "quotes",
+      "sourceUrls": [
+        "https://x.com/alvvst/status/2109933662837887144"
+      ]
+    },
+    {
+      "id": "edge_x_2111032405620359479",
+      "from": "alvvst",
+      "to": "shanehegde",
+      "kind": "interaction",
+      "label": "quotes",
+      "sourceUrls": [
+        "https://x.com/alvvst/status/2111032405620359479"
+      ]
+    },
+    {
+      "id": "edge_x_2111017053620453691",
+      "from": "alvvst",
+      "to": "yasser_elsaid_",
+      "kind": "interaction",
+      "label": "quotes",
+      "sourceUrls": [
+        "https://x.com/alvvst/status/2111017053620453691"
+      ]
+    },
+    {
+      "id": "edge_x_2117552367218434191",
+      "from": "alvvst",
+      "to": "StackDhruv",
+      "kind": "interaction",
+      "label": "quotes",
+      "sourceUrls": [
+        "https://x.com/alvvst/status/2117552367218434191"
+      ]
+    },
+    {
+      "id": "edge_x_2118020968086229224",
+      "from": "johnroodepic",
+      "to": "SadCreatorTalks",
+      "kind": "interaction",
+      "label": "replies to",
+      "sourceUrls": [
+        "https://x.com/johnroodepic/status/2118020968086229224"
+      ]
+    },
+    {
+      "id": "edge_x_2118019513296031889",
+      "from": "noelkimx",
+      "to": "SadCreatorTalks",
+      "kind": "interaction",
+      "label": "replies to",
+      "sourceUrls": [
+        "https://x.com/noelkimx/status/2118019513296031889"
+      ]
+    },
+    {
+      "id": "edge_x_2112963174639280167",
+      "from": "FlowSkillharnes",
+      "to": "JohnWOE15",
+      "kind": "interaction",
+      "label": "replies to",
+      "sourceUrls": [
+        "https://x.com/FlowSkillharnes/status/2112963174639280167"
+      ]
+    },
+    {
+      "id": "edge_x_2117307431630114865",
+      "from": "ag2oss",
+      "to": "Chi_Wang_",
+      "kind": "interaction",
+      "label": "replies to",
+      "sourceUrls": [
+        "https://x.com/ag2oss/status/2117307431630114865"
+      ]
+    },
+    {
+      "id": "edge_x_2099912761019113549",
+      "from": "taranjeetio",
+      "to": "mem0ai",
+      "kind": "interaction",
+      "label": "quote-posts",
+      "sourceUrls": [
+        "https://x.com/taranjeetio/status/2099912761019113549"
+      ]
+    },
+    {
+      "id": "edge_x_2099902701396242784",
+      "from": "deshrajdry",
+      "to": "mem0ai",
+      "kind": "interaction",
+      "label": "quote-posts",
+      "sourceUrls": [
+        "https://x.com/deshrajdry/status/2099902701396242784"
+      ]
+    },
+    {
+      "id": "edge_x_2100279589251793313",
+      "from": "RudrajMehta",
+      "to": "mem0ai",
+      "kind": "interaction",
+      "label": "quotes",
+      "sourceUrls": [
+        "https://x.com/RudrajMehta/status/2100279589251793313"
+      ]
+    },
+    {
+      "id": "edge_x_2099900885380002125",
+      "from": "himanshutwtxs",
+      "to": "mem0ai",
+      "kind": "interaction",
+      "label": "quote-posts",
+      "sourceUrls": [
+        "https://x.com/himanshutwtxs/status/2099900885380002125"
       ]
     }
   ]
